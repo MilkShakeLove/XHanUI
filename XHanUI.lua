@@ -12979,7 +12979,7 @@ PaddingBottom=UDim.new(0,aw.UIPadding/2),
 -- XHanUI adjustable single-shadow state.
 -- IMPORTANT: this value is a pure Lua local. It is NOT read from the
 -- native WindUI config and is NEVER written onto a Roblox Instance.
-local __XHanShadowExpansion=24
+local __XHanShadowExpansion=82
 
 local bOuter=ao("ImageLabel",{
 Image="rbxassetid://104482361987216",
@@ -16383,6 +16383,12 @@ return function(WindUI, Window, Options)
     local New = Creator.New
 
     local GlowImage = "rbxassetid://104482361987216"
+
+    -- Previous Bloom resources supplied by the user.
+    -- Bloom16 = broad outer halo, Bloom8 = tighter inner halo.
+    local Bloom16Image = "rbxassetid://104490578391522"
+    local Bloom8Image  = "rbxassetid://102472648910048"
+
     local ModeColor = Color3.fromRGB(230,230,232)
     local BackgroundColor = Color3.fromRGB(15,16,22)
 
@@ -16468,7 +16474,7 @@ return function(WindUI, Window, Options)
         TextSize=Options.TextSize or 15,
         RowHeight=Options.RowHeight or 22,
         Gap=Options.Gap or 3,
-        Display=Options.Display or "Split",
+        Display=Options.Display or "None",
         Glow=Options.Glow~=false,
         ShadowStrength=math.clamp(tonumber(Options.ShadowStrength) or 78,0,100),
         RenderMode=Options.RenderMode~=false,
@@ -16622,6 +16628,37 @@ return function(WindUI, Window, Options)
         return lerpColor(palette[i],palette[j],t)
     end
 
+    local function videoFlowColor(index,total,phaseOffset)
+        total=math.max(tonumber(total) or 1,1)
+        index=tonumber(index) or 1
+
+        -- One continuous hue sweep spans the visible ArrayList.
+        -- FlowSpeed remains "seconds-ish": larger value = slower movement.
+        local seconds=math.max(1.2,(tonumber(FeatureList.FlowSpeed) or 3)*1.7)
+        local travel=(FeatureList.Time/seconds)
+        local vertical=((index-1)/math.max(total-1,1))*0.92
+        local hue=(0.42+travel+vertical+(phaseOffset or 0))%1
+
+        return Color3.fromHSV(hue,0.72,1)
+    end
+
+    local function makeBloomGlow(parent,name,image,expandX,expandY,alpha,z)
+        return New("ImageLabel",{
+            Name=name,
+            Parent=parent,
+            BackgroundTransparency=1,
+            Image=image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=alpha,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.new(1,expandX,1,expandY),
+            ZIndex=z,
+            Active=false,
+        })
+    end
+
     local function makeGlow(parent,name,expand,alpha,z)
         local obj=New("ImageLabel",{
             Name=name,
@@ -16659,6 +16696,21 @@ return function(WindUI, Window, Options)
         r.BarGlow.ImageTransparency=sideGlow
         r.OutlineGlow.ImageTransparency=outlineGlow
 
+        if r.VideoBloomOuter then
+            r.VideoBloomOuter.ImageTransparency=math.clamp(
+                0.92-(0.60*strength),
+                0.22,
+                0.92
+            )
+        end
+        if r.VideoBloomInner then
+            r.VideoBloomInner.ImageTransparency=math.clamp(
+                0.82-(0.62*strength),
+                0.12,
+                0.82
+            )
+        end
+
         r.NameShadow.TextTransparency=textShadow
         r.ModeShadow.TextTransparency=math.clamp(textShadow+0.06,0,1)
         r.BackgroundStroke.Transparency=strokeTransparency
@@ -16685,7 +16737,16 @@ return function(WindUI, Window, Options)
         r.NoneGlow.Size=UDim2.new(1,36,1,10)
         r.NoneGlow.Position=UDim2.fromScale(0.5,0.5)
 
-        r.Background.Visible=FeatureList.Background and FeatureList.Display~="None"
+        if r.VideoBloomOuter then
+            r.VideoBloomOuter.Size=UDim2.new(1,34,1,18)
+            r.VideoBloomOuter.Position=UDim2.fromScale(0.5,0.5)
+        end
+        if r.VideoBloomInner then
+            r.VideoBloomInner.Size=UDim2.new(1,18,1,10)
+            r.VideoBloomInner.Position=UDim2.fromScale(0.5,0.5)
+        end
+
+        -- Final Background visibility is decided below after display-style flags.
         r.Background.Size=UDim2.fromScale(1,1)
 
         r.Mode.Text=mode
@@ -16710,35 +16771,77 @@ return function(WindUI, Window, Options)
         local split=FeatureList.Display=="Split"
         local bar=FeatureList.Display=="Bar"
         local outline=FeatureList.Display=="Outline"
+        local bloomFlow=FeatureList.Display=="BloomFlow"
+
+        -- Video/BloomFlow style is a transparent staircase with a bright
+        -- flowing outline and Bloom halo. It does not use a dark row panel.
+        r.Background.Visible=
+            FeatureList.Background
+            and FeatureList.Display~="None"
+            and not bloomFlow
 
         r.Split.Visible=split
         r.SplitGlow.Visible=split and FeatureList.Glow
+
         r.Bar.Visible=bar
         r.BarGlow.Visible=bar and FeatureList.Glow
-        r.Outline.Visible=outline
+
+        r.Outline.Visible=outline or bloomFlow
         r.OutlineGlow.Visible=outline and FeatureList.Glow
 
-        r.Glow1.Visible=FeatureList.Glow and FeatureList.Display~="None"
+        r.OutlineStroke.Thickness=bloomFlow and 1.25 or 1.5
+        r.OutlineStroke.Transparency=bloomFlow and 0.02 or 0.05
+
+        r.Glow1.Visible=
+            FeatureList.Glow
+            and FeatureList.Display~="None"
+            and not bloomFlow
         r.Glow2.Visible=false
         r.Glow3.Visible=false
-        r.NoneGlow.Visible=FeatureList.Glow and FeatureList.Display=="None"
+
+        -- None means no row box / bar / halo.
+        r.NoneGlow.Visible=false
+
+        if r.VideoBloomOuter then
+            r.VideoBloomOuter.Visible=bloomFlow and FeatureList.Glow
+        end
+        if r.VideoBloomInner then
+            r.VideoBloomInner.Visible=bloomFlow and FeatureList.Glow
+        end
 
         applyShadowStrength(item)
     end
 
     local function applyColors()
         local enabled=sortedEnabled()
+        local total=#enabled
+
         for index,item in ipairs(enabled) do
             local r=item.Refs
             if r then
-                local color=paletteColor(index,0)
-                local color2=paletteColor(index,0.06)
+                local bloomFlow=FeatureList.Display=="BloomFlow"
+
+                local color
+                local color2
+
+                if bloomFlow then
+                    color=videoFlowColor(index,total,0)
+                    color2=videoFlowColor(index,total,0.025)
+                else
+                    color=paletteColor(index,0)
+                    color2=paletteColor(index,0.06)
+                end
+
                 local shadow=darken(color,0.25)
 
                 r.Name.TextColor3=color
                 r.NameShadow.TextColor3=shadow
-                r.Mode.TextColor3=ModeColor
-                r.ModeShadow.TextColor3=Color3.fromRGB(52,52,58)
+
+                -- In the video-like style the whole visible row follows one hue.
+                r.Mode.TextColor3=bloomFlow and color or ModeColor
+                r.ModeShadow.TextColor3=bloomFlow
+                    and darken(color,0.22)
+                    or Color3.fromRGB(52,52,58)
 
                 r.Split.BackgroundColor3=color
                 r.Bar.BackgroundColor3=color
@@ -16751,6 +16854,13 @@ return function(WindUI, Window, Options)
                 r.SplitGlow.ImageColor3=color
                 r.BarGlow.ImageColor3=color
                 r.OutlineGlow.ImageColor3=color
+
+                if r.VideoBloomOuter then
+                    r.VideoBloomOuter.ImageColor3=color
+                end
+                if r.VideoBloomInner then
+                    r.VideoBloomInner.ImageColor3=color2
+                end
 
                 r.Background.BackgroundColor3=BackgroundColor
                 r.BackgroundStroke.Color=color
@@ -16783,8 +16893,19 @@ return function(WindUI, Window, Options)
     FeatureList.SetGlowStrength=FeatureList.SetShadowStrength
 
     function FeatureList:SetDisplay(value)
-        value=tostring(value or "Split")
-        if value~="Split" and value~="Bar" and value~="Outline" and value~="None" then value="Split" end
+        value=tostring(value or "None")
+
+        -- VideoGlow is kept as a friendly alias; internally the style is BloomFlow.
+        if value=="VideoGlow" then value="BloomFlow" end
+
+        if value~="Split"
+        and value~="Bar"
+        and value~="Outline"
+        and value~="None"
+        and value~="BloomFlow" then
+            value="None"
+        end
+
         self.Display=value
         for _,item in pairs(self.Items) do restyle(item) end
         refreshOrders()
@@ -16912,6 +17033,30 @@ return function(WindUI, Window, Options)
         local NoneGlow=makeGlow(Content,"NoneGlow",10,0.34,7011)
         NoneGlow.Visible=false
 
+        -- Video-like flowing Bloom halo.
+        -- Bloom16 creates the broad aura; Bloom8 reinforces the edge.
+        local VideoBloomOuter=makeBloomGlow(
+            Content,
+            "VideoBloomOuter",
+            Bloom16Image,
+            28,
+            18,
+            0.50,
+            7010
+        )
+        VideoBloomOuter.Visible=false
+
+        local VideoBloomInner=makeBloomGlow(
+            Content,
+            "VideoBloomInner",
+            Bloom8Image,
+            14,
+            10,
+            0.30,
+            7011
+        )
+        VideoBloomInner.Visible=false
+
         local NameShadow=New("TextLabel",{
             Name="NameShadow",
             Parent=Content,
@@ -17018,6 +17163,7 @@ return function(WindUI, Window, Options)
         item.Refs={
             Row=Row,Content=Content,
             Glow1=Glow1,Glow2=Glow2,Glow3=Glow3,NoneGlow=NoneGlow,
+            VideoBloomOuter=VideoBloomOuter,VideoBloomInner=VideoBloomInner,
             Background=Background,BackgroundStroke=BackgroundStroke,
             Outline=Outline,OutlineStroke=OutlineStroke,OutlineGlow=OutlineGlow,
             Name=NameText,Mode=ModeText,NameShadow=NameShadow,ModeShadow=ModeShadow,
@@ -17286,7 +17432,7 @@ local function __XHanInstallFeatureList(window,options)
         Mode="XHanUI",
         Width=380,
         Position=UDim2.new(1,-18,0,28),
-        Display="Split",
+        Display="None",
         Glow=true,
         ShadowStrength=78,
         Palette="Starlight",
