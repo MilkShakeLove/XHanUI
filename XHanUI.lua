@@ -1,5 +1,5 @@
 --[[
--- XHanUI 104482361987216 SINGLE whole-window shadow build
+-- XHanUI 104482361987216 SINGLE tight whole-window shadow build
 -- XHanUI main UI shadow asset: 104482361987216
      _      ___         ____  ______
     | | /| / (_)__  ___/ / / / /  _/
@@ -12860,7 +12860,7 @@ pcall(function()
 -- The center stretches with the actual WindUI size while the
 -- original edge/corner area is preserved.
 local shortest=math.min(size.X,size.Y)
-local edge=math.max(4,math.floor(shortest*0.18))
+local edge=math.max(4,math.floor(shortest*0.14))
 edge=math.min(edge,math.floor(shortest/2)-1)
 
 imageObject.SliceCenter=Rect.new(
@@ -12869,7 +12869,7 @@ edge,
 size.X-edge,
 size.Y-edge
 )
-imageObject.SliceScale=1
+imageObject.SliceScale=0.72
 imageObject.ScaleType=Enum.ScaleType.Slice
 end)
 return
@@ -12987,7 +12987,7 @@ BackgroundTransparency=1,
 -- Scale 1,1 = current UI dimensions; only a small fixed halo is added.
 AnchorPoint=Vector2.new(0.5,0.5),
 Position=UDim2.new(0.5,0,0.5,0),
-Size=UDim2.new(1,56,1,56),
+Size=UDim2.new(1,24,1,24),
 
 ScaleType=Enum.ScaleType.Slice,
 SliceCenter=Rect.new(8,8,16,16),
@@ -14050,7 +14050,7 @@ Enum.EasingDirection.Out
 ap(
 bOuter,
 0.30,
-{ImageTransparency=0.08},
+{ImageTransparency=0.06},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out
 ):Play()
