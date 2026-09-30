@@ -1,4 +1,5 @@
 --[[
+-- XHanUI main UI shadow asset: 104482361987216
      _      ___         ____  ______
     | | /| / (_)__  ___/ / / / /  _/
     | |/ |/ / / _ \/ _  / /_/ // /  
@@ -2745,7 +2746,7 @@ CornerRadius=UDim.new(0,ag.UICorner),
 end
 
 ab("ImageLabel",{
-Image="rbxassetid://8992230677",
+Image="rbxassetid://104482361987216",
 ThemeTag={
 ImageColor3="WindowShadow",
 
@@ -8450,7 +8451,7 @@ end
 -- Altex Somnia: selected native Dropdown item glow.
 -- We mirror WindUI's own ImageTransparency state, so native selection logic remains authoritative.
 local __AltexItemGlow=al("ImageLabel",{
-    Image="rbxassetid://8992230677",
+    Image="rbxassetid://104482361987216",
     ImageColor3=Color3.fromRGB(0,0,0),
     ImageTransparency=1,
     BackgroundTransparency=1,
@@ -8794,7 +8795,7 @@ if __AltexSelectorTarget then
     pcall(function() __AltexSelectorTarget.ClipsDescendants=false end)
 
     local __AltexSelectorGlowOuter=ag("ImageLabel",{
-        Image="rbxassetid://8992230677",
+        Image="rbxassetid://104482361987216",
         ImageColor3=Color3.fromRGB(0,0,0),
         ImageTransparency=0.48,
         BackgroundTransparency=1,
@@ -8810,7 +8811,7 @@ if __AltexSelectorTarget then
     })
 
     local __AltexSelectorGlowInner=ag("ImageLabel",{
-        Image="rbxassetid://8992230677",
+        Image="rbxassetid://104482361987216",
         ImageColor3=Color3.fromRGB(0,0,0),
         ImageTransparency=0.24,
         BackgroundTransparency=1,
@@ -12175,7 +12176,8 @@ Size=UDim2.new(1,0,1,0),
 ThemeTag={
 ImageColor3="WindowSearchBarBackground",
 },
-ImageTransparency=0,
+-- XHanUI: search uses shadow styling, never a filled black board.
+ImageTransparency=1,
 },{
 ai.NewRoundFrame(ap.Radius,"Squircle",{
 Size=UDim2.new(1,0,1,0),
@@ -12828,6 +12830,58 @@ Active=false,
 
 
 
+-- XHanUI real shadow-background mode.
+-- The old filled Window/Panel plates stay transparent; these image layers
+-- are the actual visual shell.
+local function __XHanPrepareSlice(imageObject,margin)
+if not imageObject then return end
+task.spawn(function()
+local cp=(cloneref or clonereference or function(x)return x end)(game:GetService("ContentProvider"))
+pcall(function() cp:PreloadAsync({imageObject}) end)
+for _=1,120 do
+if not imageObject or not imageObject.Parent then return end
+local ok,size=pcall(function() return imageObject.ContentImageSize end)
+if ok and size and size.X>(margin*2) and size.Y>(margin*2) then
+pcall(function()
+imageObject.SliceCenter=Rect.new(margin,margin,size.X-margin,size.Y-margin)
+imageObject.SliceScale=1
+imageObject.ScaleType=Enum.ScaleType.Slice
+end)
+return
+end
+task.wait()
+end
+end)
+end
+
+local __XHanSideShadow=ao("ImageLabel",{
+Name="XHanSideShadow",
+Image="rbxassetid://104482361987216",
+ImageColor3=Color3.fromRGB(0,0,0),
+ImageTransparency=0.30,
+BackgroundTransparency=1,
+AnchorPoint=Vector2.new(0.5,0.5),
+Position=UDim2.new(0.5,0,0.5,0),
+Size=UDim2.new(1,54,1,54),
+ScaleType=Enum.ScaleType.Slice,
+SliceCenter=Rect.new(99,99,99,99),
+ZIndex=1,
+})
+
+local __XHanContentShadow=ao("ImageLabel",{
+Name="XHanContentShadow",
+Image="rbxassetid://104482361987216",
+ImageColor3=Color3.fromRGB(0,0,0),
+ImageTransparency=0.26,
+BackgroundTransparency=1,
+AnchorPoint=Vector2.new(0.5,0.5),
+Position=UDim2.new(0.5,0,0.5,0),
+Size=UDim2.new(1,50,1,50),
+ScaleType=Enum.ScaleType.Slice,
+SliceCenter=Rect.new(99,99,99,99),
+ZIndex=1,
+})
+
 aw.UIElements.SideBar=ao("ScrollingFrame",{
 Size=UDim2.new(
 1,
@@ -12883,6 +12937,7 @@ Position=UDim2.new(0,0,0,aw.Topbar.Height),
 BackgroundTransparency=1,
 Visible=true,
 },{
+__XHanSideShadow,
 ao("Frame",{
 Name="Content",
 BackgroundTransparency=1,
@@ -12902,18 +12957,20 @@ Size=UDim2.new(1,-aw.UIElements.SideBarContainer.AbsoluteSize.X,1,-aw.Topbar.Hei
 Position=UDim2.new(1,0,1,0),
 AnchorPoint=Vector2.new(1,1),
 BackgroundTransparency=1,
+ClipsDescendants=false,
 },{
+__XHanContentShadow,
 an.NewRoundFrame(aw.UICorner-(aw.UIPadding/2),"Squircle",{
 Size=UDim2.new(1,0,1,0),
 ThemeTag={
 ImageColor3="PanelBackground",
 ImageTransparency="PanelBackgroundTransparency",
 },
-
+ImageTransparency=1,
 
 ZIndex=3,
 Name="Background",
-Visible=not aw.HidePanelBackground,
+Visible=false,
 }),
 ao("UIPadding",{
 
@@ -12924,34 +12981,30 @@ PaddingBottom=UDim.new(0,aw.UIPadding/2),
 })
 
 local bOuter=ao("ImageLabel",{
-Image="rbxassetid://8992230677",
-ThemeTag={
-ImageColor3="WindowShadow",
-},
+Image="rbxassetid://104482361987216",
+ImageColor3=Color3.fromRGB(0,0,0),
 ImageTransparency=1,
-Size=UDim2.new(1,128,1,128),
-Position=UDim2.new(0,-64,0,-64),
-ScaleType="Slice",
+Size=UDim2.new(1,118,1,118),
+Position=UDim2.new(0,-59,0,-59),
+ScaleType=Enum.ScaleType.Slice,
 SliceCenter=Rect.new(99,99,99,99),
 BackgroundTransparency=1,
 ZIndex=0,
-Name="OuterShadow",
+Name="XHanMainShadowOuter",
 Visible=true,
 })
 
 local b=ao("ImageLabel",{
-Image="rbxassetid://8992230677",
-ThemeTag={
-ImageColor3="WindowShadow",
-},
+Image="rbxassetid://104482361987216",
+ImageColor3=Color3.fromRGB(0,0,0),
 ImageTransparency=1,
-Size=UDim2.new(1,72,1,72),
-Position=UDim2.new(0,-36,0,-36),
-ScaleType="Slice",
+Size=UDim2.new(1,70,1,70),
+Position=UDim2.new(0,-35,0,-35),
+ScaleType=Enum.ScaleType.Slice,
 SliceCenter=Rect.new(99,99,99,99),
 BackgroundTransparency=1,
 ZIndex=1,
-Name="Blur",
+Name="XHanMainShadowInner",
 Visible=true,
 })
 
@@ -13501,6 +13554,11 @@ PaddingBottom=UDim.new(0,aw.UIPadding),
 }),
 })
 
+__XHanPrepareSlice(bOuter,15)
+__XHanPrepareSlice(b,4)
+__XHanPrepareSlice(__XHanSideShadow,4)
+__XHanPrepareSlice(__XHanContentShadow,4)
+
 an.AddSignal(aw.UIElements.Main.Main.Topbar.Left:GetPropertyChangedSignal"AbsoluteSize",function()
 local z=0
 local A=aw.UIElements.Main.Main.Topbar.Right.UIListLayout.AbsoluteContentSize.X
@@ -13977,9 +14035,9 @@ ImageTransparency=0,
 end
 
 aw.UIElements.Main.Background.ImageTransparency=1
+-- XHanUI: never restore WindUI's filled black WindowBackground.
 ap(aw.UIElements.Main.Background,0.4,{
-
-ImageTransparency=aw.Transparent and av.WindUI.TransparencyValue or 0,
+ImageTransparency=1,
 },Enum.EasingStyle.Exponential,Enum.EasingDirection.Out):Play()
 
 if i then
@@ -14007,14 +14065,14 @@ Enum.EasingDirection.Out
 ap(
 bOuter,
 0.30,
-{ImageTransparency=math.clamp(aw.ShadowTransparency+0.18,0,1)},
+{ImageTransparency=0.22},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out
 ):Play()
 ap(
 b,
 0.25,
-{ImageTransparency=math.max(0.10,aw.ShadowTransparency-0.16)},
+{ImageTransparency=0.42},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out
 ):Play()
@@ -14185,10 +14243,10 @@ end
 
 function aw.ToggleTransparency(C,F)
 
-aw.Transparent=F
-av.WindUI.Transparent=F
-
-aw.UIElements.Main.Background.ImageTransparency=F and av.WindUI.TransparencyValue or 0
+-- Background plate is intentionally disabled; only shadow layers remain.
+aw.Transparent=true
+av.WindUI.Transparent=true
+aw.UIElements.Main.Background.ImageTransparency=1
 
 
 end
@@ -15179,7 +15237,7 @@ aa.Themes=a.load'v'(aa,as)
 
 as.Themes=aa.Themes
 
--- XHanUI theme: native WindUI geometry with a black translucent shell.
+-- XHanUI theme: transparent structural shell with shadow-only depth.
 do
 local base=aa.Themes.Dark
 local t={}
@@ -15197,18 +15255,18 @@ t.Button=Color3.fromHex"1D2631"
 t.Icon=Color3.fromHex"C2CBD6"
 t.Primary=Color3.fromHex"8FAEE8"
 
-t.PanelBackground=Color3.fromHex"0D1218"
-t.PanelBackgroundTransparency=0.24
+t.PanelBackground=Color3.fromHex"FFFFFF"
+t.PanelBackgroundTransparency=1
 
-t.WindowBackground=Color3.fromHex"05070A"
+t.WindowBackground=Color3.fromHex"FFFFFF"
 t.WindowShadow=Color3.fromHex"000000"
-t.WindowSearchBarBackground=Color3.fromHex"0D1218"
+t.WindowSearchBarBackground=Color3.fromHex"FFFFFF"
 
 t.TabBackground=Color3.fromHex"0D1218"
 t.TabBackgroundHover=Color3.fromHex"18212C"
-t.TabBackgroundHoverTransparency=0.30
+t.TabBackgroundHoverTransparency=1
 t.TabBackgroundActive=Color3.fromHex"202B38"
-t.TabBackgroundActiveTransparency=0.12
+t.TabBackgroundActiveTransparency=1
 t.TabText=Color3.fromHex"C9D1DB"
 t.TabTextTransparency=0.18
 t.TabTextTransparencyActive=0
@@ -15221,7 +15279,7 @@ t.TabBorderTransparency=1
 t.TabBorderTransparencyActive=0.70
 
 t.ElementBackground=Color3.fromHex"111820"
-t.ElementBackgroundTransparency=0.24
+t.ElementBackgroundTransparency=1
 t.ElementBackgroundHover=Color3.fromHex"1A2531"
 t.ElementTitle=Color3.fromHex"F4F6F8"
 t.ElementDesc=Color3.fromHex"929EAC"
@@ -15235,11 +15293,11 @@ t.Checkbox=Color3.fromHex"8FAEE8"
 t.CheckboxIcon=Color3.fromHex"FFFFFF"
 
 t.SectionBox=Color3.fromHex"252E39"
-t.SectionBoxTransparency=0.64
+t.SectionBoxTransparency=1
 t.SectionBoxBorder=Color3.fromHex"374250"
 t.SectionBoxBorderTransparency=0.50
-t.SectionBoxBackground=Color3.fromHex"0D131A"
-t.SectionBoxBackgroundTransparency=0.28
+t.SectionBoxBackground=Color3.fromHex"FFFFFF"
+t.SectionBoxBackgroundTransparency=1
 
 t.Notification=Color3.fromHex"090D12"
 t.Notification2=Color3.fromHex"151C25"
@@ -15254,9 +15312,9 @@ t.DropdownTabBackground=Color3.fromHex"111820"
 t.DropdownTabBorder=Color3.fromHex"303A47"
 
 t.LabelBackground=Color3.fromHex"151C25"
-t.LabelBackgroundTransparency=0.34
-t.ViewportBackground=Color3.fromHex"0D131A"
-t.ViewportBackgroundTransparency=0.28
+t.LabelBackgroundTransparency=1
+t.ViewportBackground=Color3.fromHex"FFFFFF"
+t.ViewportBackgroundTransparency=1
 
 aa.Themes.XHanUI=t
 aa.Themes.AltexSomnia=t -- compatibility alias
@@ -15410,7 +15468,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.0"
+aa.Version="External-1.3-RealShadowBackground"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -17266,6 +17324,10 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     cfg.Author=cfg.Author or "Syntax"
     cfg.Theme=cfg.Theme or "XHanUI"
 
+    -- The library owns the shadow-only shell. Syntax does not need to override it.
+    cfg.Transparent=true
+    cfg.HidePanelBackground=false
+
     -- XHanUI does not use WindUI's floating OpenButton.
     -- The Dynamic Island is the only open/hide control.
     cfg.OpenButton={
@@ -17282,6 +17344,17 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     if not window then
         return nil
     end
+
+    pcall(function()
+        window.Transparent=true
+        if window.UIElements and window.UIElements.Main and window.UIElements.Main.Background then
+            window.UIElements.Main.Background.ImageTransparency=1
+        end
+        if window.UIElements and window.UIElements.MainBar and window.UIElements.MainBar.Background then
+            window.UIElements.MainBar.Background.Visible=false
+            window.UIElements.MainBar.Background.ImageTransparency=1
+        end
+    end)
 
     -- Permanently suppress WindUI's old floating reopen button.
     window.IsOpenButtonEnabled=false
