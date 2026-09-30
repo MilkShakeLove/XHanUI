@@ -1,5 +1,5 @@
 --[[
--- XHanUI 104482361987216 SINGLE tight whole-window shadow build
+-- XHanUI 104482361987216 SINGLE expanded whole-window shadow build
 -- XHanUI main UI shadow asset: 104482361987216
      _      ___         ____  ______
     | | /| / (_)__  ___/ / / / /  _/
@@ -12860,7 +12860,7 @@ pcall(function()
 -- The center stretches with the actual WindUI size while the
 -- original edge/corner area is preserved.
 local shortest=math.min(size.X,size.Y)
-local edge=math.max(4,math.floor(shortest*0.14))
+local edge=math.max(4,math.floor(shortest*0.15))
 edge=math.min(edge,math.floor(shortest/2)-1)
 
 imageObject.SliceCenter=Rect.new(
@@ -12869,7 +12869,7 @@ edge,
 size.X-edge,
 size.Y-edge
 )
-imageObject.SliceScale=0.72
+imageObject.SliceScale=0.78
 imageObject.ScaleType=Enum.ScaleType.Slice
 end)
 return
@@ -12976,18 +12976,29 @@ PaddingBottom=UDim.new(0,aw.UIPadding/2),
 }),
 })
 
+local __XHanShadowExpansion=math.clamp(
+math.floor((tonumber(aA.ShadowExpansion) or 24)+0.5),
+0,
+160
+)
+
 local bOuter=ao("ImageLabel",{
 Image="rbxassetid://104482361987216",
--- Preserve the asset itself instead of tinting several overlapping copies.
 ImageColor3=Color3.fromRGB(255,255,255),
 ImageTransparency=1,
 BackgroundTransparency=1,
 
--- ONE shadow follows the real size of the complete Main window.
--- Scale 1,1 = current UI dimensions; only a small fixed halo is added.
+-- ONE shadow follows the complete Main window.
+-- ShadowExpansion is pixels PER SIDE:
+-- 24 = 24px outward on left/right/top/bottom (+48 total).
 AnchorPoint=Vector2.new(0.5,0.5),
 Position=UDim2.new(0.5,0,0.5,0),
-Size=UDim2.new(1,24,1,24),
+Size=UDim2.new(
+1,
+__XHanShadowExpansion*2,
+1,
+__XHanShadowExpansion*2
+),
 
 ScaleType=Enum.ScaleType.Slice,
 SliceCenter=Rect.new(8,8,16,16),
@@ -12997,6 +13008,28 @@ ZIndex=0,
 Name="XHanMainSingleShadow",
 Visible=true,
 })
+
+aw.ShadowExpansion=__XHanShadowExpansion
+
+function aw.SetShadowExpansion(_,value)
+local pixels=math.clamp(
+math.floor((tonumber(value) or aw.ShadowExpansion or 24)+0.5),
+0,
+160
+)
+
+aw.ShadowExpansion=pixels
+
+if bOuter and bOuter.Parent then
+bOuter.Size=UDim2.new(1,pixels*2,1,pixels*2)
+end
+
+return pixels
+end
+
+function aw.GetShadowExpansion(_)
+return aw.ShadowExpansion or 24
+end
 
 if af.TouchEnabled and not af.KeyboardEnabled then
 aw.IsPC=false
@@ -17306,6 +17339,11 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     cfg.Title=cfg.Title or "XHanUI"
     cfg.Author=cfg.Author or "Syntax"
     cfg.Theme=cfg.Theme or "XHanUI"
+    cfg.ShadowExpansion=math.clamp(
+        math.floor((tonumber(cfg.ShadowExpansion) or 24)+0.5),
+        0,
+        160
+    )
 
     -- The library owns the shadow-only shell. Syntax does not need to override it.
     cfg.Transparent=true
@@ -17401,6 +17439,20 @@ end
 
 function aa:GetDynamicIsland()
     return self.DynamicIsland
+end
+
+function aa:SetShadowExpansion(value)
+    if not self.Window or type(self.Window.SetShadowExpansion)~="function" then
+        return nil
+    end
+    return self.Window:SetShadowExpansion(value)
+end
+
+function aa:GetShadowExpansion()
+    if not self.Window or type(self.Window.GetShadowExpansion)~="function" then
+        return nil
+    end
+    return self.Window:GetShadowExpansion()
 end
 
 return aa
