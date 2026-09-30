@@ -12976,12 +12976,10 @@ PaddingBottom=UDim.new(0,aw.UIPadding/2),
 }),
 })
 
--- FIX: ShadowExpansion is read from the Window config table (av), never from an Instance.
-local __XHanShadowExpansion=math.clamp(
-math.floor((tonumber(av.ShadowExpansion) or 24)+0.5),
-0,
-160
-)
+-- XHanUI adjustable single-shadow state.
+-- IMPORTANT: this value is a pure Lua local. It is NOT read from the
+-- native WindUI config and is NEVER written onto a Roblox Instance.
+local __XHanShadowExpansion=24
 
 local bOuter=ao("ImageLabel",{
 Image="rbxassetid://104482361987216",
@@ -12990,8 +12988,8 @@ ImageTransparency=1,
 BackgroundTransparency=1,
 
 -- ONE shadow follows the complete Main window.
--- ShadowExpansion is pixels PER SIDE:
--- 24 = 24px outward on left/right/top/bottom (+48 total).
+-- The value is pixels PER SIDE:
+-- 24 = left/right/top/bottom each extend 24px.
 AnchorPoint=Vector2.new(0.5,0.5),
 Position=UDim2.new(0.5,0,0.5,0),
 Size=UDim2.new(
@@ -13010,26 +13008,34 @@ Name="XHanMainSingleShadow",
 Visible=true,
 })
 
-aw.ShadowExpansion=__XHanShadowExpansion
-
 function aw.SetShadowExpansion(_,value)
+local numeric=tonumber(value)
+if numeric==nil then
+return __XHanShadowExpansion
+end
+
 local pixels=math.clamp(
-math.floor((tonumber(value) or aw.ShadowExpansion or 24)+0.5),
+math.floor(numeric+0.5),
 0,
 160
 )
 
-aw.ShadowExpansion=pixels
+__XHanShadowExpansion=pixels
 
 if bOuter and bOuter.Parent then
-bOuter.Size=UDim2.new(1,pixels*2,1,pixels*2)
+bOuter.Size=UDim2.new(
+1,
+pixels*2,
+1,
+pixels*2
+)
 end
 
 return pixels
 end
 
 function aw.GetShadowExpansion(_)
-return aw.ShadowExpansion or 24
+return __XHanShadowExpansion
 end
 
 if af.TouchEnabled and not af.KeyboardEnabled then
@@ -17340,12 +17346,6 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     cfg.Title=cfg.Title or "XHanUI"
     cfg.Author=cfg.Author or "Syntax"
     cfg.Theme=cfg.Theme or "XHanUI"
-    cfg.ShadowExpansion=math.clamp(
-        math.floor((tonumber(cfg.ShadowExpansion) or 24)+0.5),
-        0,
-        160
-    )
-
     -- The library owns the shadow-only shell. Syntax does not need to override it.
     cfg.Transparent=true
     cfg.HidePanelBackground=false
