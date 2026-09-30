@@ -12976,8 +12976,9 @@ PaddingBottom=UDim.new(0,aw.UIPadding/2),
 }),
 })
 
+-- FIX: ShadowExpansion is read from the Window config table (av), never from an Instance.
 local __XHanShadowExpansion=math.clamp(
-math.floor((tonumber(aA.ShadowExpansion) or 24)+0.5),
+math.floor((tonumber(av.ShadowExpansion) or 24)+0.5),
 0,
 160
 )
