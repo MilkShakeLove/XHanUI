@@ -1,3 +1,4 @@
+-- Dynamic Island clean four-edge FeatureList-style glow
 -- Dynamic Island glow now matches FeatureList edge-bloom style
 -- Dynamic Island: one colored border + one border glow only
 -- Dynamic Island full-shape colored border glow + stronger coverage
@@ -15550,7 +15551,7 @@ return function(WindUI, Window, Options)
 
         -- Per-side outward glow expansion for the Dynamic Island.
         -- Larger values create the "light-pollution" halo requested by the user.
-        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 7)+0.5),0,14),
+        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 4)+0.5),1,8),
 
         GlowTime=0,
     }
@@ -15655,7 +15656,6 @@ return function(WindUI, Window, Options)
     -- only by Bloom16/Bloom8 images attached to invisible edge carriers,
     -- matching the FeatureList matrix-edge technique.
     local IslandGlowSegments={}
-    local IslandGlowCorners={}
 
     local function makeIslandGlowSegment(name,horizontal)
         local Carrier=New("Frame",{
@@ -15677,11 +15677,11 @@ return function(WindUI, Window, Options)
             BorderSizePixel=0,
             Image=ISLAND_BLOOM16_IMAGE,
             ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.80,
+            ImageTransparency=0.89,
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,14,1,12),
+            Size=UDim2.new(1,8,1,8),
             ZIndex=1,
             Active=false,
         })
@@ -15693,11 +15693,11 @@ return function(WindUI, Window, Options)
             BorderSizePixel=0,
             Image=ISLAND_BLOOM8_IMAGE,
             ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.62,
+            ImageTransparency=0.74,
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,7,1,6),
+            Size=UDim2.new(1,4,1,4),
             ZIndex=1,
             Active=false,
         })
@@ -15723,54 +15723,6 @@ return function(WindUI, Window, Options)
         }
     end
 
-    local function makeIslandGlowCorner(name,xScale,yScale)
-        local Carrier=New("Frame",{
-            Name=name,
-            Parent=Root,
-            BackgroundTransparency=1,
-            BorderSizePixel=0,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.new(xScale,0,yScale,0),
-            Size=UDim2.fromOffset(1,1),
-            ZIndex=1,
-            Visible=Island.GlowEnabled,
-            ClipsDescendants=false,
-        })
-
-        local Outer=New("ImageLabel",{
-            Name=name.."Bloom16",
-            Parent=Carrier,
-            BackgroundTransparency=1,
-            BorderSizePixel=0,
-            Image=ISLAND_BLOOM16_IMAGE,
-            ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.82,
-            ScaleType=Enum.ScaleType.Stretch,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.fromOffset(24,24),
-            ZIndex=1,
-            Active=false,
-        })
-
-        local Inner=New("ImageLabel",{
-            Name=name.."Bloom8",
-            Parent=Carrier,
-            BackgroundTransparency=1,
-            BorderSizePixel=0,
-            Image=ISLAND_BLOOM8_IMAGE,
-            ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.66,
-            ScaleType=Enum.ScaleType.Stretch,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.fromOffset(14,14),
-            ZIndex=1,
-            Active=false,
-        })
-
-        return {Carrier=Carrier,Outer=Outer,Inner=Inner}
-    end
 
     local function setSolidGradient(gradient,color)
         gradient.Color=ColorSequence.new({
@@ -15781,49 +15733,46 @@ return function(WindUI, Window, Options)
 
     local function updateIslandGlowBounds()
         local pad=math.clamp(
-            math.floor((tonumber(Island.GlowExpansion) or 7)+0.5),
-            0,
-            14
+            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),
+            1,
+            8
         )
         local innerPad=math.max(2,math.floor(pad*0.5))
-        local radius=20
-        local straightInset=radius-2
 
         local top=IslandGlowSegments.Top
         local bottom=IslandGlowSegments.Bottom
         local left=IslandGlowSegments.Left
         local right=IslandGlowSegments.Right
 
+        -- Exact FeatureList-style construction:
+        -- four invisible straight edge carriers only.
+        -- Their Bloom images overlap slightly at the ends/corners.
         if top then
-            top.Carrier.Position=UDim2.new(0,straightInset,0,0)
-            top.Carrier.Size=UDim2.new(1,-straightInset*2,0,1)
+            top.Carrier.Position=UDim2.new(0,0,0,0)
+            top.Carrier.Size=UDim2.new(1,0,0,1)
             top.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
             top.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
         end
+
         if bottom then
-            bottom.Carrier.Position=UDim2.new(0,straightInset,1,-1)
-            bottom.Carrier.Size=UDim2.new(1,-straightInset*2,0,1)
+            bottom.Carrier.Position=UDim2.new(0,0,1,-1)
+            bottom.Carrier.Size=UDim2.new(1,0,0,1)
             bottom.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
             bottom.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
         end
+
         if left then
-            left.Carrier.Position=UDim2.new(0,0,0,straightInset)
-            left.Carrier.Size=UDim2.new(0,1,1,-straightInset*2)
+            left.Carrier.Position=UDim2.new(0,0,0,0)
+            left.Carrier.Size=UDim2.new(0,1,1,0)
             left.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
             left.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
         end
+
         if right then
-            right.Carrier.Position=UDim2.new(1,-1,0,straightInset)
-            right.Carrier.Size=UDim2.new(0,1,1,-straightInset*2)
+            right.Carrier.Position=UDim2.new(1,-1,0,0)
+            right.Carrier.Size=UDim2.new(0,1,1,0)
             right.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
             right.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
-        end
-
-        local cornerOuter=radius+(pad*2)
-        local cornerInner=radius+(innerPad*2)
-        for _,corner in pairs(IslandGlowCorners) do
-            corner.Outer.Size=UDim2.fromOffset(cornerOuter,cornerOuter)
-            corner.Inner.Size=UDim2.fromOffset(cornerInner,cornerInner)
         end
     end
 
@@ -15882,7 +15831,7 @@ return function(WindUI, Window, Options)
         Parent=Body,
         Size=UDim2.fromScale(1,1),
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.02,
+        ImageTransparency=0.07,
         ZIndex=4,
         Visible=Island.GlowEnabled,
     })
@@ -15896,13 +15845,7 @@ return function(WindUI, Window, Options)
     IslandGlowSegments.Left=makeIslandGlowSegment("IslandGlowLeft",false)
     IslandGlowSegments.Right=makeIslandGlowSegment("IslandGlowRight",false)
 
-    IslandGlowCorners.TopLeft=makeIslandGlowCorner("IslandGlowTopLeft",0,0)
-    IslandGlowCorners.TopRight=makeIslandGlowCorner("IslandGlowTopRight",1,0)
-    IslandGlowCorners.BottomLeft=makeIslandGlowCorner("IslandGlowBottomLeft",0,1)
-    IslandGlowCorners.BottomRight=makeIslandGlowCorner("IslandGlowBottomRight",1,1)
-
     Island.UI.BorderGlowSegments=IslandGlowSegments
-    Island.UI.BorderGlowCorners=IslandGlowCorners
 
     updateIslandGlowBounds()
 
@@ -15983,18 +15926,7 @@ return function(WindUI, Window, Options)
             setSolidGradient(right.InnerGradient,rightColor)
         end
 
-        if IslandGlowCorners.TopLeft then
-            IslandGlowCorners.TopLeft.Outer.ImageColor3=leftColor
-            IslandGlowCorners.TopLeft.Inner.ImageColor3=leftColor
-            IslandGlowCorners.BottomLeft.Outer.ImageColor3=leftColor
-            IslandGlowCorners.BottomLeft.Inner.ImageColor3=leftColor
-        end
-        if IslandGlowCorners.TopRight then
-            IslandGlowCorners.TopRight.Outer.ImageColor3=rightColor
-            IslandGlowCorners.TopRight.Inner.ImageColor3=rightColor
-            IslandGlowCorners.BottomRight.Outer.ImageColor3=rightColor
-            IslandGlowCorners.BottomRight.Inner.ImageColor3=rightColor
-        end
+
     end))
 
     ----------------------------------------------------------------
@@ -16618,10 +16550,6 @@ return function(WindUI, Window, Options)
         for _,segment in pairs(IslandGlowSegments) do
             segment.Carrier.Visible=self.GlowEnabled
         end
-        for _,corner in pairs(IslandGlowCorners) do
-            corner.Carrier.Visible=self.GlowEnabled
-        end
-
         if NeutralBorder then
             NeutralBorder.Visible=not self.GlowEnabled
         end
@@ -16631,9 +16559,9 @@ return function(WindUI, Window, Options)
 
     function Island:SetGlowExpansion(value)
         local pixels=math.clamp(
-            math.floor((tonumber(value) or self.GlowExpansion or 7)+0.5),
-            0,
-            14
+            math.floor((tonumber(value) or self.GlowExpansion or 4)+0.5),
+            1,
+            8
         )
 
         self.GlowExpansion=pixels
@@ -16643,7 +16571,7 @@ return function(WindUI, Window, Options)
     end
 
     function Island:GetGlowExpansion()
-        return self.GlowExpansion or 7
+        return self.GlowExpansion or 4
     end
 
 
