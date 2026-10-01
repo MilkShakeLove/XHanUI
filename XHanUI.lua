@@ -16988,7 +16988,7 @@ return function(WindUI, Window, Options)
 
         if FeatureList.Display=="BloomFlow" then
             r.NameShadow.TextTransparency=0.64
-            r.ModeShadow.TextTransparency=0.68
+            r.ModeShadow.TextTransparency=math.clamp(textShadow+0.06,0,1)
         else
             r.NameShadow.TextTransparency=textShadow
             r.ModeShadow.TextTransparency=math.clamp(textShadow+0.06,0,1)
@@ -17132,10 +17132,10 @@ return function(WindUI, Window, Options)
                 r.Name.TextColor3=rowColor
                 r.NameShadow.TextColor3=bloomFlow and rowColor or shadow
 
-                r.Mode.TextColor3=bloomFlow and rowColor or ModeColor
-                r.ModeShadow.TextColor3=bloomFlow
-                    and rowColor
-                    or Color3.fromRGB(52,52,58)
+                -- Feature type / Mode always keeps the default white tone.
+                -- Only the feature NAME follows BloomFlow's animated color.
+                r.Mode.TextColor3=ModeColor
+                r.ModeShadow.TextColor3=Color3.fromRGB(52,52,58)
 
                 r.Split.BackgroundColor3=rowColor
                 r.Bar.BackgroundColor3=rowColor
