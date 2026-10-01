@@ -16554,7 +16554,12 @@ return function(WindUI, Window, Options)
     local function itemWidth(item)
         local mode=displayMode(item)
         local extra=(FeatureList.Display=="Split" or FeatureList.Display=="Bar") and 8 or 0
-        return math.ceil(widthOf(item.Name,FeatureList.TextSize)+widthOf(mode,FeatureList.TextSize)+13+extra)
+        local padding=FeatureList.Display=="BloomFlow" and 24 or (13+extra)
+        return math.ceil(
+            widthOf(item.Name,FeatureList.TextSize)
+            + widthOf(mode,FeatureList.TextSize)
+            + padding
+        )
     end
 
     local function sortedEnabled()
@@ -16629,17 +16634,23 @@ return function(WindUI, Window, Options)
     end
 
     local function videoFlowColor(index,total,phaseOffset)
-        total=math.max(tonumber(total) or 1,1)
         index=tonumber(index) or 1
 
-        -- One continuous hue sweep spans the visible ArrayList.
-        -- FlowSpeed remains "seconds-ish": larger value = slower movement.
-        local seconds=math.max(1.2,(tonumber(FeatureList.FlowSpeed) or 3)*1.7)
-        local travel=(FeatureList.Time/seconds)
-        local vertical=((index-1)/math.max(total-1,1))*0.92
-        local hue=(0.42+travel+vertical+(phaseOffset or 0))%1
+        -- Video reference:
+        -- every neighboring row is roughly one fifth of the hue wheel apart,
+        -- while the whole ArrayList advances together over time.
+        local cycleSeconds=5.8
+        local rowHueStep=0.205
+        local travel=FeatureList.Time/cycleSeconds
 
-        return Color3.fromHSV(hue,0.72,1)
+        local hue=(
+            0.98
+            + travel
+            + ((index-1)*rowHueStep)
+            + (phaseOffset or 0)
+        )%1
+
+        return Color3.fromHSV(hue,0.80,1)
     end
 
     local function makeBloomGlow(parent,name,image,expandX,expandY,alpha,z)
@@ -16697,22 +16708,29 @@ return function(WindUI, Window, Options)
         r.OutlineGlow.ImageTransparency=outlineGlow
 
         if r.VideoBloomOuter then
+            -- Broad Bloom16 halo stays subtle, like the video.
             r.VideoBloomOuter.ImageTransparency=math.clamp(
-                0.92-(0.60*strength),
-                0.22,
-                0.92
+                0.96-(0.20*strength),
+                0.76,
+                0.96
             )
         end
         if r.VideoBloomInner then
+            -- Bloom8 hugs the outline more closely.
             r.VideoBloomInner.ImageTransparency=math.clamp(
-                0.82-(0.62*strength),
-                0.12,
-                0.82
+                0.91-(0.29*strength),
+                0.62,
+                0.91
             )
         end
 
-        r.NameShadow.TextTransparency=textShadow
-        r.ModeShadow.TextTransparency=math.clamp(textShadow+0.06,0,1)
+        if FeatureList.Display=="BloomFlow" then
+            r.NameShadow.TextTransparency=0.64
+            r.ModeShadow.TextTransparency=0.68
+        else
+            r.NameShadow.TextTransparency=textShadow
+            r.ModeShadow.TextTransparency=math.clamp(textShadow+0.06,0,1)
+        end
         r.BackgroundStroke.Transparency=strokeTransparency
     end
 
@@ -16722,6 +16740,7 @@ return function(WindUI, Window, Options)
 
         local mode=displayMode(item)
         local w=itemWidth(item)
+        local bloomFlow=FeatureList.Display=="BloomFlow"
         local extra=(FeatureList.Display=="Split" or FeatureList.Display=="Bar") and 8 or 0
         local modeW=widthOf(mode,FeatureList.TextSize)
         local nameW=widthOf(item.Name,FeatureList.TextSize)
@@ -16738,11 +16757,11 @@ return function(WindUI, Window, Options)
         r.NoneGlow.Position=UDim2.fromScale(0.5,0.5)
 
         if r.VideoBloomOuter then
-            r.VideoBloomOuter.Size=UDim2.new(1,34,1,18)
+            r.VideoBloomOuter.Size=UDim2.new(1,10,1,8)
             r.VideoBloomOuter.Position=UDim2.fromScale(0.5,0.5)
         end
         if r.VideoBloomInner then
-            r.VideoBloomInner.Size=UDim2.new(1,18,1,10)
+            r.VideoBloomInner.Size=UDim2.new(1,4,1,4)
             r.VideoBloomInner.Position=UDim2.fromScale(0.5,0.5)
         end
 
@@ -16750,28 +16769,58 @@ return function(WindUI, Window, Options)
         r.Background.Size=UDim2.fromScale(1,1)
 
         r.Mode.Text=mode
-        r.Mode.Size=UDim2.fromOffset(modeW+1,FeatureList.RowHeight)
-        r.Mode.Position=UDim2.new(1,-rightPad,0.5,0)
-        r.Mode.Visible=mode~=""
-
         r.Name.Text=item.Name
-        r.Name.Size=UDim2.fromOffset(nameW+2,FeatureList.RowHeight)
-        r.Name.Position=UDim2.new(1,-rightPad-modeW,0.5,0)
-
         r.ModeShadow.Text=mode
-        r.ModeShadow.Size=r.Mode.Size
-        r.ModeShadow.Position=UDim2.new(1,-rightPad+1,0.5,1)
-        r.ModeShadow.Visible=mode~="" and FeatureList.TextShadow
-
         r.NameShadow.Text=item.Name
-        r.NameShadow.Size=r.Name.Size
-        r.NameShadow.Position=UDim2.new(1,-rightPad-modeW+1,0.5,1)
-        r.NameShadow.Visible=FeatureList.TextShadow
+
+        if bloomFlow then
+            -- The reference video centers the complete feature string
+            -- inside each rounded outline.
+            local totalTextW=nameW+modeW
+            local startX=-math.floor(totalTextW/2)
+
+            r.Name.TextXAlignment=Enum.TextXAlignment.Left
+            r.Name.Size=UDim2.fromOffset(nameW+2,FeatureList.RowHeight)
+            r.Name.Position=UDim2.new(0.5,startX,0.5,0)
+
+            r.Mode.TextXAlignment=Enum.TextXAlignment.Left
+            r.Mode.Size=UDim2.fromOffset(modeW+2,FeatureList.RowHeight)
+            r.Mode.Position=UDim2.new(0.5,startX+nameW,0.5,0)
+            r.Mode.Visible=mode~=""
+
+            r.NameShadow.TextXAlignment=Enum.TextXAlignment.Left
+            r.NameShadow.Size=r.Name.Size
+            r.NameShadow.Position=UDim2.new(0.5,startX+1,0.5,1)
+            r.NameShadow.Visible=FeatureList.TextShadow
+
+            r.ModeShadow.TextXAlignment=Enum.TextXAlignment.Left
+            r.ModeShadow.Size=r.Mode.Size
+            r.ModeShadow.Position=UDim2.new(0.5,startX+nameW+1,0.5,1)
+            r.ModeShadow.Visible=mode~="" and FeatureList.TextShadow
+        else
+            r.Mode.TextXAlignment=Enum.TextXAlignment.Right
+            r.Mode.Size=UDim2.fromOffset(modeW+1,FeatureList.RowHeight)
+            r.Mode.Position=UDim2.new(1,-rightPad,0.5,0)
+            r.Mode.Visible=mode~=""
+
+            r.Name.TextXAlignment=Enum.TextXAlignment.Right
+            r.Name.Size=UDim2.fromOffset(nameW+2,FeatureList.RowHeight)
+            r.Name.Position=UDim2.new(1,-rightPad-modeW,0.5,0)
+
+            r.ModeShadow.TextXAlignment=Enum.TextXAlignment.Right
+            r.ModeShadow.Size=r.Mode.Size
+            r.ModeShadow.Position=UDim2.new(1,-rightPad+1,0.5,1)
+            r.ModeShadow.Visible=mode~="" and FeatureList.TextShadow
+
+            r.NameShadow.TextXAlignment=Enum.TextXAlignment.Right
+            r.NameShadow.Size=r.Name.Size
+            r.NameShadow.Position=UDim2.new(1,-rightPad-modeW+1,0.5,1)
+            r.NameShadow.Visible=FeatureList.TextShadow
+        end
 
         local split=FeatureList.Display=="Split"
         local bar=FeatureList.Display=="Bar"
         local outline=FeatureList.Display=="Outline"
-        local bloomFlow=FeatureList.Display=="BloomFlow"
 
         -- Video/BloomFlow style is a transparent staircase with a bright
         -- flowing outline and Bloom halo. It does not use a dark row panel.
@@ -16789,8 +16838,8 @@ return function(WindUI, Window, Options)
         r.Outline.Visible=outline or bloomFlow
         r.OutlineGlow.Visible=outline and FeatureList.Glow
 
-        r.OutlineStroke.Thickness=bloomFlow and 1.25 or 1.5
-        r.OutlineStroke.Transparency=bloomFlow and 0.02 or 0.05
+        r.OutlineStroke.Thickness=bloomFlow and 1.55 or 1.5
+        r.OutlineStroke.Transparency=bloomFlow and 0.04 or 0.05
 
         r.Glow1.Visible=
             FeatureList.Glow
@@ -16799,8 +16848,11 @@ return function(WindUI, Window, Options)
         r.Glow2.Visible=false
         r.Glow3.Visible=false
 
-        -- None means no row box / bar / halo.
-        r.NoneGlow.Visible=false
+        -- None keeps the original soft shadow/glow behind the text row.
+        -- This is intentionally separate from BloomFlow.
+        r.NoneGlow.Visible=
+            FeatureList.Glow
+            and FeatureList.Display=="None"
 
         if r.VideoBloomOuter then
             r.VideoBloomOuter.Visible=bloomFlow and FeatureList.Glow
@@ -16826,7 +16878,7 @@ return function(WindUI, Window, Options)
 
                 if bloomFlow then
                     color=videoFlowColor(index,total,0)
-                    color2=videoFlowColor(index,total,0.025)
+                    color2=color
                 else
                     color=paletteColor(index,0)
                     color2=paletteColor(index,0.06)
@@ -16835,12 +16887,12 @@ return function(WindUI, Window, Options)
                 local shadow=darken(color,0.25)
 
                 r.Name.TextColor3=color
-                r.NameShadow.TextColor3=shadow
+                r.NameShadow.TextColor3=bloomFlow and color or shadow
 
                 -- In the video-like style the whole visible row follows one hue.
                 r.Mode.TextColor3=bloomFlow and color or ModeColor
                 r.ModeShadow.TextColor3=bloomFlow
-                    and darken(color,0.22)
+                    and color
                     or Color3.fromRGB(52,52,58)
 
                 r.Split.BackgroundColor3=color
@@ -17019,7 +17071,7 @@ return function(WindUI, Window, Options)
             ZIndex=7014,
             Visible=false,
         },{
-            New("UICorner",{CornerRadius=UDim.new(0,4)}),
+            New("UICorner",{CornerRadius=UDim.new(0,6)}),
         })
         local OutlineStroke=New("UIStroke",{
             Parent=Outline,
@@ -17039,9 +17091,9 @@ return function(WindUI, Window, Options)
             Content,
             "VideoBloomOuter",
             Bloom16Image,
-            28,
-            18,
-            0.50,
+            10,
+            8,
+            0.84,
             7010
         )
         VideoBloomOuter.Visible=false
@@ -17050,9 +17102,9 @@ return function(WindUI, Window, Options)
             Content,
             "VideoBloomInner",
             Bloom8Image,
-            14,
-            10,
-            0.30,
+            4,
+            4,
+            0.70,
             7011
         )
         VideoBloomInner.Visible=false
