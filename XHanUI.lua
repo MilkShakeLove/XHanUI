@@ -1,3 +1,4 @@
+-- FeatureList matrix glow expanded for fuller coverage
 -- Dynamic Island: no standalone shadow, top/bottom border glow only
 -- Dynamic Island clean four-edge FeatureList-style glow
 -- Dynamic Island glow now matches FeatureList edge-bloom style
@@ -17002,11 +17003,11 @@ return function(WindUI, Window, Options)
         local horizontal=w>=h
 
         if horizontal then
-            edge.Outer.Size=UDim2.new(1,14,1,12)
-            edge.Inner.Size=UDim2.new(1,7,1,6)
+            edge.Outer.Size=UDim2.new(1,22,1,18)
+            edge.Inner.Size=UDim2.new(1,12,1,10)
         else
-            edge.Outer.Size=UDim2.new(1,12,1,14)
-            edge.Inner.Size=UDim2.new(1,6,1,7)
+            edge.Outer.Size=UDim2.new(1,18,1,22)
+            edge.Inner.Size=UDim2.new(1,10,1,12)
         end
     end
 
@@ -17037,14 +17038,14 @@ return function(WindUI, Window, Options)
         -- Narrow, overlapping Bloom so neighboring segments visually
         -- become one continuous halo instead of separate rectangles.
         edge.Outer.ImageTransparency=math.clamp(
-            0.94-(0.24*strength),
-            0.70,
-            0.94
+            0.90-(0.28*strength),
+            0.56,
+            0.90
         )
         edge.Inner.ImageTransparency=math.clamp(
-            0.88-(0.32*strength),
-            0.54,
-            0.88
+            0.80-(0.34*strength),
+            0.40,
+            0.80
         )
     end
 
@@ -17077,7 +17078,7 @@ return function(WindUI, Window, Options)
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,26,1,18),
+            Size=UDim2.new(1,38,1,26),
             ZIndex=z-2,
             Visible=false,
             Active=false,
@@ -17093,7 +17094,7 @@ return function(WindUI, Window, Options)
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,14,1,10),
+            Size=UDim2.new(1,22,1,16),
             ZIndex=z-1,
             Visible=false,
             Active=false,
@@ -17133,22 +17134,22 @@ return function(WindUI, Window, Options)
 
         -- The fill itself stays subtle.
         back.Back.BackgroundTransparency=math.clamp(
-            0.95-(0.10*strength),
-            0.84,
-            0.95
+            0.93-(0.12*strength),
+            0.78,
+            0.93
         )
 
         -- Bloom is intentionally much more visible than the previous build.
         -- Zero row gap makes these halos overlap into one continuous matrix.
         back.Outer.ImageTransparency=math.clamp(
-            0.88-(0.26*strength),
-            0.60,
-            0.88
+            0.84-(0.30*strength),
+            0.48,
+            0.84
         )
         back.Inner.ImageTransparency=math.clamp(
-            0.80-(0.30*strength),
-            0.48,
-            0.80
+            0.72-(0.32*strength),
+            0.36,
+            0.72
         )
     end
 
@@ -17259,11 +17260,11 @@ return function(WindUI, Window, Options)
 
             r.MatrixBack.Outer.AnchorPoint=Vector2.new(0.5,0.5)
             r.MatrixBack.Outer.Position=UDim2.fromScale(0.5,0.5)
-            r.MatrixBack.Outer.Size=UDim2.new(1,26,1,18)
+            r.MatrixBack.Outer.Size=UDim2.new(1,38,1,26)
 
             r.MatrixBack.Inner.AnchorPoint=Vector2.new(0.5,0.5)
             r.MatrixBack.Inner.Position=UDim2.fromScale(0.5,0.5)
-            r.MatrixBack.Inner.Size=UDim2.new(1,14,1,10)
+            r.MatrixBack.Inner.Size=UDim2.new(1,22,1,16)
 
             r.MatrixBack.Back.Visible=bloomFlow
             r.MatrixBack.Outer.Visible=bloomFlow and FeatureList.Glow
