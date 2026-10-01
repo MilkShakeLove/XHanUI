@@ -1,3 +1,4 @@
+-- Dynamic Island full-shape colored border glow + stronger coverage
 -- Dynamic Island full left/right glow caps fix
 -- Dynamic Island true outward glow overflow / CanvasGroup clipping fixed
 -- Dynamic Island expanded glow build
@@ -15547,7 +15548,7 @@ return function(WindUI, Window, Options)
 
         -- Per-side outward glow expansion for the Dynamic Island.
         -- Larger values create the "light-pollution" halo requested by the user.
-        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 48)+0.5),0,120),
+        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 62)+0.5),0,160),
 
         GlowTime=0,
     }
@@ -15780,8 +15781,13 @@ return function(WindUI, Window, Options)
     Island.UI.LeftBloom8=LeftBloom8
     Island.UI.RightBloom8=RightBloom8
 
+    -- Predeclared because updateIslandGlowBounds is created before the
+    -- actual Squircle outline glow objects below.
+    local BorderGlowOuter
+    local BorderGlowInner
+
     local function updateIslandGlowBounds()
-        local outer=math.clamp(math.floor((tonumber(Island.GlowExpansion) or 48)+0.5),0,120)
+        local outer=math.clamp(math.floor((tonumber(Island.GlowExpansion) or 62)+0.5),0,160)
         local inner=math.max(10,math.floor(outer*0.56))
         local wide=math.max(outer,math.floor(outer*1.65))
 
@@ -15790,6 +15796,29 @@ return function(WindUI, Window, Options)
         IslandBloomWide.Size=UDim2.new(1,wide*2,1,wide*2)
         IslandBloom16.Size=UDim2.new(1,outer*2,1,outer*2)
         IslandBloom8.Size=UDim2.new(1,inner*2,1,inner*2)
+
+        -- Dedicated glowing outlines stay much closer to the real border.
+        -- They are what guarantees full left/right/corner coverage.
+        local borderOuter=math.max(16,math.floor(outer*0.48))
+        local borderInner=math.max(6,math.floor(outer*0.20))
+
+        if BorderGlowOuter then
+            BorderGlowOuter.Size=UDim2.new(
+                1,
+                borderOuter*2,
+                1,
+                borderOuter*2
+            )
+        end
+
+        if BorderGlowInner then
+            BorderGlowInner.Size=UDim2.new(
+                1,
+                borderInner*2,
+                1,
+                borderInner*2
+            )
+        end
 
         -- Cap diameter follows island height + the same per-side expansion.
         -- Using a square image at each endpoint guarantees full coverage of
@@ -15872,16 +15901,50 @@ return function(WindUI, Window, Options)
         }),
     })
 
+    -- Full-shape flowing outline glows.
+    -- Unlike stretched Bloom textures, these use the exact SquircleOutline
+    -- geometry, so the glow covers BOTH rounded ends and every corner.
+    BorderGlowOuter=Creator.NewRoundFrame(20,"SquircleOutline",{
+        Name="BorderGlowOuter",
+        Parent=Root,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,34,1,34),
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.66,
+        ZIndex=2,
+        Visible=Island.GlowEnabled,
+    })
+
+    BorderGlowInner=Creator.NewRoundFrame(20,"SquircleOutline",{
+        Name="BorderGlowInner",
+        Parent=Root,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,14,1,14),
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.26,
+        ZIndex=3,
+        Visible=Island.GlowEnabled,
+    })
+
     local FlowBorder=Creator.NewRoundFrame(20,"SquircleOutline",{
         Name="FlowBorder",
         Parent=Body,
         Size=UDim2.fromScale(1,1),
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.06,
-        ZIndex=3,
+        ImageTransparency=0.02,
+        ZIndex=4,
         Visible=Island.GlowEnabled,
     })
+
+    Island.UI.BorderGlowOuter=BorderGlowOuter
+    Island.UI.BorderGlowInner=BorderGlowInner
     Island.UI.FlowBorder=FlowBorder
+
+    -- updateIslandGlowBounds ran once before these objects existed.
+    -- Run it again now so the full outline glow gets the correct expansion.
+    updateIslandGlowBounds()
 
     -- A very faint neutral border remains if Glow is disabled.
     local NeutralBorder=Creator.NewRoundFrame(20,"SquircleOutline",{
@@ -15895,6 +15958,16 @@ return function(WindUI, Window, Options)
     })
     Island.UI.NeutralBorder=NeutralBorder
 
+    local BorderGlowOuterGradient=New("UIGradient",{
+        Parent=BorderGlowOuter,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+    local BorderGlowInnerGradient=New("UIGradient",{
+        Parent=BorderGlowInner,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
     local FlowBorderGradient=New("UIGradient",{
         Parent=FlowBorder,
         Rotation=0,
@@ -15948,6 +16021,8 @@ return function(WindUI, Window, Options)
         local phase=(Island.GlowTime/6.2)%1
         local sequence=islandFlowSequence(phase)
 
+        BorderGlowOuterGradient.Color=sequence
+        BorderGlowInnerGradient.Color=sequence
         FlowBorderGradient.Color=sequence
         BloomWideGradient.Color=sequence
         Bloom16Gradient.Color=sequence
@@ -16584,6 +16659,12 @@ return function(WindUI, Window, Options)
         if FlowBorder then
             FlowBorder.Visible=self.GlowEnabled
         end
+        if BorderGlowOuter then
+            BorderGlowOuter.Visible=self.GlowEnabled
+        end
+        if BorderGlowInner then
+            BorderGlowInner.Visible=self.GlowEnabled
+        end
         if IslandBloomWide then
             IslandBloomWide.Visible=self.GlowEnabled
         end
@@ -16608,7 +16689,7 @@ return function(WindUI, Window, Options)
     end
 
     function Island:SetGlowExpansion(value)
-        local pixels=math.clamp(math.floor((tonumber(value) or self.GlowExpansion or 48)+0.5),0,120)
+        local pixels=math.clamp(math.floor((tonumber(value) or self.GlowExpansion or 62)+0.5),0,160)
         self.GlowExpansion=pixels
 
         if updateIslandGlowBounds then
@@ -16619,7 +16700,7 @@ return function(WindUI, Window, Options)
     end
 
     function Island:GetGlowExpansion()
-        return self.GlowExpansion or 48
+        return self.GlowExpansion or 62
     end
 
     function Island:SetBrand(value)
