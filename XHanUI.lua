@@ -1,3 +1,4 @@
+-- Dynamic Island true outward glow overflow / CanvasGroup clipping fixed
 -- Dynamic Island expanded glow build
 -- Dynamic Island flowing glow + supplied shadow_15x
 -- REAL connected matrix background glow
@@ -15545,7 +15546,7 @@ return function(WindUI, Window, Options)
 
         -- Per-side outward glow expansion for the Dynamic Island.
         -- Larger values create the "light-pollution" halo requested by the user.
-        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 34)+0.5),0,120),
+        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 48)+0.5),0,120),
 
         GlowTime=0,
     }
@@ -15605,14 +15606,19 @@ return function(WindUI, Window, Options)
     ----------------------------------------------------------------
     -- One continuous island + flowing glow outline + supplied shadow.
     ----------------------------------------------------------------
-    local Root=New("CanvasGroup",{
+    -- IMPORTANT:
+    -- The outer island container MUST be a normal Frame.
+    -- CanvasGroup renders descendants into its own compositing region, which
+    -- visually clips Bloom that extends beyond the island bounds even when
+    -- ClipsDescendants=false. A Frame allows true outward glow overflow.
+    local Root=New("Frame",{
         Name="DynamicIsland",
         Parent=WindUI.ScreenGui,
         AnchorPoint=Vector2.new(0.5,0),
         Position=Island.Position,
         Size=UDim2.fromOffset(Island.IdleWidth,Island.IdleHeight),
         BackgroundTransparency=1,
-        GroupTransparency=0,
+        BorderSizePixel=0,
         Visible=true,
         ClipsDescendants=false,
         ZIndex=1000000,
@@ -15653,9 +15659,26 @@ return function(WindUI, Window, Options)
         BorderSizePixel=0,
         Image=ISLAND_BLOOM16_IMAGE,
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.66,
+        ImageTransparency=0.58,
         ScaleType=Enum.ScaleType.Stretch,
         ZIndex=1,
+        Visible=Island.GlowEnabled,
+        Active=false,
+    })
+
+    local IslandBloomWide=New("ImageLabel",{
+        Name="IslandBloomWide",
+        Parent=Root,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,1,1,1),
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Image=ISLAND_BLOOM16_IMAGE,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.82,
+        ScaleType=Enum.ScaleType.Stretch,
+        ZIndex=0,
         Visible=Island.GlowEnabled,
         Active=false,
     })
@@ -15670,22 +15693,25 @@ return function(WindUI, Window, Options)
         BorderSizePixel=0,
         Image=ISLAND_BLOOM8_IMAGE,
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.48,
+        ImageTransparency=0.40,
         ScaleType=Enum.ScaleType.Stretch,
         ZIndex=2,
         Visible=Island.GlowEnabled,
         Active=false,
     })
 
+    Island.UI.BloomWide=IslandBloomWide
     Island.UI.Bloom16=IslandBloom16
     Island.UI.Bloom8=IslandBloom8
 
     local function updateIslandGlowBounds()
-        local outer=math.clamp(math.floor((tonumber(Island.GlowExpansion) or 34)+0.5),0,120)
+        local outer=math.clamp(math.floor((tonumber(Island.GlowExpansion) or 48)+0.5),0,120)
         local inner=math.max(10,math.floor(outer*0.56))
+        local wide=math.max(outer,math.floor(outer*1.65))
 
         -- Glow expands equally on all sides, like the main UI shadow expansion.
-        -- UDim2 offset values are total size additions, so use *2.
+        -- Offsets are TOTAL additions, therefore each per-side value is *2.
+        IslandBloomWide.Size=UDim2.new(1,wide*2,1,wide*2)
         IslandBloom16.Size=UDim2.new(1,outer*2,1,outer*2)
         IslandBloom8.Size=UDim2.new(1,inner*2,1,inner*2)
     end
@@ -15769,6 +15795,11 @@ return function(WindUI, Window, Options)
         Rotation=0,
         Color=ColorSequence.new(Color3.new(1,1,1)),
     })
+    local BloomWideGradient=New("UIGradient",{
+        Parent=IslandBloomWide,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
     local Bloom16Gradient=New("UIGradient",{
         Parent=IslandBloom16,
         Rotation=0,
@@ -15813,6 +15844,7 @@ return function(WindUI, Window, Options)
         local sequence=islandFlowSequence(phase)
 
         FlowBorderGradient.Color=sequence
+        BloomWideGradient.Color=sequence
         Bloom16Gradient.Color=sequence
         Bloom8Gradient.Color=sequence
     end))
@@ -16434,6 +16466,9 @@ return function(WindUI, Window, Options)
         if FlowBorder then
             FlowBorder.Visible=self.GlowEnabled
         end
+        if IslandBloomWide then
+            IslandBloomWide.Visible=self.GlowEnabled
+        end
         if IslandBloom16 then
             IslandBloom16.Visible=self.GlowEnabled
         end
@@ -16448,7 +16483,7 @@ return function(WindUI, Window, Options)
     end
 
     function Island:SetGlowExpansion(value)
-        local pixels=math.clamp(math.floor((tonumber(value) or self.GlowExpansion or 34)+0.5),0,120)
+        local pixels=math.clamp(math.floor((tonumber(value) or self.GlowExpansion or 48)+0.5),0,120)
         self.GlowExpansion=pixels
 
         if updateIslandGlowBounds then
@@ -16459,7 +16494,7 @@ return function(WindUI, Window, Options)
     end
 
     function Island:GetGlowExpansion()
-        return self.GlowExpansion or 34
+        return self.GlowExpansion or 48
     end
 
     function Island:SetBrand(value)
