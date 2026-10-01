@@ -1,3 +1,4 @@
+-- Dynamic Island expanded glow build
 -- Dynamic Island flowing glow + supplied shadow_15x
 -- REAL connected matrix background glow
 -- BloomFlow matrix background glow rebuild
@@ -15541,6 +15542,11 @@ return function(WindUI, Window, Options)
 
         GlowEnabled=Options.Glow~=false,
         ShadowEnabled=Options.Shadow~=false,
+
+        -- Per-side outward glow expansion for the Dynamic Island.
+        -- Larger values create the "light-pollution" halo requested by the user.
+        GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 34)+0.5),0,120),
+
         GlowTime=0,
     }
 
@@ -15642,12 +15648,12 @@ return function(WindUI, Window, Options)
         Parent=Root,
         AnchorPoint=Vector2.new(0.5,0.5),
         Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.new(1,28,1,22),
+        Size=UDim2.new(1,1,1,1),
         BackgroundTransparency=1,
         BorderSizePixel=0,
         Image=ISLAND_BLOOM16_IMAGE,
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.76,
+        ImageTransparency=0.66,
         ScaleType=Enum.ScaleType.Stretch,
         ZIndex=1,
         Visible=Island.GlowEnabled,
@@ -15659,12 +15665,12 @@ return function(WindUI, Window, Options)
         Parent=Root,
         AnchorPoint=Vector2.new(0.5,0.5),
         Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.new(1,14,1,12),
+        Size=UDim2.new(1,1,1,1),
         BackgroundTransparency=1,
         BorderSizePixel=0,
         Image=ISLAND_BLOOM8_IMAGE,
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.58,
+        ImageTransparency=0.48,
         ScaleType=Enum.ScaleType.Stretch,
         ZIndex=2,
         Visible=Island.GlowEnabled,
@@ -15673,6 +15679,18 @@ return function(WindUI, Window, Options)
 
     Island.UI.Bloom16=IslandBloom16
     Island.UI.Bloom8=IslandBloom8
+
+    local function updateIslandGlowBounds()
+        local outer=math.clamp(math.floor((tonumber(Island.GlowExpansion) or 34)+0.5),0,120)
+        local inner=math.max(10,math.floor(outer*0.56))
+
+        -- Glow expands equally on all sides, like the main UI shadow expansion.
+        -- UDim2 offset values are total size additions, so use *2.
+        IslandBloom16.Size=UDim2.new(1,outer*2,1,outer*2)
+        IslandBloom8.Size=UDim2.new(1,inner*2,1,inner*2)
+    end
+
+    updateIslandGlowBounds()
 
     local Body=Creator.NewRoundFrame(20,"Squircle",{
         Name="Body",
@@ -15728,7 +15746,7 @@ return function(WindUI, Window, Options)
         Parent=Body,
         Size=UDim2.fromScale(1,1),
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.10,
+        ImageTransparency=0.06,
         ZIndex=3,
         Visible=Island.GlowEnabled,
     })
@@ -16427,6 +16445,21 @@ return function(WindUI, Window, Options)
         end
 
         return self
+    end
+
+    function Island:SetGlowExpansion(value)
+        local pixels=math.clamp(math.floor((tonumber(value) or self.GlowExpansion or 34)+0.5),0,120)
+        self.GlowExpansion=pixels
+
+        if updateIslandGlowBounds then
+            updateIslandGlowBounds()
+        end
+
+        return pixels
+    end
+
+    function Island:GetGlowExpansion()
+        return self.GlowExpansion or 34
     end
 
     function Island:SetBrand(value)
