@@ -1,3 +1,4 @@
+-- Dynamic Island: no standalone shadow, top/bottom border glow only
 -- Dynamic Island clean four-edge FeatureList-style glow
 -- Dynamic Island glow now matches FeatureList edge-bloom style
 -- Dynamic Island: one colored border + one border glow only
@@ -15547,8 +15548,6 @@ return function(WindUI, Window, Options)
         IdleTextTween=nil,
 
         GlowEnabled=Options.Glow~=false,
-        ShadowEnabled=Options.Shadow~=false,
-
         -- Per-side outward glow expansion for the Dynamic Island.
         -- Larger values create the "light-pollution" halo requested by the user.
         GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 4)+0.5),1,8),
@@ -15557,7 +15556,6 @@ return function(WindUI, Window, Options)
     }
 
     -- User supplied visual resources.
-    local ISLAND_SHADOW_IMAGE="rbxassetid://103128722712751"
     local ISLAND_BLOOM16_IMAGE="rbxassetid://104490578391522"
     local ISLAND_BLOOM8_IMAGE="rbxassetid://102472648910048"
 
@@ -15631,25 +15629,6 @@ return function(WindUI, Window, Options)
     Island.UI=Island.UI or {}
     Island.UI.Root=Root
 
-    -- shadow_15x supplied by the user. Stretch is intentional here: the
-    -- island continuously changes from a long capsule into a taller alert body.
-    local IslandShadow=New("ImageLabel",{
-        Name="IslandShadow15x",
-        Parent=Root,
-        AnchorPoint=Vector2.new(0.5,0.5),
-        Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.new(1,46,1,38),
-        BackgroundTransparency=1,
-        BorderSizePixel=0,
-        Image=ISLAND_SHADOW_IMAGE,
-        ImageColor3=Color3.fromRGB(0,0,0),
-        ImageTransparency=0.18,
-        ScaleType=Enum.ScaleType.Stretch,
-        ZIndex=0,
-        Visible=Island.ShadowEnabled,
-        Active=false,
-    })
-    Island.UI.Shadow=IslandShadow
 
     -- FeatureList-style border glow for the Dynamic Island.
     -- IMPORTANT: there is NO second colored outline here. Glow is produced
@@ -15677,7 +15656,7 @@ return function(WindUI, Window, Options)
             BorderSizePixel=0,
             Image=ISLAND_BLOOM16_IMAGE,
             ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.89,
+            ImageTransparency=0.91,
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
@@ -15693,7 +15672,7 @@ return function(WindUI, Window, Options)
             BorderSizePixel=0,
             Image=ISLAND_BLOOM8_IMAGE,
             ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.74,
+            ImageTransparency=0.78,
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
@@ -15724,12 +15703,6 @@ return function(WindUI, Window, Options)
     end
 
 
-    local function setSolidGradient(gradient,color)
-        gradient.Color=ColorSequence.new({
-            ColorSequenceKeypoint.new(0,color),
-            ColorSequenceKeypoint.new(1,color),
-        })
-    end
 
     local function updateIslandGlowBounds()
         local pad=math.clamp(
@@ -15741,12 +15714,9 @@ return function(WindUI, Window, Options)
 
         local top=IslandGlowSegments.Top
         local bottom=IslandGlowSegments.Bottom
-        local left=IslandGlowSegments.Left
-        local right=IslandGlowSegments.Right
 
-        -- Exact FeatureList-style construction:
-        -- four invisible straight edge carriers only.
-        -- Their Bloom images overlap slightly at the ends/corners.
+        -- Only top/bottom glow remains.
+        -- No left/right rounded-end glow objects.
         if top then
             top.Carrier.Position=UDim2.new(0,0,0,0)
             top.Carrier.Size=UDim2.new(1,0,0,1)
@@ -15759,20 +15729,6 @@ return function(WindUI, Window, Options)
             bottom.Carrier.Size=UDim2.new(1,0,0,1)
             bottom.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
             bottom.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
-        end
-
-        if left then
-            left.Carrier.Position=UDim2.new(0,0,0,0)
-            left.Carrier.Size=UDim2.new(0,1,1,0)
-            left.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
-            left.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
-        end
-
-        if right then
-            right.Carrier.Position=UDim2.new(1,-1,0,0)
-            right.Carrier.Size=UDim2.new(0,1,1,0)
-            right.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
-            right.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
         end
     end
 
@@ -15842,8 +15798,6 @@ return function(WindUI, Window, Options)
     -- second colored border.
     IslandGlowSegments.Top=makeIslandGlowSegment("IslandGlowTop",true)
     IslandGlowSegments.Bottom=makeIslandGlowSegment("IslandGlowBottom",true)
-    IslandGlowSegments.Left=makeIslandGlowSegment("IslandGlowLeft",false)
-    IslandGlowSegments.Right=makeIslandGlowSegment("IslandGlowRight",false)
 
     Island.UI.BorderGlowSegments=IslandGlowSegments
 
@@ -15912,19 +15866,7 @@ return function(WindUI, Window, Options)
             bottom.InnerGradient.Color=sequence
         end
 
-        local leftColor=Color3.fromHSV(phase,0.78,1)
-        local rightColor=Color3.fromHSV((phase+0.92)%1,0.78,1)
 
-        local left=IslandGlowSegments.Left
-        local right=IslandGlowSegments.Right
-        if left then
-            setSolidGradient(left.OuterGradient,leftColor)
-            setSolidGradient(left.InnerGradient,leftColor)
-        end
-        if right then
-            setSolidGradient(right.OuterGradient,rightColor)
-            setSolidGradient(right.InnerGradient,rightColor)
-        end
 
 
     end))
@@ -16533,12 +16475,10 @@ return function(WindUI, Window, Options)
     end
 
     function Island:SetShadow(value)
-        self.ShadowEnabled=value~=false
-        if IslandShadow then
-            IslandShadow.Visible=self.ShadowEnabled
-        end
+        -- Dynamic Island standalone shadow has been removed.
         return self
     end
+
 
     function Island:SetGlow(value)
         self.GlowEnabled=value~=false
