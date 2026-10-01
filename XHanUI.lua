@@ -1,3 +1,4 @@
+-- BloomFlow matrix background glow rebuild
 --[[
 -- XHanUI 104482361987216 SINGLE expanded whole-window shadow build
 -- XHanUI main UI shadow asset: 104482361987216
@@ -16805,6 +16806,80 @@ return function(WindUI, Window, Options)
         )
     end
 
+    local function makeMatrixBack(parent,name,z)
+        local Back=New("Frame",{
+            Name=name,
+            Parent=parent,
+            BackgroundColor3=Color3.new(1,1,1),
+            BackgroundTransparency=0.88,
+            BorderSizePixel=0,
+            Position=UDim2.fromOffset(0,0),
+            Size=UDim2.fromScale(1,1),
+            ZIndex=z,
+            Visible=false,
+            ClipsDescendants=false,
+        },{
+            New("UICorner",{CornerRadius=UDim.new(0,6)}),
+        })
+
+        local Outer=New("ImageLabel",{
+            Name=name.."Glow16",
+            Parent=Back,
+            BackgroundTransparency=1,
+            Image=Bloom16Image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=0.88,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.new(1,14,1,10),
+            ZIndex=z-2,
+            Active=false,
+        })
+
+        local Inner=New("ImageLabel",{
+            Name=name.."Glow8",
+            Parent=Back,
+            BackgroundTransparency=1,
+            Image=Bloom8Image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=0.74,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.new(1,8,1,6),
+            ZIndex=z-1,
+            Active=false,
+        })
+
+        return {
+            Back=Back,
+            Outer=Outer,
+            Inner=Inner,
+        }
+    end
+
+    local function setMatrixBackGlow(back,strength)
+        if not back then return end
+        strength=math.clamp(tonumber(strength) or 0.78,0,1)
+
+        back.Back.BackgroundTransparency=math.clamp(
+            0.94-(0.14*strength),
+            0.80,
+            0.94
+        )
+        back.Outer.ImageTransparency=math.clamp(
+            0.95-(0.18*strength),
+            0.78,
+            0.95
+        )
+        back.Inner.ImageTransparency=math.clamp(
+            0.88-(0.22*strength),
+            0.66,
+            0.88
+        )
+    end
+
     local function makeGlow(parent,name,expand,alpha,z)
         local obj=New("ImageLabel",{
             Name=name,
@@ -16884,6 +16959,16 @@ return function(WindUI, Window, Options)
 
         r.Row.Size=UDim2.new(0,w,0,rowHeight)
         r.Content.Size=UDim2.fromScale(1,1)
+
+        if r.MatrixBack then
+            r.MatrixBack.Back.Size=UDim2.fromScale(1,1)
+            r.MatrixBack.Back.Position=UDim2.fromOffset(0,0)
+            r.MatrixBack.Outer.Size=UDim2.new(1,14,1,10)
+            r.MatrixBack.Inner.Size=UDim2.new(1,8,1,6)
+            r.MatrixBack.Back.Visible=bloomFlow
+            r.MatrixBack.Outer.Visible=bloomFlow and FeatureList.Glow
+            r.MatrixBack.Inner.Visible=bloomFlow and FeatureList.Glow
+        end
 
         r.Glow1.Size=UDim2.new(1,36,1,10)
         r.Glow1.Position=UDim2.fromScale(0.5,0.5)
@@ -17008,6 +17093,17 @@ return function(WindUI, Window, Options)
                 r.Background.BackgroundColor3=BackgroundColor
                 r.BackgroundStroke.Color=rowColor
 
+                if bloomFlow and r.MatrixBack then
+                    r.MatrixBack.Back.BackgroundColor3=rowColor
+                    r.MatrixBack.Outer.ImageColor3=rowColor
+                    r.MatrixBack.Inner.ImageColor3=rowColor
+                    setMatrixBackGlow(r.MatrixBack,glowStrength)
+                elseif r.MatrixBack then
+                    r.MatrixBack.Back.Visible=false
+                    r.MatrixBack.Outer.Visible=false
+                    r.MatrixBack.Inner.Visible=false
+                end
+
                 if bloomFlow and r.Matrix then
                     local topY=(index-1)/math.max(total,1)
                     local bottomY=index/math.max(total,1)
@@ -17129,9 +17225,16 @@ return function(WindUI, Window, Options)
 
         -- Hidden rows must never leave matrix fragments behind.
         for _,item in pairs(FeatureList.Items) do
-            if not item.Enabled and item.Refs and item.Refs.Matrix then
-                for _,edge in pairs(item.Refs.Matrix) do
-                    edge.Frame.Visible=false
+            if not item.Enabled and item.Refs then
+                if item.Refs.Matrix then
+                    for _,edge in pairs(item.Refs.Matrix) do
+                        edge.Frame.Visible=false
+                    end
+                end
+                if item.Refs.MatrixBack then
+                    item.Refs.MatrixBack.Back.Visible=false
+                    item.Refs.MatrixBack.Outer.Visible=false
+                    item.Refs.MatrixBack.Inner.Visible=false
                 end
             end
         end
@@ -17433,6 +17536,7 @@ return function(WindUI, Window, Options)
 
         -- Connected BloomFlow matrix.
         -- No internal horizontal separators are created.
+        local MatrixBack=makeMatrixBack(Content,"MatrixBack",7008)
         local MatrixLeft=makeMatrixEdge(Content,"MatrixLeft",7017)
         local MatrixRight=makeMatrixEdge(Content,"MatrixRight",7017)
         local MatrixTop=makeMatrixEdge(Content,"MatrixTop",7017)
@@ -17454,6 +17558,7 @@ return function(WindUI, Window, Options)
             VideoBloomOuter=VideoBloomOuter,VideoBloomInner=VideoBloomInner,
             Background=Background,BackgroundStroke=BackgroundStroke,
             Outline=Outline,OutlineStroke=OutlineStroke,OutlineGlow=OutlineGlow,
+            MatrixBack=MatrixBack,
             Matrix={
                 Left=MatrixLeft,
                 Right=MatrixRight,
