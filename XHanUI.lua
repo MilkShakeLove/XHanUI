@@ -1,3 +1,4 @@
+-- Dynamic Island flowing glow + supplied shadow_15x
 -- REAL connected matrix background glow
 -- BloomFlow matrix background glow rebuild
 --[[
@@ -15493,7 +15494,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.3-RealShadowBackground"
+aa.Version="External-1.4-DynamicIslandFlowGlowShadow"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15537,7 +15538,16 @@ return function(WindUI, Window, Options)
         RootSizeTween=nil,
         RootPositionTween=nil,
         IdleTextTween=nil,
+
+        GlowEnabled=Options.Glow~=false,
+        ShadowEnabled=Options.Shadow~=false,
+        GlowTime=0,
     }
+
+    -- User supplied visual resources.
+    local ISLAND_SHADOW_IMAGE="rbxassetid://103128722712751"
+    local ISLAND_BLOOM16_IMAGE="rbxassetid://104490578391522"
+    local ISLAND_BLOOM8_IMAGE="rbxassetid://102472648910048"
 
     local ENABLED=Color3.fromRGB(49,196,124)
     local DISABLED=Color3.fromRGB(216,83,91)
@@ -15587,7 +15597,7 @@ return function(WindUI, Window, Options)
 
 
     ----------------------------------------------------------------
-    -- One continuous island. No shadow, no glow.
+    -- One continuous island + flowing glow outline + supplied shadow.
     ----------------------------------------------------------------
     local Root=New("CanvasGroup",{
         Name="DynamicIsland",
@@ -15603,6 +15613,66 @@ return function(WindUI, Window, Options)
     })
     Island.UI=Island.UI or {}
     Island.UI.Root=Root
+
+    -- shadow_15x supplied by the user. Stretch is intentional here: the
+    -- island continuously changes from a long capsule into a taller alert body.
+    local IslandShadow=New("ImageLabel",{
+        Name="IslandShadow15x",
+        Parent=Root,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,46,1,38),
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Image=ISLAND_SHADOW_IMAGE,
+        ImageColor3=Color3.fromRGB(0,0,0),
+        ImageTransparency=0.18,
+        ScaleType=Enum.ScaleType.Stretch,
+        ZIndex=0,
+        Visible=Island.ShadowEnabled,
+        Active=false,
+    })
+    Island.UI.Shadow=IslandShadow
+
+    -- Bloom layers are siblings of Body so their glow can extend outside the
+    -- capsule without being clipped. They share the exact same flow gradient
+    -- as the thin border below.
+    local IslandBloom16=New("ImageLabel",{
+        Name="IslandBloom16",
+        Parent=Root,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,28,1,22),
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Image=ISLAND_BLOOM16_IMAGE,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.76,
+        ScaleType=Enum.ScaleType.Stretch,
+        ZIndex=1,
+        Visible=Island.GlowEnabled,
+        Active=false,
+    })
+
+    local IslandBloom8=New("ImageLabel",{
+        Name="IslandBloom8",
+        Parent=Root,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,14,1,12),
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Image=ISLAND_BLOOM8_IMAGE,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.58,
+        ScaleType=Enum.ScaleType.Stretch,
+        ZIndex=2,
+        Visible=Island.GlowEnabled,
+        Active=false,
+    })
+
+    Island.UI.Bloom16=IslandBloom16
+    Island.UI.Bloom8=IslandBloom8
 
     local Body=Creator.NewRoundFrame(20,"Squircle",{
         Name="Body",
@@ -15653,14 +15723,81 @@ return function(WindUI, Window, Options)
         }),
     })
 
-    Creator.NewRoundFrame(20,"SquircleOutline",{
-        Name="Border",
+    local FlowBorder=Creator.NewRoundFrame(20,"SquircleOutline",{
+        Name="FlowBorder",
+        Parent=Body,
+        Size=UDim2.fromScale(1,1),
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.10,
+        ZIndex=3,
+        Visible=Island.GlowEnabled,
+    })
+    Island.UI.FlowBorder=FlowBorder
+
+    -- A very faint neutral border remains if Glow is disabled.
+    local NeutralBorder=Creator.NewRoundFrame(20,"SquircleOutline",{
+        Name="NeutralBorder",
         Parent=Body,
         Size=UDim2.fromScale(1,1),
         ImageColor3=Color3.fromRGB(205,210,216),
         ImageTransparency=0.92,
         ZIndex=2,
+        Visible=not Island.GlowEnabled,
     })
+    Island.UI.NeutralBorder=NeutralBorder
+
+    local FlowBorderGradient=New("UIGradient",{
+        Parent=FlowBorder,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+    local Bloom16Gradient=New("UIGradient",{
+        Parent=IslandBloom16,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+    local Bloom8Gradient=New("UIGradient",{
+        Parent=IslandBloom8,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+
+    local function islandFlowSequence(phase)
+        local keys={}
+        local steps=8
+        for i=0,steps do
+            local t=i/steps
+            local hue=(phase+(t*0.92))%1
+            table.insert(
+                keys,
+                ColorSequenceKeypoint.new(
+                    t,
+                    Color3.fromHSV(hue,0.78,1)
+                )
+            )
+        end
+        return ColorSequence.new(keys)
+    end
+
+    local lastGlowUpdate=0
+    table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
+        if Island.Destroyed then return end
+
+        Island.GlowTime=Island.GlowTime+dt
+        lastGlowUpdate=lastGlowUpdate+dt
+
+        -- 30-ish updates per second is visually smooth without rebuilding
+        -- three ColorSequences every render frame.
+        if lastGlowUpdate<0.032 then return end
+        lastGlowUpdate=0
+
+        local phase=(Island.GlowTime/6.2)%1
+        local sequence=islandFlowSequence(phase)
+
+        FlowBorderGradient.Color=sequence
+        Bloom16Gradient.Color=sequence
+        Bloom8Gradient.Color=sequence
+    end))
 
     ----------------------------------------------------------------
     -- Idle status line
@@ -16265,12 +16402,30 @@ return function(WindUI, Window, Options)
         return self
     end
 
-    -- No shadow / glow in this version.
     function Island:SetShadow(value)
+        self.ShadowEnabled=value~=false
+        if IslandShadow then
+            IslandShadow.Visible=self.ShadowEnabled
+        end
         return self
     end
 
     function Island:SetGlow(value)
+        self.GlowEnabled=value~=false
+
+        if FlowBorder then
+            FlowBorder.Visible=self.GlowEnabled
+        end
+        if IslandBloom16 then
+            IslandBloom16.Visible=self.GlowEnabled
+        end
+        if IslandBloom8 then
+            IslandBloom8.Visible=self.GlowEnabled
+        end
+        if NeutralBorder then
+            NeutralBorder.Visible=not self.GlowEnabled
+        end
+
         return self
     end
 
