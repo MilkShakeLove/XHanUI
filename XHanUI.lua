@@ -16512,6 +16512,8 @@ return function(WindUI, Window, Options)
     })
     FeatureList.UI=Root
 
+    local RootLayout=Root:FindFirstChildOfClass("UIListLayout")
+
     local Header=New("Frame",{
         Name="Header",
         Parent=Root,
@@ -16554,7 +16556,8 @@ return function(WindUI, Window, Options)
     local function itemWidth(item)
         local mode=displayMode(item)
         local extra=(FeatureList.Display=="Split" or FeatureList.Display=="Bar") and 8 or 0
-        local padding=FeatureList.Display=="BloomFlow" and 24 or (13+extra)
+        local padding=FeatureList.Display=="BloomFlow" and 12 or (13+extra)
+
         return math.ceil(
             widthOf(item.Name,FeatureList.TextSize)
             + widthOf(mode,FeatureList.TextSize)
@@ -16633,24 +16636,22 @@ return function(WindUI, Window, Options)
         return lerpColor(palette[i],palette[j],t)
     end
 
-    local function videoFlowColor(index,total,phaseOffset)
-        index=tonumber(index) or 1
+    local function matrixFlowColor(normalizedY,phaseOffset)
+        normalizedY=math.clamp(tonumber(normalizedY) or 0,0,1)
 
-        -- Video reference:
-        -- every neighboring row is roughly one fifth of the hue wheel apart,
-        -- while the whole ArrayList advances together over time.
-        local cycleSeconds=5.8
-        local rowHueStep=0.205
-        local travel=FeatureList.Time/cycleSeconds
-
+        -- The whole connected matrix carries one continuous rainbow.
+        -- Adjacent edges sample the exact same boundary color, so the
+        -- glow never appears as separate per-row blocks.
+        local cycleSeconds=6.4
+        local verticalSpan=0.92
         local hue=(
-            0.98
-            + travel
-            + ((index-1)*rowHueStep)
+            0.96
+            + (FeatureList.Time/cycleSeconds)
+            + (normalizedY*verticalSpan)
             + (phaseOffset or 0)
         )%1
 
-        return Color3.fromHSV(hue,0.80,1)
+        return Color3.fromHSV(hue,0.76,1)
     end
 
     local function makeBloomGlow(parent,name,image,expandX,expandY,alpha,z)
@@ -16668,6 +16669,140 @@ return function(WindUI, Window, Options)
             ZIndex=z,
             Active=false,
         })
+    end
+
+    local function makeMatrixEdge(parent,name,z)
+        local Frame=New("Frame",{
+            Name=name,
+            Parent=parent,
+            BackgroundColor3=Color3.new(1,1,1),
+            BackgroundTransparency=0,
+            BorderSizePixel=0,
+            Position=UDim2.fromOffset(0,0),
+            Size=UDim2.fromOffset(1,1),
+            ZIndex=z,
+            Visible=false,
+            ClipsDescendants=false,
+        })
+
+        local Outer=New("ImageLabel",{
+            Name=name.."Bloom16",
+            Parent=Frame,
+            BackgroundTransparency=1,
+            Image=Bloom16Image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=0.82,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.new(1,12,1,12),
+            ZIndex=z-2,
+            Active=false,
+        })
+
+        local Inner=New("ImageLabel",{
+            Name=name.."Bloom8",
+            Parent=Frame,
+            BackgroundTransparency=1,
+            Image=Bloom8Image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=0.66,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.new(1,6,1,6),
+            ZIndex=z-1,
+            Active=false,
+        })
+
+        local Gradient=New("UIGradient",{
+            Parent=Frame,
+            Rotation=90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+        local OuterGradient=New("UIGradient",{
+            Parent=Outer,
+            Rotation=90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+        local InnerGradient=New("UIGradient",{
+            Parent=Inner,
+            Rotation=90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+
+        return {
+            Frame=Frame,
+            Outer=Outer,
+            Inner=Inner,
+            Gradient=Gradient,
+            OuterGradient=OuterGradient,
+            InnerGradient=InnerGradient,
+        }
+    end
+
+    local function setMatrixEdge(edge,x,y,w,h,visible)
+        if not edge then return end
+
+        edge.Frame.Visible=visible==true
+        if not visible then return end
+
+        w=math.max(1,math.floor((tonumber(w) or 1)+0.5))
+        h=math.max(1,math.floor((tonumber(h) or 1)+0.5))
+
+        edge.Frame.Position=UDim2.fromOffset(
+            math.floor((tonumber(x) or 0)+0.5),
+            math.floor((tonumber(y) or 0)+0.5)
+        )
+        edge.Frame.Size=UDim2.fromOffset(w,h)
+
+        local horizontal=w>=h
+
+        if horizontal then
+            edge.Outer.Size=UDim2.new(1,14,1,12)
+            edge.Inner.Size=UDim2.new(1,7,1,6)
+        else
+            edge.Outer.Size=UDim2.new(1,12,1,14)
+            edge.Inner.Size=UDim2.new(1,6,1,7)
+        end
+    end
+
+    local function setMatrixEdgeColors(edge,colorA,colorB,rotation)
+        if not edge then return end
+
+        colorA=colorA or Color3.new(1,1,1)
+        colorB=colorB or colorA
+
+        local sequence=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,colorA),
+            ColorSequenceKeypoint.new(1,colorB),
+        })
+
+        edge.Gradient.Rotation=rotation or 0
+        edge.OuterGradient.Rotation=rotation or 0
+        edge.InnerGradient.Rotation=rotation or 0
+
+        edge.Gradient.Color=sequence
+        edge.OuterGradient.Color=sequence
+        edge.InnerGradient.Color=sequence
+    end
+
+    local function setMatrixEdgeGlow(edge,strength)
+        if not edge then return end
+        strength=math.clamp(tonumber(strength) or 0.78,0,1)
+
+        -- Narrow, overlapping Bloom so neighboring segments visually
+        -- become one continuous halo instead of separate rectangles.
+        edge.Outer.ImageTransparency=math.clamp(
+            0.94-(0.24*strength),
+            0.70,
+            0.94
+        )
+        edge.Inner.ImageTransparency=math.clamp(
+            0.88-(0.32*strength),
+            0.54,
+            0.88
+        )
     end
 
     local function makeGlow(parent,name,expand,alpha,z)
@@ -16744,28 +16879,26 @@ return function(WindUI, Window, Options)
         local extra=(FeatureList.Display=="Split" or FeatureList.Display=="Bar") and 8 or 0
         local modeW=widthOf(mode,FeatureList.TextSize)
         local nameW=widthOf(item.Name,FeatureList.TextSize)
-        local rightPad=5+extra
+        local rightPad=bloomFlow and 5 or (5+extra)
+        local rowHeight=bloomFlow and math.max(18,FeatureList.RowHeight-3) or FeatureList.RowHeight
 
-        r.Row.Size=UDim2.new(0,w,0,FeatureList.RowHeight)
+        r.Row.Size=UDim2.new(0,w,0,rowHeight)
         r.Content.Size=UDim2.fromScale(1,1)
 
-        -- The glow resource has transparent padding. Give it enough horizontal
-        -- overscan so both left and right ends are fully covered.
         r.Glow1.Size=UDim2.new(1,36,1,10)
         r.Glow1.Position=UDim2.fromScale(0.5,0.5)
         r.NoneGlow.Size=UDim2.new(1,36,1,10)
         r.NoneGlow.Position=UDim2.fromScale(0.5,0.5)
 
+        -- Old per-row Bloom objects are intentionally disabled in BloomFlow.
+        -- The connected matrix edges below own all Bloom in this style.
         if r.VideoBloomOuter then
-            r.VideoBloomOuter.Size=UDim2.new(1,10,1,8)
-            r.VideoBloomOuter.Position=UDim2.fromScale(0.5,0.5)
+            r.VideoBloomOuter.Visible=false
         end
         if r.VideoBloomInner then
-            r.VideoBloomInner.Size=UDim2.new(1,4,1,4)
-            r.VideoBloomInner.Position=UDim2.fromScale(0.5,0.5)
+            r.VideoBloomInner.Visible=false
         end
 
-        -- Final Background visibility is decided below after display-style flags.
         r.Background.Size=UDim2.fromScale(1,1)
 
         r.Mode.Text=mode
@@ -16773,57 +16906,30 @@ return function(WindUI, Window, Options)
         r.ModeShadow.Text=mode
         r.NameShadow.Text=item.Name
 
-        if bloomFlow then
-            -- The reference video centers the complete feature string
-            -- inside each rounded outline.
-            local totalTextW=nameW+modeW
-            local startX=-math.floor(totalTextW/2)
+        -- Reference video uses the classic right-aligned ArrayList layout.
+        r.Mode.TextXAlignment=Enum.TextXAlignment.Right
+        r.Mode.Size=UDim2.fromOffset(modeW+1,rowHeight)
+        r.Mode.Position=UDim2.new(1,-rightPad,0.5,0)
+        r.Mode.Visible=mode~=""
 
-            r.Name.TextXAlignment=Enum.TextXAlignment.Left
-            r.Name.Size=UDim2.fromOffset(nameW+2,FeatureList.RowHeight)
-            r.Name.Position=UDim2.new(0.5,startX,0.5,0)
+        r.Name.TextXAlignment=Enum.TextXAlignment.Right
+        r.Name.Size=UDim2.fromOffset(nameW+2,rowHeight)
+        r.Name.Position=UDim2.new(1,-rightPad-modeW,0.5,0)
 
-            r.Mode.TextXAlignment=Enum.TextXAlignment.Left
-            r.Mode.Size=UDim2.fromOffset(modeW+2,FeatureList.RowHeight)
-            r.Mode.Position=UDim2.new(0.5,startX+nameW,0.5,0)
-            r.Mode.Visible=mode~=""
+        r.ModeShadow.TextXAlignment=Enum.TextXAlignment.Right
+        r.ModeShadow.Size=r.Mode.Size
+        r.ModeShadow.Position=UDim2.new(1,-rightPad+1,0.5,1)
+        r.ModeShadow.Visible=mode~="" and FeatureList.TextShadow
 
-            r.NameShadow.TextXAlignment=Enum.TextXAlignment.Left
-            r.NameShadow.Size=r.Name.Size
-            r.NameShadow.Position=UDim2.new(0.5,startX+1,0.5,1)
-            r.NameShadow.Visible=FeatureList.TextShadow
-
-            r.ModeShadow.TextXAlignment=Enum.TextXAlignment.Left
-            r.ModeShadow.Size=r.Mode.Size
-            r.ModeShadow.Position=UDim2.new(0.5,startX+nameW+1,0.5,1)
-            r.ModeShadow.Visible=mode~="" and FeatureList.TextShadow
-        else
-            r.Mode.TextXAlignment=Enum.TextXAlignment.Right
-            r.Mode.Size=UDim2.fromOffset(modeW+1,FeatureList.RowHeight)
-            r.Mode.Position=UDim2.new(1,-rightPad,0.5,0)
-            r.Mode.Visible=mode~=""
-
-            r.Name.TextXAlignment=Enum.TextXAlignment.Right
-            r.Name.Size=UDim2.fromOffset(nameW+2,FeatureList.RowHeight)
-            r.Name.Position=UDim2.new(1,-rightPad-modeW,0.5,0)
-
-            r.ModeShadow.TextXAlignment=Enum.TextXAlignment.Right
-            r.ModeShadow.Size=r.Mode.Size
-            r.ModeShadow.Position=UDim2.new(1,-rightPad+1,0.5,1)
-            r.ModeShadow.Visible=mode~="" and FeatureList.TextShadow
-
-            r.NameShadow.TextXAlignment=Enum.TextXAlignment.Right
-            r.NameShadow.Size=r.Name.Size
-            r.NameShadow.Position=UDim2.new(1,-rightPad-modeW+1,0.5,1)
-            r.NameShadow.Visible=FeatureList.TextShadow
-        end
+        r.NameShadow.TextXAlignment=Enum.TextXAlignment.Right
+        r.NameShadow.Size=r.Name.Size
+        r.NameShadow.Position=UDim2.new(1,-rightPad-modeW+1,0.5,1)
+        r.NameShadow.Visible=FeatureList.TextShadow
 
         local split=FeatureList.Display=="Split"
         local bar=FeatureList.Display=="Bar"
         local outline=FeatureList.Display=="Outline"
 
-        -- Video/BloomFlow style is a transparent staircase with a bright
-        -- flowing outline and Bloom halo. It does not use a dark row panel.
         r.Background.Visible=
             FeatureList.Background
             and FeatureList.Display~="None"
@@ -16835,11 +16941,9 @@ return function(WindUI, Window, Options)
         r.Bar.Visible=bar
         r.BarGlow.Visible=bar and FeatureList.Glow
 
-        r.Outline.Visible=outline or bloomFlow
+        -- BloomFlow DOES NOT use individual row outlines.
+        r.Outline.Visible=outline
         r.OutlineGlow.Visible=outline and FeatureList.Glow
-
-        r.OutlineStroke.Thickness=bloomFlow and 1.55 or 1.5
-        r.OutlineStroke.Transparency=bloomFlow and 0.04 or 0.05
 
         r.Glow1.Visible=
             FeatureList.Glow
@@ -16848,18 +16952,10 @@ return function(WindUI, Window, Options)
         r.Glow2.Visible=false
         r.Glow3.Visible=false
 
-        -- None keeps the original soft shadow/glow behind the text row.
-        -- This is intentionally separate from BloomFlow.
+        -- Restore the original None shadow.
         r.NoneGlow.Visible=
             FeatureList.Glow
             and FeatureList.Display=="None"
-
-        if r.VideoBloomOuter then
-            r.VideoBloomOuter.Visible=bloomFlow and FeatureList.Glow
-        end
-        if r.VideoBloomInner then
-            r.VideoBloomInner.Visible=bloomFlow and FeatureList.Glow
-        end
 
         applyShadowStrength(item)
     end
@@ -16867,59 +16963,182 @@ return function(WindUI, Window, Options)
     local function applyColors()
         local enabled=sortedEnabled()
         local total=#enabled
+        local bloomFlow=FeatureList.Display=="BloomFlow"
+        local glowStrength=math.clamp(
+            tonumber(FeatureList.ShadowStrength) or 78,
+            0,
+            100
+        )/100
 
         for index,item in ipairs(enabled) do
             local r=item.Refs
             if r then
-                local bloomFlow=FeatureList.Display=="BloomFlow"
-
-                local color
-                local color2
+                local rowColor
 
                 if bloomFlow then
-                    color=videoFlowColor(index,total,0)
-                    color2=color
+                    local centerY=(index-0.5)/math.max(total,1)
+                    rowColor=matrixFlowColor(centerY,0)
                 else
-                    color=paletteColor(index,0)
-                    color2=paletteColor(index,0.06)
+                    rowColor=paletteColor(index,0)
                 end
 
-                local shadow=darken(color,0.25)
+                local color2=bloomFlow and rowColor or paletteColor(index,0.06)
+                local shadow=darken(rowColor,0.25)
 
-                r.Name.TextColor3=color
-                r.NameShadow.TextColor3=bloomFlow and color or shadow
+                r.Name.TextColor3=rowColor
+                r.NameShadow.TextColor3=bloomFlow and rowColor or shadow
 
-                -- In the video-like style the whole visible row follows one hue.
-                r.Mode.TextColor3=bloomFlow and color or ModeColor
+                r.Mode.TextColor3=bloomFlow and rowColor or ModeColor
                 r.ModeShadow.TextColor3=bloomFlow
-                    and color
+                    and rowColor
                     or Color3.fromRGB(52,52,58)
 
-                r.Split.BackgroundColor3=color
-                r.Bar.BackgroundColor3=color
-                r.OutlineStroke.Color=color
+                r.Split.BackgroundColor3=rowColor
+                r.Bar.BackgroundColor3=rowColor
+                r.OutlineStroke.Color=rowColor
 
-                r.Glow1.ImageColor3=color
+                r.Glow1.ImageColor3=rowColor
                 r.Glow2.ImageColor3=color2
-                r.Glow3.ImageColor3=lerpColor(color,color2,0.5)
-                r.NoneGlow.ImageColor3=color
-                r.SplitGlow.ImageColor3=color
-                r.BarGlow.ImageColor3=color
-                r.OutlineGlow.ImageColor3=color
-
-                if r.VideoBloomOuter then
-                    r.VideoBloomOuter.ImageColor3=color
-                end
-                if r.VideoBloomInner then
-                    r.VideoBloomInner.ImageColor3=color2
-                end
+                r.Glow3.ImageColor3=lerpColor(rowColor,color2,0.5)
+                r.NoneGlow.ImageColor3=rowColor
+                r.SplitGlow.ImageColor3=rowColor
+                r.BarGlow.ImageColor3=rowColor
+                r.OutlineGlow.ImageColor3=rowColor
 
                 r.Background.BackgroundColor3=BackgroundColor
-                r.BackgroundStroke.Color=color
+                r.BackgroundStroke.Color=rowColor
+
+                if bloomFlow and r.Matrix then
+                    local topY=(index-1)/math.max(total,1)
+                    local bottomY=index/math.max(total,1)
+
+                    local topColor=matrixFlowColor(topY,0)
+                    local bottomColor=matrixFlowColor(bottomY,0)
+                    local boundaryColor=bottomColor
+
+                    local currentW=itemWidth(item)
+                    local nextItem=enabled[index+1]
+                    local nextW=nextItem and itemWidth(nextItem) or 0
+                    local rowH=r.Row.Size.Y.Offset
+                    local thickness=2
+
+                    -- Continuous left staircase vertical segment.
+                    setMatrixEdge(
+                        r.Matrix.Left,
+                        0,
+                        0,
+                        thickness,
+                        rowH,
+                        true
+                    )
+                    setMatrixEdgeColors(
+                        r.Matrix.Left,
+                        topColor,
+                        bottomColor,
+                        90
+                    )
+
+                    -- One continuous right edge for the whole matrix.
+                    setMatrixEdge(
+                        r.Matrix.Right,
+                        currentW-thickness,
+                        0,
+                        thickness,
+                        rowH,
+                        true
+                    )
+                    setMatrixEdgeColors(
+                        r.Matrix.Right,
+                        topColor,
+                        bottomColor,
+                        90
+                    )
+
+                    -- Only the very first row gets the full top edge.
+                    setMatrixEdge(
+                        r.Matrix.Top,
+                        0,
+                        0,
+                        currentW,
+                        thickness,
+                        index==1
+                    )
+                    if index==1 then
+                        setMatrixEdgeColors(
+                            r.Matrix.Top,
+                            topColor,
+                            topColor,
+                            0
+                        )
+                    end
+
+                    -- Between rows draw ONLY the exposed staircase step.
+                    -- There is deliberately NO horizontal line through
+                    -- the shared interior between two functions.
+                    local stepWidth=nextItem
+                        and math.max(0,currentW-nextW)
+                        or 0
+
+                    setMatrixEdge(
+                        r.Matrix.Step,
+                        0,
+                        rowH-thickness,
+                        stepWidth,
+                        thickness,
+                        nextItem~=nil and stepWidth>0
+                    )
+                    if nextItem and stepWidth>0 then
+                        setMatrixEdgeColors(
+                            r.Matrix.Step,
+                            boundaryColor,
+                            boundaryColor,
+                            0
+                        )
+                    end
+
+                    -- Only the last row gets the full bottom edge.
+                    setMatrixEdge(
+                        r.Matrix.Bottom,
+                        0,
+                        rowH-thickness,
+                        currentW,
+                        thickness,
+                        index==total
+                    )
+                    if index==total then
+                        setMatrixEdgeColors(
+                            r.Matrix.Bottom,
+                            bottomColor,
+                            bottomColor,
+                            0
+                        )
+                    end
+
+                    for _,edge in pairs(r.Matrix) do
+                        setMatrixEdgeGlow(edge,glowStrength)
+                    end
+                elseif r.Matrix then
+                    for _,edge in pairs(r.Matrix) do
+                        edge.Frame.Visible=false
+                    end
+                end
+
                 applyShadowStrength(item)
             end
         end
-        HeaderText.TextColor3=paletteColor(0,0)
+
+        -- Hidden rows must never leave matrix fragments behind.
+        for _,item in pairs(FeatureList.Items) do
+            if not item.Enabled and item.Refs and item.Refs.Matrix then
+                for _,edge in pairs(item.Refs.Matrix) do
+                    edge.Frame.Visible=false
+                end
+            end
+        end
+
+        HeaderText.TextColor3=bloomFlow
+            and matrixFlowColor(0,0)
+            or paletteColor(0,0)
     end
 
     function FeatureList:SetVisible(value)
@@ -16959,8 +17178,17 @@ return function(WindUI, Window, Options)
         end
 
         self.Display=value
+
+        if RootLayout then
+            RootLayout.Padding=
+                value=="BloomFlow"
+                and UDim.new(0,0)
+                or UDim.new(0,self.Gap)
+        end
+
         for _,item in pairs(self.Items) do restyle(item) end
         refreshOrders()
+        applyColors()
         return self
     end
 
@@ -17203,6 +17431,14 @@ return function(WindUI, Window, Options)
             Visible=false,
         },{New("UICorner",{CornerRadius=UDim.new(1,0)})})
 
+        -- Connected BloomFlow matrix.
+        -- No internal horizontal separators are created.
+        local MatrixLeft=makeMatrixEdge(Content,"MatrixLeft",7017)
+        local MatrixRight=makeMatrixEdge(Content,"MatrixRight",7017)
+        local MatrixTop=makeMatrixEdge(Content,"MatrixTop",7017)
+        local MatrixStep=makeMatrixEdge(Content,"MatrixStep",7017)
+        local MatrixBottom=makeMatrixEdge(Content,"MatrixBottom",7017)
+
         local Click=New("TextButton",{
             Name="Click",
             Parent=Content,
@@ -17218,6 +17454,13 @@ return function(WindUI, Window, Options)
             VideoBloomOuter=VideoBloomOuter,VideoBloomInner=VideoBloomInner,
             Background=Background,BackgroundStroke=BackgroundStroke,
             Outline=Outline,OutlineStroke=OutlineStroke,OutlineGlow=OutlineGlow,
+            Matrix={
+                Left=MatrixLeft,
+                Right=MatrixRight,
+                Top=MatrixTop,
+                Step=MatrixStep,
+                Bottom=MatrixBottom,
+            },
             Name=NameText,Mode=ModeText,NameShadow=NameShadow,ModeShadow=ModeShadow,
             Split=Split,SplitGlow=SplitGlow,Bar=Bar,BarGlow=BarGlow,Click=Click,
         }
@@ -17241,6 +17484,7 @@ return function(WindUI, Window, Options)
                     NameText.TextTransparency=0.45
                     ModeText.TextTransparency=0.45
                     refreshOrders()
+                    applyColors()
                     tween(Content,0.24,{Position=UDim2.new(0,0,0,0)},Enum.EasingStyle.Quint,Enum.EasingDirection.Out)
                     tween(NameText,0.18,{TextTransparency=0})
                     tween(ModeText,0.18,{TextTransparency=0})
@@ -17253,15 +17497,18 @@ return function(WindUI, Window, Options)
                         if self.Serial==serial and not self.Enabled and Row and Row.Parent then
                             Row.Visible=false
                             refreshOrders()
+                            applyColors()
                         end
                     end)
                 else
                     self.Enabled=on
                     Row.Visible=on
                     refreshOrders()
+                    applyColors()
                 end
             else
                 refreshOrders()
+                applyColors()
             end
 
             if enabled~=nil and changed then
