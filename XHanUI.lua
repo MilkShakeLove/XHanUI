@@ -1,3 +1,4 @@
+-- Dynamic Island full left/right glow caps fix
 -- Dynamic Island true outward glow overflow / CanvasGroup clipping fixed
 -- Dynamic Island expanded glow build
 -- Dynamic Island flowing glow + supplied shadow_15x
@@ -15704,6 +15705,81 @@ return function(WindUI, Window, Options)
     Island.UI.Bloom16=IslandBloom16
     Island.UI.Bloom8=IslandBloom8
 
+    -- Side-cap Bloom layers.
+    -- The source Bloom textures are strongest around their center and lose
+    -- intensity toward the horizontal ends when stretched across a long island.
+    -- These caps reinforce the two rounded ends independently.
+    local function makeIslandGlowCap(name,image,z,alpha,xScale)
+        return New("ImageLabel",{
+            Name=name,
+            Parent=Root,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.new(xScale,0,0.5,0),
+            Size=UDim2.fromOffset(1,1),
+            BackgroundTransparency=1,
+            BorderSizePixel=0,
+            Image=image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=alpha,
+            ScaleType=Enum.ScaleType.Stretch,
+            ZIndex=z,
+            Visible=Island.GlowEnabled,
+            Active=false,
+        })
+    end
+
+    local LeftBloomWide=makeIslandGlowCap(
+        "LeftBloomWide",
+        ISLAND_BLOOM16_IMAGE,
+        0,
+        0.82,
+        0
+    )
+    local RightBloomWide=makeIslandGlowCap(
+        "RightBloomWide",
+        ISLAND_BLOOM16_IMAGE,
+        0,
+        0.82,
+        1
+    )
+
+    local LeftBloom16=makeIslandGlowCap(
+        "LeftBloom16",
+        ISLAND_BLOOM16_IMAGE,
+        1,
+        0.58,
+        0
+    )
+    local RightBloom16=makeIslandGlowCap(
+        "RightBloom16",
+        ISLAND_BLOOM16_IMAGE,
+        1,
+        0.58,
+        1
+    )
+
+    local LeftBloom8=makeIslandGlowCap(
+        "LeftBloom8",
+        ISLAND_BLOOM8_IMAGE,
+        2,
+        0.40,
+        0
+    )
+    local RightBloom8=makeIslandGlowCap(
+        "RightBloom8",
+        ISLAND_BLOOM8_IMAGE,
+        2,
+        0.40,
+        1
+    )
+
+    Island.UI.LeftBloomWide=LeftBloomWide
+    Island.UI.RightBloomWide=RightBloomWide
+    Island.UI.LeftBloom16=LeftBloom16
+    Island.UI.RightBloom16=RightBloom16
+    Island.UI.LeftBloom8=LeftBloom8
+    Island.UI.RightBloom8=RightBloom8
+
     local function updateIslandGlowBounds()
         local outer=math.clamp(math.floor((tonumber(Island.GlowExpansion) or 48)+0.5),0,120)
         local inner=math.max(10,math.floor(outer*0.56))
@@ -15714,9 +15790,38 @@ return function(WindUI, Window, Options)
         IslandBloomWide.Size=UDim2.new(1,wide*2,1,wide*2)
         IslandBloom16.Size=UDim2.new(1,outer*2,1,outer*2)
         IslandBloom8.Size=UDim2.new(1,inner*2,1,inner*2)
+
+        -- Cap diameter follows island height + the same per-side expansion.
+        -- Using a square image at each endpoint guarantees full coverage of
+        -- the rounded left/right ends instead of relying on horizontal stretch.
+        local rootHeight=math.max(
+            1,
+            math.floor((Root.AbsoluteSize.Y>0 and Root.AbsoluteSize.Y or Island.IdleHeight)+0.5)
+        )
+
+        local wideDiameter=rootHeight+(wide*2)
+        local outerDiameter=rootHeight+(outer*2)
+        local innerDiameter=rootHeight+(inner*2)
+
+        LeftBloomWide.Size=UDim2.fromOffset(wideDiameter,wideDiameter)
+        RightBloomWide.Size=UDim2.fromOffset(wideDiameter,wideDiameter)
+
+        LeftBloom16.Size=UDim2.fromOffset(outerDiameter,outerDiameter)
+        RightBloom16.Size=UDim2.fromOffset(outerDiameter,outerDiameter)
+
+        LeftBloom8.Size=UDim2.fromOffset(innerDiameter,innerDiameter)
+        RightBloom8.Size=UDim2.fromOffset(innerDiameter,innerDiameter)
     end
 
     updateIslandGlowBounds()
+
+    table.insert(
+        Island.Connections,
+        Root:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+            if Island.Destroyed then return end
+            updateIslandGlowBounds()
+        end)
+    )
 
     local Body=Creator.NewRoundFrame(20,"Squircle",{
         Name="Body",
@@ -15847,6 +15952,19 @@ return function(WindUI, Window, Options)
         BloomWideGradient.Color=sequence
         Bloom16Gradient.Color=sequence
         Bloom8Gradient.Color=sequence
+
+        -- Endpoint caps use the exact colors at the two ends of the same
+        -- flowing rainbow, so they blend seamlessly into the middle glow.
+        local leftColor=Color3.fromHSV(phase,0.78,1)
+        local rightColor=Color3.fromHSV((phase+0.92)%1,0.78,1)
+
+        LeftBloomWide.ImageColor3=leftColor
+        LeftBloom16.ImageColor3=leftColor
+        LeftBloom8.ImageColor3=leftColor
+
+        RightBloomWide.ImageColor3=rightColor
+        RightBloom16.ImageColor3=rightColor
+        RightBloom8.ImageColor3=rightColor
     end))
 
     ----------------------------------------------------------------
@@ -16475,6 +16593,13 @@ return function(WindUI, Window, Options)
         if IslandBloom8 then
             IslandBloom8.Visible=self.GlowEnabled
         end
+
+        LeftBloomWide.Visible=self.GlowEnabled
+        RightBloomWide.Visible=self.GlowEnabled
+        LeftBloom16.Visible=self.GlowEnabled
+        RightBloom16.Visible=self.GlowEnabled
+        LeftBloom8.Visible=self.GlowEnabled
+        RightBloom8.Visible=self.GlowEnabled
         if NeutralBorder then
             NeutralBorder.Visible=not self.GlowEnabled
         end
