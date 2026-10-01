@@ -1,3 +1,4 @@
+-- REAL connected matrix background glow
 -- BloomFlow matrix background glow rebuild
 --[[
 -- XHanUI 104482361987216 SINGLE expanded whole-window shadow build
@@ -16811,7 +16812,7 @@ return function(WindUI, Window, Options)
             Name=name,
             Parent=parent,
             BackgroundColor3=Color3.new(1,1,1),
-            BackgroundTransparency=0.88,
+            BackgroundTransparency=0.90,
             BorderSizePixel=0,
             Position=UDim2.fromOffset(0,0),
             Size=UDim2.fromScale(1,1),
@@ -16822,40 +16823,66 @@ return function(WindUI, Window, Options)
             New("UICorner",{CornerRadius=UDim.new(0,6)}),
         })
 
+        -- IMPORTANT:
+        -- Bloom images are siblings of Back, not children of it.
+        -- This keeps the glow visible behind the translucent fill.
         local Outer=New("ImageLabel",{
             Name=name.."Glow16",
-            Parent=Back,
+            Parent=parent,
             BackgroundTransparency=1,
             Image=Bloom16Image,
             ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.88,
+            ImageTransparency=0.70,
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,14,1,10),
+            Size=UDim2.new(1,26,1,18),
             ZIndex=z-2,
+            Visible=false,
             Active=false,
         })
 
         local Inner=New("ImageLabel",{
             Name=name.."Glow8",
-            Parent=Back,
+            Parent=parent,
             BackgroundTransparency=1,
             Image=Bloom8Image,
             ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.74,
+            ImageTransparency=0.56,
             ScaleType=Enum.ScaleType.Stretch,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,8,1,6),
+            Size=UDim2.new(1,14,1,10),
             ZIndex=z-1,
+            Visible=false,
             Active=false,
+        })
+
+        local BackGradient=New("UIGradient",{
+            Parent=Back,
+            Rotation=90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+
+        local OuterGradient=New("UIGradient",{
+            Parent=Outer,
+            Rotation=90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+
+        local InnerGradient=New("UIGradient",{
+            Parent=Inner,
+            Rotation=90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
         })
 
         return {
             Back=Back,
             Outer=Outer,
             Inner=Inner,
+            BackGradient=BackGradient,
+            OuterGradient=OuterGradient,
+            InnerGradient=InnerGradient,
         }
     end
 
@@ -16863,21 +16890,46 @@ return function(WindUI, Window, Options)
         if not back then return end
         strength=math.clamp(tonumber(strength) or 0.78,0,1)
 
+        -- The fill itself stays subtle.
         back.Back.BackgroundTransparency=math.clamp(
-            0.94-(0.14*strength),
-            0.80,
-            0.94
-        )
-        back.Outer.ImageTransparency=math.clamp(
-            0.95-(0.18*strength),
-            0.78,
+            0.95-(0.10*strength),
+            0.84,
             0.95
         )
-        back.Inner.ImageTransparency=math.clamp(
-            0.88-(0.22*strength),
-            0.66,
+
+        -- Bloom is intentionally much more visible than the previous build.
+        -- Zero row gap makes these halos overlap into one continuous matrix.
+        back.Outer.ImageTransparency=math.clamp(
+            0.88-(0.26*strength),
+            0.60,
             0.88
         )
+        back.Inner.ImageTransparency=math.clamp(
+            0.80-(0.30*strength),
+            0.48,
+            0.80
+        )
+    end
+
+    local function setMatrixBackColors(back,colorA,colorB)
+        if not back then return end
+
+        colorA=colorA or Color3.new(1,1,1)
+        colorB=colorB or colorA
+
+        local seq=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,colorA),
+            ColorSequenceKeypoint.new(1,colorB),
+        })
+
+        back.BackGradient.Color=seq
+        back.OuterGradient.Color=seq
+        back.InnerGradient.Color=seq
+
+        -- Keep ImageColor white so the gradient carries the full color.
+        back.Outer.ImageColor3=Color3.new(1,1,1)
+        back.Inner.ImageColor3=Color3.new(1,1,1)
+        back.Back.BackgroundColor3=Color3.new(1,1,1)
     end
 
     local function makeGlow(parent,name,expand,alpha,z)
@@ -16963,8 +17015,15 @@ return function(WindUI, Window, Options)
         if r.MatrixBack then
             r.MatrixBack.Back.Size=UDim2.fromScale(1,1)
             r.MatrixBack.Back.Position=UDim2.fromOffset(0,0)
-            r.MatrixBack.Outer.Size=UDim2.new(1,14,1,10)
-            r.MatrixBack.Inner.Size=UDim2.new(1,8,1,6)
+
+            r.MatrixBack.Outer.AnchorPoint=Vector2.new(0.5,0.5)
+            r.MatrixBack.Outer.Position=UDim2.fromScale(0.5,0.5)
+            r.MatrixBack.Outer.Size=UDim2.new(1,26,1,18)
+
+            r.MatrixBack.Inner.AnchorPoint=Vector2.new(0.5,0.5)
+            r.MatrixBack.Inner.Position=UDim2.fromScale(0.5,0.5)
+            r.MatrixBack.Inner.Size=UDim2.new(1,14,1,10)
+
             r.MatrixBack.Back.Visible=bloomFlow
             r.MatrixBack.Outer.Visible=bloomFlow and FeatureList.Glow
             r.MatrixBack.Inner.Visible=bloomFlow and FeatureList.Glow
@@ -17094,9 +17153,17 @@ return function(WindUI, Window, Options)
                 r.BackgroundStroke.Color=rowColor
 
                 if bloomFlow and r.MatrixBack then
-                    r.MatrixBack.Back.BackgroundColor3=rowColor
-                    r.MatrixBack.Outer.ImageColor3=rowColor
-                    r.MatrixBack.Inner.ImageColor3=rowColor
+                    local backTopY=(index-1)/math.max(total,1)
+                    local backBottomY=index/math.max(total,1)
+
+                    local backTopColor=matrixFlowColor(backTopY,0)
+                    local backBottomColor=matrixFlowColor(backBottomY,0)
+
+                    setMatrixBackColors(
+                        r.MatrixBack,
+                        backTopColor,
+                        backBottomColor
+                    )
                     setMatrixBackGlow(r.MatrixBack,glowStrength)
                 elseif r.MatrixBack then
                     r.MatrixBack.Back.Visible=false
