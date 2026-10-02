@@ -15517,7 +15517,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.7-StrongTripleRefraction"
+aa.Version="External-1.8-HybridMobileGridRefraction"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -18667,6 +18667,508 @@ end
 
 end)();
 
+
+-- ============================================================
+-- Mobile liquid-glass fallback
+-- Real Roblox Glass refraction is weak/unsupported on many mobile render paths.
+-- This fallback periodically captures the screen and re-samples it through a
+-- rounded tile grid with radial lens displacement. The result is an actual
+-- visible screen-space warp rather than a grey transparent overlay.
+-- ============================================================
+local __XHanMobileLiquidGlass=(function()
+return function(WindUI, Window, Options)
+    local options=type(Options)=="table" and Options or {}
+    local CaptureService=game:GetService("CaptureService")
+    local AssetService=game:GetService("AssetService")
+    local RunService=game:GetService("RunService")
+    local Workspace=game:GetService("Workspace")
+
+    local root=Window and Window.UIElements and Window.UIElements.Main
+
+    local function number(value,fallback,minimum,maximum)
+        value=tonumber(value)
+        if not value or value~=value or math.abs(value)==math.huge then
+            value=fallback
+        end
+        return math.clamp(value,minimum,maximum)
+    end
+
+    local controller={
+        State="Initializing",
+        Status="Initializing",
+        Error=nil,
+        Supported=true,
+        Enabled=options.Enabled~=false,
+        Backend="ScreenCapture/GridRefraction",
+        Destroyed=false,
+    }
+
+    local columns=math.floor(number(options.MobileColumns,10,6,16))
+    local rows=math.floor(number(options.MobileRows,7,4,12))
+    local strength=number(options.MobileStrength,34,6,80)
+    local verticalStrength=number(options.MobileVerticalStrength,0.82,0.35,1.5)
+    local refreshInterval=number(options.MobileRefresh,0.42,0.18,1.5)
+    local imageTransparency=number(options.MobileImageTransparency,0.06,0,0.55)
+    local tintTransparency=number(options.MobileTintTransparency,0.90,0.60,1)
+    local edgeFade=number(options.MobileEdgeFade,0.12,0,0.45)
+    local useEditableCapture=options.MobileEditableCapture~=false
+
+    local container
+    local tintLayer
+    local tiles={}
+    local captureBusy=false
+    local captureSerial=0
+    local lastCapture=0
+    local lastMode="None"
+    local captureContentId=nil
+    local editableCapture=nil
+    local renderConnection
+    local heartbeatConnection
+    local currentViewport=Vector2.new(0,0)
+    local currentRootPos=Vector2.new(0,0)
+    local currentRootSize=Vector2.new(0,0)
+    local lastGeometryKey=""
+    local cornerRadius=tonumber(Window and Window.UICorner) or 18
+
+    local function setState(state,message)
+        controller.State=state
+        controller.Status=state
+        controller.Error=message
+    end
+
+    function controller:GetStatus()
+        return {
+            State=self.State,
+            Status=self.Status,
+            Error=self.Error,
+            Supported=self.Supported,
+            Enabled=self.Enabled,
+            Backend=self.Backend,
+            CaptureMode=lastMode,
+            Columns=columns,
+            Rows=rows,
+            Strength=strength,
+            Refresh=refreshInterval,
+        }
+    end
+
+    local function clearSource()
+        captureContentId=nil
+        if editableCapture then
+            pcall(function()
+                editableCapture:Destroy()
+            end)
+            editableCapture=nil
+        end
+    end
+
+    local function destroyTiles()
+        for _,entry in ipairs(tiles) do
+            pcall(function()
+                entry.Clip:Destroy()
+            end)
+        end
+        table.clear(tiles)
+    end
+
+    local function createContainer()
+        if not root or not root:IsA("GuiObject") then
+            controller.Supported=false
+            setState("Unavailable","UIElements.Main must be a GuiObject.")
+            return false
+        end
+
+        container=Instance.new("Frame")
+        container.Name="XHanMobileLiquidGlass"
+        container.Size=UDim2.fromScale(1,1)
+        container.Position=UDim2.fromScale(0,0)
+        container.BackgroundTransparency=1
+        container.BorderSizePixel=0
+        container.ClipsDescendants=true
+        container.Active=false
+        container.Selectable=false
+        container.ZIndex=2
+        container.Parent=root
+
+        local corner=Instance.new("UICorner")
+        corner.CornerRadius=UDim.new(0,cornerRadius)
+        corner.Parent=container
+
+        tintLayer=Instance.new("Frame")
+        tintLayer.Name="LiquidTint"
+        tintLayer.Size=UDim2.fromScale(1,1)
+        tintLayer.BackgroundColor3=typeof(options.Tint)=="Color3"
+            and options.Tint or Color3.fromRGB(235,245,255)
+        tintLayer.BackgroundTransparency=tintTransparency
+        tintLayer.BorderSizePixel=0
+        tintLayer.ZIndex=4
+        tintLayer.Active=false
+        tintLayer.Parent=container
+
+        local tintCorner=Instance.new("UICorner")
+        tintCorner.CornerRadius=UDim.new(0,cornerRadius)
+        tintCorner.Parent=tintLayer
+
+        local stroke=Instance.new("UIStroke")
+        stroke.Name="LiquidEdge"
+        stroke.Color=Color3.fromRGB(255,255,255)
+        stroke.Transparency=0.78
+        stroke.Thickness=1
+        stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+        stroke.Parent=tintLayer
+
+        return true
+    end
+
+    local function buildTiles()
+        destroyTiles()
+        if not container then return end
+
+        for row=1,rows do
+            for column=1,columns do
+                local x0=(column-1)/columns
+                local x1=column/columns
+                local y0=(row-1)/rows
+                local y1=row/rows
+
+                local clip=Instance.new("Frame")
+                clip.Name=("R%dC%d"):format(row,column)
+                clip.BackgroundTransparency=1
+                clip.BorderSizePixel=0
+                clip.ClipsDescendants=true
+                clip.Position=UDim2.fromScale(x0,y0)
+                -- tiny overlap prevents 1px seams while the window animates
+                clip.Size=UDim2.new(x1-x0,1,y1-y0,1)
+                clip.ZIndex=2
+                clip.Active=false
+                clip.Parent=container
+
+                local image=Instance.new("ImageLabel")
+                image.Name="Sample"
+                image.BackgroundTransparency=1
+                image.BorderSizePixel=0
+                image.Size=UDim2.fromScale(1,1)
+                image.Position=UDim2.fromScale(0,0)
+                image.ScaleType=Enum.ScaleType.Stretch
+                image.ResampleMode=Enum.ResamplerMode.Default
+                image.ImageTransparency=imageTransparency
+                image.ZIndex=2
+                image.Active=false
+                image.Parent=clip
+
+                tiles[#tiles+1]={
+                    Clip=clip,
+                    Image=image,
+                    Row=row,
+                    Column=column,
+                    NX=((column-0.5)/columns)*2-1,
+                    NY=((row-0.5)/rows)*2-1,
+                }
+            end
+        end
+    end
+
+    local function setTileSource()
+        for _,entry in ipairs(tiles) do
+            local image=entry.Image
+            if editableCapture then
+                local ok=pcall(function()
+                    image.Image=""
+                    image.ImageContent=Content.fromObject(editableCapture)
+                end)
+                if not ok and captureContentId then
+                    image.Image=captureContentId
+                end
+            elseif captureContentId then
+                image.Image=captureContentId
+            end
+        end
+    end
+
+    local function geometryKey(pos,size,viewport)
+        return string.format(
+            "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f",
+            pos.X,pos.Y,size.X,size.Y,viewport.X,viewport.Y
+        )
+    end
+
+    local function updateTileSampling(force)
+        if not container or not root or not root.Parent then return end
+        local camera=Workspace.CurrentCamera
+        if not camera then return end
+
+        local viewport=camera.ViewportSize
+        local pos=root.AbsolutePosition
+        local size=root.AbsoluteSize
+        if size.X<8 or size.Y<8 or viewport.X<16 or viewport.Y<16 then
+            return
+        end
+
+        local key=geometryKey(pos,size,viewport)
+        if not force and key==lastGeometryKey then
+            return
+        end
+        lastGeometryKey=key
+        currentViewport=viewport
+        currentRootPos=pos
+        currentRootSize=size
+
+        for _,entry in ipairs(tiles) do
+            local column,row=entry.Column,entry.Row
+            local tileX=(column-1)*size.X/columns
+            local tileY=(row-1)*size.Y/rows
+            local tileW=size.X/columns+2
+            local tileH=size.Y/rows+2
+
+            local nx,ny=entry.NX,entry.NY
+            local r2=math.min(nx*nx+ny*ny,1)
+            local radial=math.pow(math.max(1-r2,0),0.62)
+
+            -- zero displacement at center and edge, strongest through the
+            -- middle of the lens. This visibly bends straight world lines.
+            local warpX=nx*strength*radial
+            local warpY=ny*strength*verticalStrength*radial
+
+            -- subtle second-order "liquid" swell around the perimeter
+            local ripple=math.sin(math.sqrt(r2)*math.pi)
+            warpX=warpX+nx*strength*0.16*ripple
+            warpY=warpY+ny*strength*0.11*ripple
+
+            local srcX=pos.X+tileX+warpX
+            local srcY=pos.Y+tileY+warpY
+
+            srcX=math.clamp(srcX,0,math.max(0,viewport.X-tileW))
+            srcY=math.clamp(srcY,0,math.max(0,viewport.Y-tileH))
+
+            local image=entry.Image
+            image.ImageRectOffset=Vector2.new(
+                math.floor(srcX+0.5),
+                math.floor(srcY+0.5)
+            )
+            image.ImageRectSize=Vector2.new(
+                math.max(1,math.floor(tileW+0.5)),
+                math.max(1,math.floor(tileH+0.5))
+            )
+
+            local edge=math.max(math.abs(nx),math.abs(ny))
+            image.ImageTransparency=math.clamp(
+                imageTransparency+math.max(0,edge-0.74)*edgeFade,
+                0,
+                0.85
+            )
+        end
+    end
+
+    local function acceptContentId(contentId,mode)
+        if controller.Destroyed or not contentId then return end
+        captureContentId=tostring(contentId)
+        if editableCapture then
+            pcall(function() editableCapture:Destroy() end)
+            editableCapture=nil
+        end
+        lastMode=mode or "TemporaryContentId"
+        setTileSource()
+        updateTileSampling(true)
+        setState("Ready")
+    end
+
+    local function tryEditableScreenshot()
+        if not useEditableCapture then return false end
+        if type(CaptureService.TakeScreenshotCaptureAsync)~="function" then
+            return false
+        end
+
+        local invoked=false
+        local ok=pcall(function()
+            CaptureService:TakeScreenshotCaptureAsync(function(result,capture)
+                invoked=true
+                if controller.Destroyed then
+                    captureBusy=false
+                    return
+                end
+                if result~=Enum.ScreenshotCaptureResult.Success or not capture then
+                    captureBusy=false
+                    return
+                end
+
+                task.spawn(function()
+                    local okImage,newImage=pcall(function()
+                        return AssetService:CreateEditableImageAsync(
+                            Content.fromObject(capture)
+                        )
+                    end)
+
+                    if controller.Destroyed then
+                        if okImage and newImage then
+                            pcall(function() newImage:Destroy() end)
+                        end
+                        captureBusy=false
+                        return
+                    end
+
+                    if okImage and newImage then
+                        if editableCapture then
+                            pcall(function() editableCapture:Destroy() end)
+                        end
+                        editableCapture=newImage
+                        captureContentId=nil
+                        lastMode="UICaptureMode.None/EditableImage"
+                        setTileSource()
+                        updateTileSampling(true)
+                        setState("Ready")
+                        captureBusy=false
+                    else
+                        -- This client does not accept ScreenshotCapture as an
+                        -- EditableImage source. The caller will use the legacy
+                        -- temporary-content screenshot path on the next cycle.
+                        useEditableCapture=false
+                        captureBusy=false
+                    end
+                end)
+            end,{
+                UICaptureMode=Enum.UICaptureMode.None,
+            })
+        end)
+
+        return ok
+    end
+
+    local function capture()
+        if captureBusy or controller.Destroyed or not controller.Enabled then
+            return
+        end
+        if Window.Destroyed or Window.Closed then return end
+
+        captureBusy=true
+        captureSerial+=1
+        local thisSerial=captureSerial
+
+        if useEditableCapture and tryEditableScreenshot() then
+            -- callback completes asynchronously
+            task.delay(1.25,function()
+                if not controller.Destroyed
+                    and captureBusy
+                    and captureSerial==thisSerial then
+                    useEditableCapture=false
+                    captureBusy=false
+                end
+            end)
+            return
+        end
+
+        -- Widely-supported fallback. Hide only our previous refracted snapshot
+        -- so recursive "glass inside glass" capture does not accumulate.
+        local previousVisible=container and container.Visible
+        if container then container.Visible=false end
+
+        local ok=pcall(function()
+            CaptureService:CaptureScreenshot(function(contentId)
+                if container and not controller.Destroyed then
+                    container.Visible=previousVisible~=false
+                end
+                if controller.Destroyed then
+                    captureBusy=false
+                    return
+                end
+                acceptContentId(contentId,"CaptureScreenshot/TemporaryContentId")
+                captureBusy=false
+            end)
+        end)
+
+        if not ok then
+            if container then container.Visible=previousVisible~=false end
+            captureBusy=false
+            controller.Supported=false
+            setState("Unavailable","CaptureService screenshot APIs are unavailable on this client.")
+        else
+            task.delay(1.25,function()
+                if not controller.Destroyed
+                    and captureBusy
+                    and captureSerial==thisSerial then
+                    if container then container.Visible=previousVisible~=false end
+                    captureBusy=false
+                end
+            end)
+        end
+    end
+
+    function controller:SetEnabled(enabled)
+        if self.Destroyed then return self end
+        self.Enabled=enabled==true
+        if container then container.Visible=self.Enabled end
+        if self.Enabled then
+            setState("Initializing")
+            lastCapture=0
+            capture()
+        else
+            setState("Disabled")
+        end
+        return self
+    end
+
+    function controller:Destroy()
+        if self.Destroyed then return end
+        self.Destroyed=true
+        if renderConnection then
+            renderConnection:Disconnect()
+            renderConnection=nil
+        end
+        if heartbeatConnection then
+            heartbeatConnection:Disconnect()
+            heartbeatConnection=nil
+        end
+        destroyTiles()
+        if container then
+            pcall(function() container:Destroy() end)
+            container=nil
+        end
+        clearSource()
+        setState("Destroyed")
+    end
+
+    if not createContainer() then
+        return controller
+    end
+    buildTiles()
+
+    if root.Destroying then
+        root.Destroying:Connect(function()
+            controller:Destroy()
+        end)
+    end
+
+    renderConnection=RunService.RenderStepped:Connect(function()
+        if controller.Destroyed then return end
+        if not controller.Enabled or Window.Closed then
+            if container then container.Visible=false end
+            return
+        end
+        if container then container.Visible=true end
+        updateTileSampling(false)
+    end)
+
+    heartbeatConnection=RunService.Heartbeat:Connect(function()
+        if controller.Destroyed or not controller.Enabled or Window.Closed then
+            return
+        end
+        local now=os.clock()
+        if now-lastCapture>=refreshInterval then
+            lastCapture=now
+            capture()
+        end
+    end)
+
+    if controller.Enabled then
+        task.defer(capture)
+    else
+        setState("Disabled")
+    end
+
+    return controller
+end
+end)();
+
+
 local __XHanOriginalCreateWindow=aa.CreateWindow
 
 function aa.CreateWindow(selfOrConfig,maybeConfig)
@@ -18773,24 +19275,54 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     local function installRealGlass()
         if window.LiquidGlass then return window.LiquidGlass end
         glassOptions.Enabled=true
-        window.LiquidGlass=__XHanRealGlass(aa,window,glassOptions)
+
+        local UserInputService=game:GetService("UserInputService")
+        local useMobileFallback=
+            glassOptions.ForceMobileFallback==true
+            or (
+                glassOptions.MobileFallback~=false
+                and UserInputService.TouchEnabled
+                and not UserInputService.KeyboardEnabled
+            )
+
+        if useMobileFallback then
+            window.LiquidGlass=__XHanMobileLiquidGlass(
+                aa,
+                window,
+                glassOptions
+            )
+        else
+            window.LiquidGlass=__XHanRealGlass(
+                aa,
+                window,
+                glassOptions
+            )
+        end
+
         local controller=window.LiquidGlass
-        if controller and controller.Supported then setLegacyGlassLayersHidden(true) end
-        if controller and (controller.State=="Unavailable" or controller.State=="Failed") then
+        if controller and controller.Supported then
+            setLegacyGlassLayersHidden(true)
+        end
+
+        if controller and (
+            controller.State=="Unavailable"
+            or controller.State=="Failed"
+        ) then
             pcall(function()
                 aa:Notify({
-                    Title="真实玻璃不可用",
+                    Title="液态玻璃不可用",
                     Content=tostring(controller.Error or controller.State),
                     Duration=10,
                 })
             end)
         end
+
         return controller
     end
 
     function window:GetLiquidGlassStatus()
         if self.LiquidGlass then return self.LiquidGlass:GetStatus() end
-        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,Backend="EditableMesh/Glass"}
+        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,Backend="Auto"}
     end
 
     function window:SetLiquidGlassEnabled(enabled)
