@@ -15574,7 +15574,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-2.0-BloomFlowIsland-BorderlessSelector-RealGlass"
+aa.Version="External-2.1-OriginalIslandGlow-SyntaxBloomFlowText"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15698,162 +15698,69 @@ return function(WindUI, Window, Options)
     Island.UI.Root=Root
 
 
-    -- Dynamic Island BloomFlow renderer.
-    -- Same Bloom16/Bloom8 halo method and continuous flow sampling used by
-    -- FeatureList BloomFlow. No extra glow TextLabel is added to "Syntax".
-    local Bloom16Image="rbxassetid://104490578391522"
-    local Bloom8Image="rbxassetid://102472648910048"
-
+    -- Rounded full-perimeter glow. Every carrier has a UICorner, so
+    -- stretching the island never exposes square Bloom-image endpoints.
     local IslandGlowSegments={}
 
-    local function matrixFlowColor(normalized,phaseOffset)
-        normalized=math.clamp(tonumber(normalized) or 0,0,1)
-        local hue=(
-            0.96
-            + (Island.GlowTime/6.4)
-            + (normalized*0.92)
-            + (phaseOffset or 0)
-        )%1
-        return Color3.fromHSV(hue,0.76,1)
-    end
-
-    local function makeBloomEdge(name,horizontal,z)
+    local function makeIslandGlowRing(index,scale,transparency)
         local Carrier=New("Frame",{
-            Name=name,
+            Name="IslandGlowRing"..index,
             Parent=Root,
-            BackgroundColor3=Color3.new(1,1,1),
-            BackgroundTransparency=0,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.fromScale(1,1),
+            BackgroundTransparency=1,
             BorderSizePixel=0,
-            Size=UDim2.fromOffset(1,1),
-            Position=UDim2.fromOffset(0,0),
-            Visible=Island.GlowEnabled,
-            ClipsDescendants=false,
             Active=false,
             Selectable=false,
-            ZIndex=z,
+            Visible=Island.GlowEnabled,
+            ClipsDescendants=false,
+            ZIndex=1,
         })
-
-        local Outer=New("ImageLabel",{
-            Name=name.."Bloom16",
+        local Corner=New("UICorner",{
             Parent=Carrier,
-            BackgroundTransparency=1,
-            Image=Bloom16Image,
-            ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.62,
-            ScaleType=Enum.ScaleType.Stretch,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=horizontal and UDim2.new(1,26,1,22) or UDim2.new(1,22,1,26),
-            ZIndex=z-2,
-            Active=false,
+            CornerRadius=UDim.new(0,20),
         })
-
-        local Inner=New("ImageLabel",{
-            Name=name.."Bloom8",
+        local Stroke=New("UIStroke",{
             Parent=Carrier,
-            BackgroundTransparency=1,
-            Image=Bloom8Image,
-            ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.46,
-            ScaleType=Enum.ScaleType.Stretch,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=horizontal and UDim2.new(1,14,1,12) or UDim2.new(1,12,1,14),
-            ZIndex=z-1,
-            Active=false,
+            ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
+            LineJoinMode=Enum.LineJoinMode.Round,
+            Color=Color3.new(1,1,1),
+            Thickness=1,
+            Transparency=transparency,
         })
-
         local Gradient=New("UIGradient",{
-            Parent=Carrier,
-            Rotation=horizontal and 0 or 90,
+            Parent=Stroke,
+            Rotation=0,
             Color=ColorSequence.new(Color3.new(1,1,1)),
         })
-        local OuterGradient=New("UIGradient",{
-            Parent=Outer,
-            Rotation=horizontal and 0 or 90,
-            Color=ColorSequence.new(Color3.new(1,1,1)),
-        })
-        local InnerGradient=New("UIGradient",{
-            Parent=Inner,
-            Rotation=horizontal and 0 or 90,
-            Color=ColorSequence.new(Color3.new(1,1,1)),
-        })
-
-        local edge={
-            Carrier=Carrier,
-            Outer=Outer,
-            Inner=Inner,
-            Gradient=Gradient,
-            OuterGradient=OuterGradient,
-            InnerGradient=InnerGradient,
-            Horizontal=horizontal,
-        }
-        IslandGlowSegments[#IslandGlowSegments+1]=edge
-        return edge
-    end
-
-    local GlowTop=makeBloomEdge("BloomFlowTop",true,3)
-    local GlowRight=makeBloomEdge("BloomFlowRight",false,3)
-    local GlowBottom=makeBloomEdge("BloomFlowBottom",true,3)
-    local GlowLeft=makeBloomEdge("BloomFlowLeft",false,3)
-
-    Island.UI.BorderGlowSegments=IslandGlowSegments
-    Island.GlowRenderer="BloomFlow"
-
-    local function setEdgeGradient(edge,colorA,colorB,rotation)
-        local sequence=ColorSequence.new({
-            ColorSequenceKeypoint.new(0,colorA),
-            ColorSequenceKeypoint.new(1,colorB),
-        })
-        edge.Gradient.Rotation=rotation or 0
-        edge.OuterGradient.Rotation=rotation or 0
-        edge.InnerGradient.Rotation=rotation or 0
-        edge.Gradient.Color=sequence
-        edge.OuterGradient.Color=sequence
-        edge.InnerGradient.Color=sequence
+        return {Carrier=Carrier,Corner=Corner,Stroke=Stroke,Gradient=Gradient,Scale=scale}
     end
 
     local function updateIslandGlowBounds()
         local pad=math.clamp(
-            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),
-            1,
-            8
+            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),1,8
         )
-        local thickness=math.max(1,math.floor(1+(pad*0.18)))
-
-        GlowTop.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
-        GlowTop.Carrier.Position=UDim2.new(0.5,0,0,0)
-        GlowTop.Carrier.Size=UDim2.new(1,-30,0,thickness)
-
-        GlowBottom.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
-        GlowBottom.Carrier.Position=UDim2.new(0.5,0,1,0)
-        GlowBottom.Carrier.Size=UDim2.new(1,-30,0,thickness)
-
-        GlowLeft.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
-        GlowLeft.Carrier.Position=UDim2.new(0,0,0.5,0)
-        GlowLeft.Carrier.Size=UDim2.new(0,thickness,1,-30)
-
-        GlowRight.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
-        GlowRight.Carrier.Position=UDim2.new(1,0,0.5,0)
-        GlowRight.Carrier.Size=UDim2.new(0,thickness,1,-30)
-
-        local outerExpand=18+(pad*2.4)
-        local innerExpand=8+(pad*1.25)
-
-        for _,edge in ipairs(IslandGlowSegments) do
-            if edge.Horizontal then
-                edge.Outer.Size=UDim2.new(1,outerExpand,1,18+(pad*1.5))
-                edge.Inner.Size=UDim2.new(1,innerExpand,1,8+pad)
-            else
-                edge.Outer.Size=UDim2.new(1,18+(pad*1.5),1,outerExpand)
-                edge.Inner.Size=UDim2.new(1,8+pad,1,innerExpand)
-            end
+        for _,ring in ipairs(IslandGlowSegments) do
+            local expansion=pad*ring.Scale
+            ring.Carrier.Size=UDim2.new(1,expansion*2,1,expansion*2)
+            ring.Corner.CornerRadius=UDim.new(0,20+expansion)
+            ring.Stroke.Thickness=math.max(1,pad*0.42)
         end
     end
 
+    -- Create outer rings first; the opaque body covers their inner halves.
+    -- Geometry uses scale=1 plus padding, and follows every size tween natively.
+    for index,spec in ipairs({{1,0.98},{0.8,0.96},{0.6,0.93},{0.4,0.89},{0.2,0.83}}) do
+        IslandGlowSegments[index]=makeIslandGlowRing(index,spec[1],spec[2])
+    end
+    Island.UI.BorderGlowSegments=IslandGlowSegments
+    Island.GlowRenderer="RoundedStrokeRings"
     updateIslandGlowBounds()
 
-    -- Keep the black-block fix: a real rounded Frame, not a sliced image.
+    -- Use a real rounded Frame instead of a sliced Squircle image.
+    -- The old image slice could render as a misplaced black rectangle on
+    -- very wide Dynamic Island sizes.
     local Body=New("Frame",{
         Name="Body",
         Parent=Root,
@@ -15864,11 +15771,13 @@ return function(WindUI, Window, Options)
         BackgroundTransparency=0.90,
         BorderSizePixel=0,
         ClipsDescendants=false,
-        ZIndex=4,
+        ZIndex=2,
     })
     Island.UI.Body=Body
     New("UICorner",{Parent=Body,CornerRadius=UDim.new(0,20)})
 
+    -- The Dynamic Island replaces WindUI's old floating OpenButton.
+    -- Its hitbox follows the island's animated size automatically.
     local ToggleUIHitbox=New("TextButton",{
         Name="ToggleUIHitbox",
         Parent=Body,
@@ -15890,7 +15799,7 @@ return function(WindUI, Window, Options)
         end
     end)
 
-    -- Crisp rounded outline over the BloomFlow halo.
+    -- The visible outline and halo share the body's exact rounded geometry.
     local FlowBorder=New("Frame",{
         Name="FlowBorder",
         Parent=Body,
@@ -15908,17 +15817,11 @@ return function(WindUI, Window, Options)
         ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
         LineJoinMode=Enum.LineJoinMode.Round,
         Color=Color3.new(1,1,1),
-        Thickness=1.05,
-        Transparency=0.10,
+        Thickness=1.15,
+        Transparency=0.07,
     })
     Island.UI.FlowBorder=FlowBorder
     Island.UI.FlowBorderStroke=FlowBorderStroke
-
-    local FlowBorderGradient=New("UIGradient",{
-        Parent=FlowBorderStroke,
-        Rotation=0,
-        Color=ColorSequence.new(Color3.new(1,1,1)),
-    })
 
     local NeutralBorder=New("Frame",{
         Name="NeutralBorder",
@@ -15942,48 +15845,48 @@ return function(WindUI, Window, Options)
     })
     Island.UI.NeutralBorder=NeutralBorder
 
+    local FlowBorderGradient=New("UIGradient",{
+        Parent=FlowBorderStroke,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+
+    local function islandFlowSequence(phase)
+        local keys={}
+        local steps=8
+        for i=0,steps do
+            local t=i/steps
+            local hue=(phase+(t*0.92))%1
+            table.insert(
+                keys,
+                ColorSequenceKeypoint.new(
+                    t,
+                    Color3.fromHSV(hue,0.78,1)
+                )
+            )
+        end
+        return ColorSequence.new(keys)
+    end
+
     local lastGlowUpdate=0
     table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
         if Island.Destroyed then return end
 
         Island.GlowTime=Island.GlowTime+dt
         lastGlowUpdate=lastGlowUpdate+dt
+
+        -- All rounded rings share one sequence, updated about 30 times/second.
         if lastGlowUpdate<0.032 then return end
         lastGlowUpdate=0
 
-        local size=Root.AbsoluteSize
-        local w=math.max(size.X,1)
-        local h=math.max(size.Y,1)
-        local perimeter=math.max(2*(w+h),1)
+        local phase=(Island.GlowTime/6.2)%1
+        local sequence=islandFlowSequence(phase)
 
-        local t0=0
-        local t1=w/perimeter
-        local t2=(w+h)/perimeter
-        local t3=(2*w+h)/perimeter
-        local t4=1
+        FlowBorderGradient.Color=sequence
 
-        setEdgeGradient(GlowTop,
-            matrixFlowColor(t0,0),
-            matrixFlowColor(t1,0),0)
-        setEdgeGradient(GlowRight,
-            matrixFlowColor(t1,0),
-            matrixFlowColor(t2,0),90)
-        setEdgeGradient(GlowBottom,
-            matrixFlowColor(t3,0),
-            matrixFlowColor(t2,0),0)
-        setEdgeGradient(GlowLeft,
-            matrixFlowColor(t4,0),
-            matrixFlowColor(t3,0),90)
-
-        local keys={}
-        for i=0,8 do
-            local t=i/8
-            keys[#keys+1]=ColorSequenceKeypoint.new(
-                t,
-                matrixFlowColor(t,0)
-            )
+        for _,ring in ipairs(IslandGlowSegments) do
+            ring.Gradient.Color=sequence
         end
-        FlowBorderGradient.Color=ColorSequence.new(keys)
     end))
 
     ----------------------------------------------------------------
@@ -15998,21 +15901,101 @@ return function(WindUI, Window, Options)
         Visible=true,
     })
 
+    -- Keep the original island glow untouched.
+    -- Only the Brand/Syntax text uses FeatureList BloomFlow's text method:
+    -- animated main color + the same-color shadow beneath it.
+    local IdleContent=New("CanvasGroup",{
+        Name="IdleContent",
+        Parent=IdleHolder,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.fromOffset(0,0),
+        AutomaticSize="XY",
+        BackgroundTransparency=1,
+        GroupTransparency=0,
+        ZIndex=6,
+    })
+
+    New("UIListLayout",{
+        Parent=IdleContent,
+        FillDirection=Enum.FillDirection.Horizontal,
+        HorizontalAlignment=Enum.HorizontalAlignment.Center,
+        VerticalAlignment=Enum.VerticalAlignment.Center,
+        SortOrder=Enum.SortOrder.LayoutOrder,
+        Padding=UDim.new(0,0),
+    })
+
+    local BrandWrap=New("Frame",{
+        Name="BrandWrap",
+        Parent=IdleContent,
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Size=UDim2.fromOffset(1,18),
+        LayoutOrder=1,
+        ZIndex=6,
+    })
+
+    local BrandShadow=New("TextLabel",{
+        Name="BrandShadow",
+        Parent=BrandWrap,
+        Position=UDim2.fromOffset(1,1),
+        Size=UDim2.fromOffset(1,18),
+        BackgroundTransparency=1,
+        Text=tostring(Island.Brand),
+        TextColor3=Color3.fromRGB(110,200,241),
+        TextTransparency=0.64,
+        TextSize=14,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextYAlignment=Enum.TextYAlignment.Center,
+        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
+        ZIndex=6,
+    })
+
+    local BrandText=New("TextLabel",{
+        Name="Brand",
+        Parent=BrandWrap,
+        Position=UDim2.fromOffset(0,0),
+        Size=UDim2.fromOffset(1,18),
+        BackgroundTransparency=1,
+        Text=tostring(Island.Brand),
+        TextColor3=Color3.fromRGB(110,200,241),
+        TextTransparency=0,
+        TextSize=14,
+        TextXAlignment=Enum.TextXAlignment.Left,
+        TextYAlignment=Enum.TextYAlignment.Center,
+        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
+        ZIndex=7,
+    })
+
+    local function syncBrandBounds()
+        local width=math.max(math.ceil(BrandText.TextBounds.X),1)
+        local height=math.max(math.ceil(BrandText.TextBounds.Y),18)
+
+        BrandWrap.Size=UDim2.fromOffset(width,height)
+        BrandText.Size=UDim2.fromOffset(width,height)
+        BrandShadow.Size=UDim2.fromOffset(width,height)
+    end
+
+    Creator.AddSignal(
+        BrandText:GetPropertyChangedSignal("TextBounds"),
+        syncBrandBounds
+    )
+
     local IdleText=New("TextLabel",{
         Name="IdleText",
-        Parent=IdleHolder,
-        Position=UDim2.new(0,14,0,0),
-        Size=UDim2.new(1,-28,1,0),
+        Parent=IdleContent,
+        AutomaticSize="XY",
         BackgroundTransparency=1,
         RichText=true,
         Text="",
         TextColor3=Color3.fromRGB(244,245,248),
         TextTransparency=0,
         TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Center,
+        TextXAlignment=Enum.TextXAlignment.Left,
         TextYAlignment=Enum.TextYAlignment.Center,
         TextTruncate=Enum.TextTruncate.AtEnd,
         FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
+        LayoutOrder=2,
         ZIndex=6,
     })
 
@@ -16020,15 +16003,35 @@ return function(WindUI, Window, Options)
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
 
+        BrandText.Text=tostring(Island.Brand)
+        BrandShadow.Text=BrandText.Text
+        syncBrandBounds()
+
         IdleText.Text=string.format(
-            '<font color="#6EC8F1">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
-            Island.Brand,
+            '  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             Island.UserText,
             ping,
             Island.ServerText,
             fps
         )
     end
+
+    -- FeatureList BloomFlow-style name coloring:
+    -- one solid flowing color on the name, and one same-color shadow.
+    local lastBrandColorUpdate=0
+    table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
+        if Island.Destroyed then return end
+
+        lastBrandColorUpdate=lastBrandColorUpdate+dt
+        if lastBrandColorUpdate<0.032 then return end
+        lastBrandColorUpdate=0
+
+        local phase=(Island.GlowTime/6.2)%1
+        local color=Color3.fromHSV(phase,0.78,1)
+
+        BrandText.TextColor3=color
+        BrandShadow.TextColor3=color
+    end))
 
     local function readPing()
         local ok,value=pcall(function()
@@ -16211,8 +16214,8 @@ return function(WindUI, Window, Options)
 
         cancelTween(Island.IdleTextTween)
         Island.IdleTextTween=Tween(
-            IdleText,0.10,
-            {TextTransparency=1},
+            IdleContent,0.10,
+            {GroupTransparency=1},
             Enum.EasingStyle.Quint,
             Enum.EasingDirection.In
         )
@@ -16292,12 +16295,12 @@ return function(WindUI, Window, Options)
 
             RowLayer.Visible=false
             IdleHolder.Visible=true
-            IdleText.TextTransparency=1
+            IdleContent.GroupTransparency=1
 
             cancelTween(Island.IdleTextTween)
             Island.IdleTextTween=Tween(
-                IdleText,0.16,
-                {TextTransparency=0},
+                IdleContent,0.16,
+                {GroupTransparency=0},
                 Enum.EasingStyle.Quint,
                 Enum.EasingDirection.Out
             )
