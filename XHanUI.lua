@@ -15517,7 +15517,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.6-CurvedLiquidLens"
+aa.Version="External-1.7-StrongTripleRefraction"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -18162,7 +18162,8 @@ return function(WindUI, Window, Options)
         Supported = nil, Enabled = options.Enabled ~= false,
         Backend = "EditableMesh/Glass", Destroyed = false,
     }
-    local mesh, part, destroyConnection, cameraConnection
+    local mesh, part, glassLayers = nil, nil, {}
+    local destroyConnection, cameraConnection
     local binding = "XHanUI.RealGlass." .. tostring(controller)
     local bound = false
     local vertices, normals, rings = {}, {}, {}
@@ -18174,24 +18175,24 @@ return function(WindUI, Window, Options)
         return math.clamp(value, minimum, maximum)
     end
 
-    local transparency = number(options.Transparency, 0.30, 0.02, 0.97)
-
-    -- Lens build:
-    -- The previous pane was almost completely planar and only curved through
-    -- a ~5px edge bevel. That leaves the center visually flat, so refraction
-    -- is concentrated at the border. Use a thicker, multi-ring biconvex lens
-    -- so the whole window bends the 3D scene gradually.
-    local thickness = number(options.Thickness, 0.055, 0.006, 0.3)
+    -- Strong-refraction defaults. A single 30%-transparent Glass part looked
+    -- like a grey overlay on mobile and hid most of the optical displacement.
+    -- Keep each shell much clearer and stack several curved shells with tiny
+    -- depth offsets so Roblox samples the refractive pass more than once.
+    local transparency = number(options.Transparency, 0.72, 0.20, 0.96)
+    local thickness = number(options.Thickness, 0.085, 0.010, 0.30)
     local requestedDistance = number(options.Distance, 1, 0.2, 8)
-    local segments = math.floor(number(options.CornerSegments, 12, 4, 24))
-    local bevelPixels = number(options.Bevel, 9, 0.25, 48)
+    local segments = math.floor(number(options.CornerSegments, 14, 6, 24))
+    local bevelPixels = number(options.Bevel, 10, 0.25, 48)
     local edgeInset = number(options.EdgeInset, 0.6, 0, 8)
-    local lensStrength = number(options.LensStrength, 0.085, 0.0, 0.30)
-    local backCurve = number(options.BackCurve, 0.55, 0.0, 1.0)
-    local curvePower = number(options.CurvePower, 1.65, 1.05, 4.0)
-    local lensRings = math.floor(number(options.LensRings, 7, 4, 14))
-    local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(220, 235, 255)
-    local reflectance = number(options.Reflectance, 0.12, 0, 1)
+    local lensStrength = number(options.LensStrength, 0.18, 0.0, 0.36)
+    local backCurve = number(options.BackCurve, 0.85, 0.0, 1.0)
+    local curvePower = number(options.CurvePower, 1.42, 1.02, 4.0)
+    local lensRings = math.floor(number(options.LensRings, 9, 5, 16))
+    local refractionLayers = math.floor(number(options.RefractionLayers, 3, 1, 3))
+    local layerGap = number(options.LayerGap, 0.008, 0.001, 0.035)
+    local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(247, 251, 255)
+    local reflectance = number(options.Reflectance, 0.04, 0, 1)
     local radiusOption = options.CornerRadius
     local perimeterCount = 4 * (segments + 1)
 
@@ -18216,11 +18217,16 @@ return function(WindUI, Window, Options)
             LensRings = lensRings,
             Thickness = thickness,
             Bevel = bevelPixels,
+            RefractionLayers = refractionLayers,
+            BaseTransparency = transparency,
+            LayerGap = layerGap,
         }
     end
 
     local function hide()
-        if part then part.Parent = nil end
+        for _, layer in ipairs(glassLayers) do
+            if layer then layer.Parent = nil end
+        end
     end
 
     function controller:SetEnabled(enabled)
@@ -18242,7 +18248,11 @@ return function(WindUI, Window, Options)
         if bound then RunService:UnbindFromRenderStep(binding); bound = false end
         if destroyConnection then destroyConnection:Disconnect(); destroyConnection = nil end
         if cameraConnection then cameraConnection:Disconnect(); cameraConnection = nil end
-        if part then part:Destroy(); part = nil end
+        for _, layer in ipairs(glassLayers) do
+            pcall(function() layer:Destroy() end)
+        end
+        table.clear(glassLayers)
+        part = nil
         if mesh then mesh:Destroy(); mesh = nil end
         setState("Destroyed")
     end
@@ -18250,7 +18260,11 @@ return function(WindUI, Window, Options)
     local function fail(state, reason)
         hide()
         if bound then RunService:UnbindFromRenderStep(binding); bound = false end
-        if part then part:Destroy(); part = nil end
+        for _, layer in ipairs(glassLayers) do
+            pcall(function() layer:Destroy() end)
+        end
+        table.clear(glassLayers)
+        part = nil
         if mesh then mesh:Destroy(); mesh = nil end
         controller.Supported = false
         setState(state, tostring(reason))
@@ -18508,20 +18522,43 @@ return function(WindUI, Window, Options)
             RenderFidelity = Enum.RenderFidelity.Precise,
         })
         if not part then error("CreateMeshPartAsync did not return a MeshPart.") end
-        part.Name = "XHanUI_RealLiquidGlass"
+        part.Name = "XHanUI_RealLiquidGlass_1"
         part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery = true, false, false, false
         part.CastShadow, part.DoubleSided = false, false
         part.Material, part.Color = Enum.Material.Glass, tint
         part.Transparency, part.Reflectance = transparency, reflectance
         part.Size = size
+
+        glassLayers = {part}
+
+        -- Reuse the same curved mesh in a few ultra-thin optical shells.
+        -- Each later shell is clearer so stacking strengthens displacement
+        -- without recreating the old grey/black overlay look.
+        for layerIndex = 2, refractionLayers do
+            local layer = part:Clone()
+            layer.Name = "XHanUI_RealLiquidGlass_" .. tostring(layerIndex)
+            layer.Transparency = math.clamp(
+                transparency + 0.10 + (layerIndex - 2) * 0.055,
+                0.20,
+                0.95
+            )
+            layer.Reflectance = reflectance * 0.55
+            layer.Parent = nil
+            glassLayers[#glassLayers + 1] = layer
+        end
+
         localCenter = center
         lastProjection = p
     end
 
     local function updateGeometry(p)
         local points, _, _, _, center, size = makeGeometry(p)
-        for i, point in ipairs(points) do mesh:SetPosition(vertices[i], point) end
-        part.Size = size
+        for i, point in ipairs(points) do
+            mesh:SetPosition(vertices[i], point)
+        end
+        for _, layer in ipairs(glassLayers) do
+            if layer then layer.Size = size end
+        end
         localCenter = center
         lastProjection = p
     end
@@ -18537,9 +18574,32 @@ return function(WindUI, Window, Options)
         local projection, why = cameraProjection(camera)
         if not projection then hide(); setState("Hidden", why); return end
         if different(projection, lastProjection) then updateGeometry(projection) end
-        part.CFrame = camera.CFrame * CFrame.new(localCenter)
-        part.Transparency = 1 - (1 - transparency) * projection[11]
-        if part.Parent ~= camera then part.Parent = camera end
+
+        for layerIndex, layer in ipairs(glassLayers) do
+            local offset = (layerIndex - 1) * layerGap
+            layer.CFrame = camera.CFrame * CFrame.new(
+                localCenter + Vector3.new(0, 0, -offset)
+            )
+
+            local baseTransparency
+            if layerIndex == 1 then
+                baseTransparency = transparency
+            else
+                baseTransparency = math.clamp(
+                    transparency + 0.10 + (layerIndex - 2) * 0.055,
+                    0.20,
+                    0.95
+                )
+            end
+
+            layer.Transparency =
+                1 - (1 - baseTransparency) * projection[11]
+
+            if layer.Parent ~= camera then
+                layer.Parent = camera
+            end
+        end
+
         setState("Ready")
     end
 
@@ -18548,9 +18608,20 @@ return function(WindUI, Window, Options)
         lastProjection = nil
         -- Move a visible pane immediately, before the old camera can be
         -- destroyed along with its descendants. Hidden panes stay unparented.
-        if part and part.Parent and not controller.Destroyed then
-            local ok, err = pcall(function() part.Parent = Workspace.CurrentCamera end)
-            if not ok then fail("Failed", "Camera replacement failed: " .. tostring(err)) end
+        if not controller.Destroyed then
+            local ok, err = pcall(function()
+                local camera = Workspace.CurrentCamera
+                if camera then
+                    for _, layer in ipairs(glassLayers) do
+                        if layer and layer.Parent then
+                            layer.Parent = camera
+                        end
+                    end
+                end
+            end)
+            if not ok then
+                fail("Failed", "Camera replacement failed: " .. tostring(err))
+            end
         end
     end)
     -- Bootstrap a unit-screen projection even while the opening animation has
@@ -18559,7 +18630,11 @@ return function(WindUI, Window, Options)
     local success, failure = pcall(function() buildMesh(initial) end)
     if not success then
         if controller.Destroyed then
-            if part then part:Destroy(); part = nil end
+            for _, layer in ipairs(glassLayers) do
+                pcall(function() layer:Destroy() end)
+            end
+            table.clear(glassLayers)
+            part = nil
             if mesh then mesh:Destroy(); mesh = nil end
             return controller
         end
@@ -18570,7 +18645,11 @@ return function(WindUI, Window, Options)
     end
     -- The API above can yield; the window may have been destroyed meanwhile.
     if controller.Destroyed or Window.Destroyed or root.Parent == nil then
-        if part then part:Destroy(); part = nil end
+        for _, layer in ipairs(glassLayers) do
+            pcall(function() layer:Destroy() end)
+        end
+        table.clear(glassLayers)
+        part = nil
         if mesh then mesh:Destroy(); mesh = nil end
         controller:Destroy()
         return controller
