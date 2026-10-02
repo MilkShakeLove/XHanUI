@@ -13345,7 +13345,6 @@ TextColor3="WindowTopbarTitle",
 },
 })
 
--- XHanUI main window: transparent background + white rounded outline
 aw.UIElements.Main=ao("Frame",{
 Size=UDim2.new(aw.Size.X.Scale,aw.Size.X.Offset,0,0),
 Position=aw.Position,
@@ -13355,18 +13354,31 @@ AnchorPoint=Vector2.new(0.5,0.5),
 Active=true,
 
 },{
+av.WindUI.UIScaleObj,
+-- Syntax: independent transparent white outline overlay.
+-- It does not modify the native window background/shadow or DynamicIsland.
+ao("Frame",{
+Name="SyntaxMainOutline",
+Size=UDim2.fromScale(1,1),
+Position=UDim2.fromScale(0,0),
+BackgroundTransparency=1,
+BorderSizePixel=0,
+Active=false,
+Selectable=false,
+ZIndex=100000,
+},{
 ao("UICorner",{
 CornerRadius=UDim.new(0,aw.UICorner),
 }),
 ao("UIStroke",{
-Name="SyntaxMainWhiteStroke",
+Name="WhiteOutline",
 Color=Color3.fromRGB(255,255,255),
 Transparency=0.08,
 Thickness=1.2,
 ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
 LineJoinMode=Enum.LineJoinMode.Round,
 }),
-av.WindUI.UIScaleObj,
+}),
 aw.AcrylicPaint and aw.AcrylicPaint.Frame or nil,
 bOuter,
 b,
