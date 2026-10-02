@@ -1,3 +1,6 @@
+-- XHanUI RealGlass: actual rounded/beveled EditableMesh with Roblox Glass material.
+-- Requires Mesh / Image API capability. No simulated fallback or global blur.
+-- ScreenGui layers cannot be refracted; only the rendered 3D scene is behind glass.
 -- FeatureList matrix glow expanded for fuller coverage
 -- Dynamic Island: no standalone shadow, top/bottom border glow only
 -- Dynamic Island clean four-edge FeatureList-style glow
@@ -13384,6 +13387,8 @@ CornerRadius=UDim.new(0,aw.UICorner),
 })
 end
 
+aw.UIElements.WindowBackdrop=i
+
 local r=an.NewRoundFrame(99,"Squircle",{
 ImageTransparency=0.8,
 ImageColor3=Color3.new(1,1,1),
@@ -15205,6 +15210,10 @@ return false
 end
 
 function aa.ToggleAcrylic(az,aA)
+-- Reopening a window must not revive the old acrylic plane over real glass.
+if aA and aa.Window and aa.Window.LiquidGlass and aa.Window.LiquidGlass.Enabled then
+return
+end
 if aa.Window and aa.Window.AcrylicPaint and aa.Window.AcrylicPaint.Model then
 aa.Window.Acrylic=aA
 aa.Window.AcrylicPaint.Model.Transparency=aA and 0.98 or 1
@@ -15556,10 +15565,6 @@ return function(WindUI, Window, Options)
         GlowTime=0,
     }
 
-    -- User supplied visual resources.
-    local ISLAND_BLOOM16_IMAGE="rbxassetid://104490578391522"
-    local ISLAND_BLOOM8_IMAGE="rbxassetid://102472648910048"
-
     local ENABLED=Color3.fromRGB(49,196,124)
     local DISABLED=Color3.fromRGB(216,83,91)
     local SWITCH_ON=Color3.fromRGB(110,200,241)
@@ -15631,107 +15636,65 @@ return function(WindUI, Window, Options)
     Island.UI.Root=Root
 
 
-    -- FeatureList-style border glow for the Dynamic Island.
-    -- IMPORTANT: there is NO second colored outline here. Glow is produced
-    -- only by Bloom16/Bloom8 images attached to invisible edge carriers,
-    -- matching the FeatureList matrix-edge technique.
+    -- Rounded full-perimeter glow. Every carrier has a UICorner, so
+    -- stretching the island never exposes square Bloom-image endpoints.
     local IslandGlowSegments={}
 
-    local function makeIslandGlowSegment(name,horizontal)
+    local function makeIslandGlowRing(index,scale,transparency)
         local Carrier=New("Frame",{
-            Name=name,
+            Name="IslandGlowRing"..index,
             Parent=Root,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=UDim2.fromScale(1,1),
             BackgroundTransparency=1,
             BorderSizePixel=0,
-            Size=UDim2.fromOffset(1,1),
-            Position=UDim2.fromOffset(0,0),
-            ZIndex=1,
+            Active=false,
+            Selectable=false,
             Visible=Island.GlowEnabled,
             ClipsDescendants=false,
-        })
-
-        local Outer=New("ImageLabel",{
-            Name=name.."Bloom16",
-            Parent=Carrier,
-            BackgroundTransparency=1,
-            BorderSizePixel=0,
-            Image=ISLAND_BLOOM16_IMAGE,
-            ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.91,
-            ScaleType=Enum.ScaleType.Stretch,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,8,1,8),
             ZIndex=1,
-            Active=false,
         })
-
-        local Inner=New("ImageLabel",{
-            Name=name.."Bloom8",
+        local Corner=New("UICorner",{
             Parent=Carrier,
-            BackgroundTransparency=1,
-            BorderSizePixel=0,
-            Image=ISLAND_BLOOM8_IMAGE,
-            ImageColor3=Color3.new(1,1,1),
-            ImageTransparency=0.78,
-            ScaleType=Enum.ScaleType.Stretch,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.new(1,4,1,4),
-            ZIndex=1,
-            Active=false,
+            CornerRadius=UDim.new(0,20),
         })
-
-        local OuterGradient=New("UIGradient",{
-            Parent=Outer,
+        local Stroke=New("UIStroke",{
+            Parent=Carrier,
+            ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
+            LineJoinMode=Enum.LineJoinMode.Round,
+            Color=Color3.new(1,1,1),
+            Thickness=1,
+            Transparency=transparency,
+        })
+        local Gradient=New("UIGradient",{
+            Parent=Stroke,
             Rotation=0,
             Color=ColorSequence.new(Color3.new(1,1,1)),
         })
-        local InnerGradient=New("UIGradient",{
-            Parent=Inner,
-            Rotation=0,
-            Color=ColorSequence.new(Color3.new(1,1,1)),
-        })
-
-        return {
-            Carrier=Carrier,
-            Outer=Outer,
-            Inner=Inner,
-            OuterGradient=OuterGradient,
-            InnerGradient=InnerGradient,
-            Horizontal=horizontal,
-        }
+        return {Carrier=Carrier,Corner=Corner,Stroke=Stroke,Gradient=Gradient,Scale=scale}
     end
-
-
 
     local function updateIslandGlowBounds()
         local pad=math.clamp(
-            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),
-            1,
-            8
+            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),1,8
         )
-        local innerPad=math.max(2,math.floor(pad*0.5))
-
-        local top=IslandGlowSegments.Top
-        local bottom=IslandGlowSegments.Bottom
-
-        -- Only top/bottom glow remains.
-        -- No left/right rounded-end glow objects.
-        if top then
-            top.Carrier.Position=UDim2.new(0,0,0,0)
-            top.Carrier.Size=UDim2.new(1,0,0,1)
-            top.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
-            top.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
-        end
-
-        if bottom then
-            bottom.Carrier.Position=UDim2.new(0,0,1,-1)
-            bottom.Carrier.Size=UDim2.new(1,0,0,1)
-            bottom.Outer.Size=UDim2.new(1,pad*2,1,pad*2)
-            bottom.Inner.Size=UDim2.new(1,innerPad*2,1,innerPad*2)
+        for _,ring in ipairs(IslandGlowSegments) do
+            local expansion=pad*ring.Scale
+            ring.Carrier.Size=UDim2.new(1,expansion*2,1,expansion*2)
+            ring.Corner.CornerRadius=UDim.new(0,20+expansion)
+            ring.Stroke.Thickness=math.max(1,pad*0.42)
         end
     end
+
+    -- Create outer rings first; the opaque body covers their inner halves.
+    -- Geometry uses scale=1 plus padding, and follows every size tween natively.
+    for index,spec in ipairs({{1,0.98},{0.8,0.96},{0.6,0.93},{0.4,0.89},{0.2,0.83}}) do
+        IslandGlowSegments[index]=makeIslandGlowRing(index,spec[1],spec[2])
+    end
+    Island.UI.BorderGlowSegments=IslandGlowSegments
+    Island.GlowRenderer="RoundedStrokeRings"
+    updateIslandGlowBounds()
 
     local Body=Creator.NewRoundFrame(20,"Squircle",{
         Name="Body",
@@ -15744,6 +15707,9 @@ return function(WindUI, Window, Options)
         ZIndex=1,
     })
     Island.UI.Body=Body
+    -- Clip the sliced image surface to the same radius as the real UIStroke.
+    -- UICorner affects the surface only; notification descendants remain visible.
+    New("UICorner",{Parent=Body,CornerRadius=UDim.new(0,20)})
 
     -- The Dynamic Island replaces WindUI's old floating OpenButton.
     -- Its hitbox follows the island's animated size automatically.
@@ -15782,42 +15748,54 @@ return function(WindUI, Window, Options)
         }),
     })
 
-    -- Sole real colored outline.
-    local FlowBorder=Creator.NewRoundFrame(20,"SquircleOutline",{
+    -- The visible outline and halo share the body's exact rounded geometry.
+    local FlowBorder=New("Frame",{
         Name="FlowBorder",
         Parent=Body,
         Size=UDim2.fromScale(1,1),
-        ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.07,
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Active=false,
+        Selectable=false,
         ZIndex=4,
         Visible=Island.GlowEnabled,
     })
+    New("UICorner",{Parent=FlowBorder,CornerRadius=UDim.new(0,20)})
+    local FlowBorderStroke=New("UIStroke",{
+        Parent=FlowBorder,
+        ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
+        LineJoinMode=Enum.LineJoinMode.Round,
+        Color=Color3.new(1,1,1),
+        Thickness=1.15,
+        Transparency=0.07,
+    })
     Island.UI.FlowBorder=FlowBorder
+    Island.UI.FlowBorderStroke=FlowBorderStroke
 
-    -- Same glow construction used by FeatureList: Bloom16 + Bloom8 around
-    -- thin edge carriers. Carriers themselves are invisible, so there is no
-    -- second colored border.
-    IslandGlowSegments.Top=makeIslandGlowSegment("IslandGlowTop",true)
-    IslandGlowSegments.Bottom=makeIslandGlowSegment("IslandGlowBottom",true)
-
-    Island.UI.BorderGlowSegments=IslandGlowSegments
-
-    updateIslandGlowBounds()
-
-    -- A very faint neutral border remains if Glow is disabled.
-    local NeutralBorder=Creator.NewRoundFrame(20,"SquircleOutline",{
+    local NeutralBorder=New("Frame",{
         Name="NeutralBorder",
         Parent=Body,
         Size=UDim2.fromScale(1,1),
-        ImageColor3=Color3.fromRGB(205,210,216),
-        ImageTransparency=0.92,
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        Active=false,
+        Selectable=false,
         ZIndex=2,
         Visible=not Island.GlowEnabled,
+    })
+    New("UICorner",{Parent=NeutralBorder,CornerRadius=UDim.new(0,20)})
+    New("UIStroke",{
+        Parent=NeutralBorder,
+        ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
+        LineJoinMode=Enum.LineJoinMode.Round,
+        Color=Color3.fromRGB(205,210,216),
+        Thickness=1,
+        Transparency=0.92,
     })
     Island.UI.NeutralBorder=NeutralBorder
 
     local FlowBorderGradient=New("UIGradient",{
-        Parent=FlowBorder,
+        Parent=FlowBorderStroke,
         Rotation=0,
         Color=ColorSequence.new(Color3.new(1,1,1)),
     })
@@ -15846,8 +15824,7 @@ return function(WindUI, Window, Options)
         Island.GlowTime=Island.GlowTime+dt
         lastGlowUpdate=lastGlowUpdate+dt
 
-        -- 30-ish updates per second is visually smooth without rebuilding
-        -- three ColorSequences every render frame.
+        -- All rounded rings share one sequence, updated about 30 times/second.
         if lastGlowUpdate<0.032 then return end
         lastGlowUpdate=0
 
@@ -15856,20 +15833,9 @@ return function(WindUI, Window, Options)
 
         FlowBorderGradient.Color=sequence
 
-        local top=IslandGlowSegments.Top
-        local bottom=IslandGlowSegments.Bottom
-        if top then
-            top.OuterGradient.Color=sequence
-            top.InnerGradient.Color=sequence
+        for _,ring in ipairs(IslandGlowSegments) do
+            ring.Gradient.Color=sequence
         end
-        if bottom then
-            bottom.OuterGradient.Color=sequence
-            bottom.InnerGradient.Color=sequence
-        end
-
-
-
-
     end))
 
     ----------------------------------------------------------------
@@ -18182,6 +18148,365 @@ local function __XHanInstallFeatureList(window,options)
     return list
 end
 
+local __XHanRealGlass=(function()
+-- Real 3D glass for a ScreenGui window. This is an engine Glass material,
+-- not a UIGradient, a blurred screenshot, or a global post-processing effect.
+-- Roblox only refracts the rendered 3D scene: other ScreenGuis cannot be
+-- sampled. Appearance is controlled by the engine/graphics quality and is not
+-- Apple's Liquid Glass shader. Very near world geometry can occlude the pane.
+-- Published experiences must allow the Mesh / Image APIs; clients also have
+-- an EditableMesh memory budget. Unsupported clients receive an explicit error.
+return function(WindUI, Window, Options)
+    local options = type(Options) == "table" and Options or {}
+    local AssetService = game:GetService("AssetService")
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local VRService = game:GetService("VRService")
+    local root = Window and Window.UIElements and Window.UIElements.Main
+    local controller = {
+        State = "Initializing", Status = "Initializing", Error = nil,
+        Supported = nil, Enabled = options.Enabled ~= false,
+        Backend = "EditableMesh/Glass", Destroyed = false,
+    }
+    local mesh, part, destroyConnection, cameraConnection
+    local binding = "XHanUI.RealGlass." .. tostring(controller)
+    local bound = false
+    local vertices, normals, rings = {}, {}, {}
+    local lastProjection, localCenter
+
+    local function number(value, fallback, minimum, maximum)
+        value = tonumber(value)
+        if not value or value ~= value or math.abs(value) == math.huge then value = fallback end
+        return math.clamp(value, minimum, maximum)
+    end
+
+    local transparency = number(options.Transparency, 0.30, 0.02, 0.97)
+    local thickness = number(options.Thickness, 0.035, 0.002, 0.3)
+    local requestedDistance = number(options.Distance, 1, 0.2, 8)
+    local segments = math.floor(number(options.CornerSegments, 12, 4, 24))
+    local bevelPixels = number(options.Bevel, 5, 0.25, 48)
+    local edgeInset = number(options.EdgeInset, 0.6, 0, 8)
+    local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(220, 235, 255)
+    local reflectance = number(options.Reflectance, 0.12, 0, 1)
+    local radiusOption = options.CornerRadius
+    local perimeterCount = 4 * (segments + 1)
+    local bevelSteps = 3
+
+    local function setState(state, message)
+        if controller.State == state and controller.Error == message then return end
+        controller.State, controller.Status, controller.Error = state, state, message
+        if type(options.OnStatus) == "function" then
+            local snapshot = controller:GetStatus()
+            task.defer(function()
+                local ok, err = pcall(options.OnStatus, snapshot)
+                if not ok then warn("[XHanUI LiquidGlass] OnStatus: " .. tostring(err)) end
+            end)
+        end
+    end
+
+    function controller:GetStatus()
+        return {
+            State = self.State, Status = self.Status, Error = self.Error,
+            Supported = self.Supported, Enabled = self.Enabled,
+            Backend = self.Backend,
+        }
+    end
+
+    local function hide()
+        if part then part.Parent = nil end
+    end
+
+    function controller:SetEnabled(enabled)
+        if self.Destroyed then return self end
+        self.Enabled = enabled == true
+        if not self.Enabled then
+            hide()
+            if self.Supported then setState("Disabled") end
+        elseif self.Supported then
+            lastProjection = nil
+            setState("Hidden")
+        end
+        return self
+    end
+
+    function controller:Destroy()
+        if self.Destroyed then return end
+        self.Destroyed = true
+        if bound then RunService:UnbindFromRenderStep(binding); bound = false end
+        if destroyConnection then destroyConnection:Disconnect(); destroyConnection = nil end
+        if cameraConnection then cameraConnection:Disconnect(); cameraConnection = nil end
+        if part then part:Destroy(); part = nil end
+        if mesh then mesh:Destroy(); mesh = nil end
+        setState("Destroyed")
+    end
+
+    local function fail(state, reason)
+        hide()
+        if bound then RunService:UnbindFromRenderStep(binding); bound = false end
+        if part then part:Destroy(); part = nil end
+        if mesh then mesh:Destroy(); mesh = nil end
+        controller.Supported = false
+        setState(state, tostring(reason))
+        warn("[XHanUI LiquidGlass] " .. tostring(reason))
+    end
+
+    if not root or not root:IsA("GuiObject") then
+        fail("Unavailable", "UIElements.Main must be a GuiObject before attaching real glass.")
+        return controller
+    end
+    if not RunService:IsClient() then
+        fail("Unavailable", "Real glass must run in a client LocalScript.")
+        return controller
+    end
+
+    -- AbsolutePosition is in CoreUISafeInsets coordinates. ScreenPointToRay
+    -- uses that same origin, including when IgnoreGuiInset changes. Adding
+    -- GuiService:GetGuiInset() manually would apply the top-bar offset twice.
+    -- See Camera:ViewportPointToRay documentation, coordinate-system note.
+    local function cameraProjection(camera)
+        local pos, size = root.AbsolutePosition, root.AbsoluteSize
+        if size.X < 4 or size.Y < 4 then return nil, "The window has no visible area." end
+        local angle = root.AbsoluteRotation
+        if math.abs(angle % 360) > 0.01 then
+            return nil, "Rotated GUI windows are not supported by the real-glass pane."
+        end
+        local groupOpacity = 1
+        local ancestor = root
+        while ancestor do
+            if ancestor:IsA("GuiObject") then
+                if not ancestor.Visible then return nil end
+                if ancestor:IsA("CanvasGroup") then groupOpacity = groupOpacity * (1 - ancestor.GroupTransparency) end
+                if ancestor ~= root and ancestor.ClipsDescendants then
+                    local p, s = ancestor.AbsolutePosition, ancestor.AbsoluteSize
+                    if pos.X < p.X - 0.1 or pos.Y < p.Y - 0.1
+                        or pos.X + size.X > p.X + s.X + 0.1
+                        or pos.Y + size.Y > p.Y + s.Y + 0.1 then
+                        return nil, "The pane is suspended while an ancestor clips the window."
+                    end
+                end
+            elseif ancestor:IsA("ScreenGui") and not ancestor.Enabled then
+                return nil
+            end
+            ancestor = ancestor.Parent
+        end
+        if groupOpacity <= 0.001 then return nil end
+        local uiScale = 1
+        ancestor = root
+        while ancestor do
+            if ancestor:IsA("GuiObject") then
+                for _, child in ipairs(ancestor:GetChildren()) do
+                    if child:IsA("UIScale") then uiScale = uiScale * child.Scale end
+                end
+            end
+            ancestor = ancestor.Parent
+        end
+        local corner = radiusOption
+        if corner == nil then
+            local mainContent = root:FindFirstChild("Main")
+            local uiCorner = (mainContent and mainContent:FindFirstChildOfClass("UICorner"))
+                or root:FindFirstChildOfClass("UICorner")
+            if uiCorner then
+                corner = uiCorner.CornerRadius.Scale * math.min(size.X, size.Y)
+                    + uiCorner.CornerRadius.Offset * uiScale
+            else corner = number(Window.UICorner, 16, 0, 256) * uiScale end
+        else corner = number(corner, 16, 0, 256) * uiScale end
+        local origin = pos + Vector2.new(edgeInset, edgeInset)
+        local width, height = size.X - 2 * edgeInset, size.Y - 2 * edgeInset
+        if width <= 2 or height <= 2 then return nil end
+        local cameraFrame = camera.CFrame
+        local tl = cameraFrame:VectorToObjectSpace(camera:ScreenPointToRay(origin.X, origin.Y, 0).Direction)
+        local br = cameraFrame:VectorToObjectSpace(camera:ScreenPointToRay(origin.X + width, origin.Y + height, 0).Direction)
+        if tl.Z >= -0.00001 or br.Z >= -0.00001 then return nil, "The camera projection is unavailable." end
+        local near = math.abs(camera.NearPlaneZ)
+        local frontDepth = math.max(requestedDistance, near + 0.08)
+        return {
+            width, height,
+            tl.X / -tl.Z, tl.Y / -tl.Z, br.X / -br.Z, br.Y / -br.Z,
+            frontDepth, thickness,
+            math.clamp(corner - edgeInset, 0.25, math.min(width, height) * 0.499),
+            bevelPixels * uiScale,
+            groupOpacity,
+        }
+    end
+
+    local function different(a, b)
+        if not a or not b then return true end
+        -- Opacity does not affect geometry. Camera world movement is absent
+        -- from this cache; a normal moving camera only updates the CFrame.
+        for i = 1, 10 do
+            if math.abs(a[i] - b[i]) > 0.000001 then return true end
+        end
+        return false
+    end
+
+    local function makeGeometry(p)
+        local width, height = p[1], p[2]
+        local left, top, right, bottom = p[3], p[4], p[5], p[6]
+        local depth, thick, radius = p[7], p[8], p[9]
+        local bevel = math.min(p[10], radius * 0.7, math.min(width, height) * 0.12)
+        local bevelDepth = math.min(thick * 0.36, (right - left) * depth / width * bevel)
+        local points, ringIndices = {}, {}
+        local minimum = Vector3.new(math.huge, math.huge, math.huge)
+        local maximum = Vector3.new(-math.huge, -math.huge, -math.huge)
+        local function add(x, y, zDepth)
+            -- Every depth layer projects to its exact rounded screen contour.
+            -- The resulting solid is gently tapered/sheared off-axis. Unlike
+            -- a camera-aligned box, its back edge cannot leak beyond the UI.
+            local point = Vector3.new(
+                (left + (right - left) * x / width) * zDepth,
+                (top + (bottom - top) * y / height) * zDepth,
+                -zDepth
+            )
+            points[#points + 1] = point
+            minimum = Vector3.new(math.min(minimum.X, point.X), math.min(minimum.Y, point.Y), math.min(minimum.Z, point.Z))
+            maximum = Vector3.new(math.max(maximum.X, point.X), math.max(maximum.Y, point.Y), math.max(maximum.Z, point.Z))
+            return #points
+        end
+        local function ring(inset, zDepth)
+            local indices = {}
+            local r = math.max(0.05, radius - inset)
+            local halfWidth, halfHeight = width / 2 - inset, height / 2 - inset
+            for quadrant = 0, 3 do
+                local sx = (quadrant == 0 or quadrant == 3) and 1 or -1
+                local sy = quadrant < 2 and 1 or -1
+                local cx, cy = sx * (halfWidth - r), sy * (halfHeight - r)
+                for step = 0, segments do
+                    local theta = (quadrant + step / segments) * math.pi / 2
+                    indices[#indices + 1] = add(width / 2 + cx + r * math.cos(theta),
+                        height / 2 - cy - r * math.sin(theta), zDepth)
+                end
+            end
+            ringIndices[#ringIndices + 1] = indices
+        end
+        for step = 0, bevelSteps do
+            local theta = step / bevelSteps * math.pi / 2
+            ring(bevel * (1 - math.sin(theta)), depth + bevelDepth * (1 - math.cos(theta)))
+        end
+        for step = bevelSteps, 0, -1 do
+            local theta = step / bevelSteps * math.pi / 2
+            ring(bevel * (1 - math.sin(theta)), depth + thick - bevelDepth * (1 - math.cos(theta)))
+        end
+        local frontCenter = add(width / 2, height / 2, depth)
+        local backCenter = add(width / 2, height / 2, depth + thick)
+        local center, size = (minimum + maximum) / 2, maximum - minimum
+        -- Normalized bounds remain [-.5,.5] on every update. MeshPart.Size
+        -- therefore maps the same linked EditableMesh onto the new dimensions
+        -- without rebuilding mesh/collision assets for every resize frame.
+        for i, point in ipairs(points) do
+            local v = point - center
+            points[i] = Vector3.new(v.X / size.X, v.Y / size.Y, v.Z / size.Z)
+        end
+        return points, ringIndices, frontCenter, backCenter, center, size
+    end
+
+    local function buildMesh(p)
+        local points, ringIndices, frontCenter, backCenter, center, size = makeGeometry(p)
+        mesh = AssetService:CreateEditableMesh()
+        if not mesh then error("CreateEditableMesh returned nil (client editable-mesh memory budget exhausted).") end
+        for i, point in ipairs(points) do
+            vertices[i] = mesh:AddVertex(point)
+            normals[i] = mesh:AddNormal()
+        end
+        local function face(a, b, c)
+            local id = mesh:AddTriangle(vertices[a], vertices[b], vertices[c])
+            mesh:SetFaceNormals(id, {normals[a], normals[b], normals[c]})
+        end
+        rings = ringIndices
+        for i = 1, perimeterCount do
+            local j = i % perimeterCount + 1
+            face(frontCenter, rings[1][i], rings[1][j])
+            face(backCenter, rings[#rings][j], rings[#rings][i])
+            for k = 1, #rings - 1 do
+                local a, b, c, d = rings[k][i], rings[k + 1][i], rings[k + 1][j], rings[k][j]
+                face(a, b, c)
+                face(a, c, d)
+            end
+        end
+        part = AssetService:CreateMeshPartAsync(Content.fromObject(mesh), {
+            CollisionFidelity = Enum.CollisionFidelity.Box,
+            RenderFidelity = Enum.RenderFidelity.Precise,
+        })
+        if not part then error("CreateMeshPartAsync did not return a MeshPart.") end
+        part.Name = "XHanUI_RealLiquidGlass"
+        part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery = true, false, false, false
+        part.CastShadow, part.DoubleSided = false, false
+        part.Material, part.Color = Enum.Material.Glass, tint
+        part.Transparency, part.Reflectance = transparency, reflectance
+        part.Size = size
+        localCenter = center
+        lastProjection = p
+    end
+
+    local function updateGeometry(p)
+        local points, _, _, _, center, size = makeGeometry(p)
+        for i, point in ipairs(points) do mesh:SetPosition(vertices[i], point) end
+        part.Size = size
+        localCenter = center
+        lastProjection = p
+    end
+
+    local function update()
+        if controller.Destroyed then return end
+        if Window.Destroyed or root.Parent == nil then controller:Destroy(); return end
+        if not controller.Enabled then hide(); setState("Disabled"); return end
+        if Window.Closed then hide(); setState("Hidden"); return end
+        local camera = Workspace.CurrentCamera
+        if not camera then hide(); setState("Hidden", "Waiting for Workspace.CurrentCamera."); return end
+        if VRService.VREnabled then hide(); setState("Hidden", "Stereo VR rendering is not supported by this screen-space pane."); return end
+        local projection, why = cameraProjection(camera)
+        if not projection then hide(); setState("Hidden", why); return end
+        if different(projection, lastProjection) then updateGeometry(projection) end
+        part.CFrame = camera.CFrame * CFrame.new(localCenter)
+        part.Transparency = 1 - (1 - transparency) * projection[11]
+        if part.Parent ~= camera then part.Parent = camera end
+        setState("Ready")
+    end
+
+    destroyConnection = root.Destroying:Connect(function() controller:Destroy() end)
+    cameraConnection = Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+        lastProjection = nil
+        -- Move a visible pane immediately, before the old camera can be
+        -- destroyed along with its descendants. Hidden panes stay unparented.
+        if part and part.Parent and not controller.Destroyed then
+            local ok, err = pcall(function() part.Parent = Workspace.CurrentCamera end)
+            if not ok then fail("Failed", "Camera replacement failed: " .. tostring(err)) end
+        end
+    end)
+    -- Bootstrap a unit-screen projection even while the opening animation has
+    -- zero height. Real screen dimensions replace this before the pane is shown.
+    local initial = {600, 400, -0.45, 0.3, 0.45, -0.3, math.max(requestedDistance, 0.65), thickness, 16, bevelPixels, 1}
+    local success, failure = pcall(function() buildMesh(initial) end)
+    if not success then
+        if controller.Destroyed then
+            if part then part:Destroy(); part = nil end
+            if mesh then mesh:Destroy(); mesh = nil end
+            return controller
+        end
+        fail("Unavailable", "Cannot create rounded real glass: " .. tostring(failure)
+            .. " Turn on Enable Mesh / Image APIs in Creator Dashboard for an eligible owned experience;"
+            .. " the client must support EditableMesh and have available mesh memory. No simulated fallback was applied.")
+        return controller
+    end
+    -- The API above can yield; the window may have been destroyed meanwhile.
+    if controller.Destroyed or Window.Destroyed or root.Parent == nil then
+        if part then part:Destroy(); part = nil end
+        if mesh then mesh:Destroy(); mesh = nil end
+        controller:Destroy()
+        return controller
+    end
+    controller.Supported = true
+    local function protectedUpdate()
+        local ok, err = pcall(update)
+        if not ok then fail("Failed", "The real-glass renderer stopped: " .. tostring(err)) end
+    end
+    bound = true
+    RunService:BindToRenderStep(binding, Enum.RenderPriority.Camera.Value + 1, protectedUpdate)
+    protectedUpdate()
+    return controller
+end
+
+end)();
+
 local __XHanOriginalCreateWindow=aa.CreateWindow
 
 function aa.CreateWindow(selfOrConfig,maybeConfig)
@@ -18200,6 +18525,18 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     local cfg={}
     for k,v in pairs(config) do
         cfg[k]=v
+    end
+
+    -- This build defaults to an actual engine Glass mesh, not the legacy
+    -- acrylic plane + global DepthOfFieldEffect implementation.
+    local glassOptions={}
+    if type(cfg.LiquidGlass)=="table" then
+        for key,value in pairs(cfg.LiquidGlass) do glassOptions[key]=value end
+    end
+    local glassRequested=cfg.LiquidGlass~=false and glassOptions.Enabled~=false
+    if glassRequested then
+        cfg.Acrylic=false
+        cfg.Background=nil
     end
 
     cfg.Title=cfg.Title or "XHanUI"
@@ -18236,6 +18573,82 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
             window.UIElements.MainBar.Background.ImageTransparency=1
         end
     end)
+
+    -- Keep the controller on the Window; failed capability checks are observable.
+    local detachedGlassLayers={}
+    local legacyAcrylicEnabled=window.Acrylic==true
+    local function setLegacyGlassLayersHidden(hidden)
+        if hidden then
+            -- Disable only the library's old acrylic effect, not game lighting.
+            aa:ToggleAcrylic(false)
+            local elements=window.UIElements or {}
+            local layers={elements.WindowBackdrop,elements.BackgroundGradient,
+                window.AcrylicPaint and window.AcrylicPaint.Frame}
+            -- The first entries may be nil; iterate slots explicitly.
+            for index=1,3 do
+                local layer=layers[index]
+                if layer and layer.Parent and not detachedGlassLayers[layer] then
+                    detachedGlassLayers[layer]=layer.Parent
+                    layer.Parent=nil
+                end
+            end
+        else
+            for layer,parent in pairs(detachedGlassLayers) do
+                pcall(function() layer.Parent=parent end)
+                detachedGlassLayers[layer]=nil
+            end
+            if legacyAcrylicEnabled then aa:ToggleAcrylic(true) end
+        end
+    end
+    local mainRoot=window.UIElements and window.UIElements.Main
+    if mainRoot and mainRoot.Destroying then
+        mainRoot.Destroying:Connect(function()
+            for layer in pairs(detachedGlassLayers) do
+                pcall(function() layer:Destroy() end)
+            end
+            table.clear(detachedGlassLayers)
+        end)
+    end
+
+    local function installRealGlass()
+        if window.LiquidGlass then return window.LiquidGlass end
+        glassOptions.Enabled=true
+        window.LiquidGlass=__XHanRealGlass(aa,window,glassOptions)
+        local controller=window.LiquidGlass
+        if controller and controller.Supported then setLegacyGlassLayersHidden(true) end
+        if controller and (controller.State=="Unavailable" or controller.State=="Failed") then
+            pcall(function()
+                aa:Notify({
+                    Title="真实玻璃不可用",
+                    Content=tostring(controller.Error or controller.State),
+                    Duration=10,
+                })
+            end)
+        end
+        return controller
+    end
+
+    function window:GetLiquidGlassStatus()
+        if self.LiquidGlass then return self.LiquidGlass:GetStatus() end
+        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,Backend="EditableMesh/Glass"}
+    end
+
+    function window:SetLiquidGlassEnabled(enabled)
+        if self.Destroyed then return self:GetLiquidGlassStatus() end
+        if enabled==true then
+            local controller=installRealGlass()
+            if controller then
+                controller:SetEnabled(true)
+                if controller.Supported then setLegacyGlassLayersHidden(true) end
+            end
+        elseif self.LiquidGlass then
+            self.LiquidGlass:SetEnabled(false)
+            setLegacyGlassLayersHidden(false)
+        end
+        return self:GetLiquidGlassStatus()
+    end
+
+    if glassRequested then installRealGlass() end
 
     -- Permanently suppress WindUI's old floating reopen button.
     window.IsOpenButtonEnabled=false
