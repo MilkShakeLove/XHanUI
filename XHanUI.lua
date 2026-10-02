@@ -8048,7 +8048,7 @@ HorizontalAlignment="Center",
 
 ap.UIElements.Menu=ak.NewRoundFrame(aq.MenuCorner,"Squircle",{
 ImageColor3=Color3.fromRGB(244,249,255),
-ImageTransparency=1,
+ImageTransparency=0.94,
 Size=UDim2.new(1,0,1,0),
 AnchorPoint=Vector2.new(1,0),
 Position=UDim2.new(1,0,0,0),
@@ -8058,21 +8058,14 @@ al("UIGradient",{
 Rotation=92,
 Color=ColorSequence.new({
 ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),
-ColorSequenceKeypoint.new(0.45,Color3.fromRGB(222,239,255)),
+ColorSequenceKeypoint.new(0.46,Color3.fromRGB(226,241,255)),
 ColorSequenceKeypoint.new(1,Color3.fromRGB(255,255,255)),
 }),
 Transparency=NumberSequence.new({
-NumberSequenceKeypoint.new(0,0.18),
-NumberSequenceKeypoint.new(0.42,0.64),
-NumberSequenceKeypoint.new(1,0.30),
+NumberSequenceKeypoint.new(0,0.25),
+NumberSequenceKeypoint.new(0.48,0.72),
+NumberSequenceKeypoint.new(1,0.42),
 }),
-}),
-al("UIStroke",{
-Color=Color3.fromRGB(255,255,255),
-Transparency=0.58,
-Thickness=1.15,
-ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
-LineJoinMode=Enum.LineJoinMode.Round,
 }),
 al("UIPadding",{
 PaddingTop=UDim.new(0,aq.MenuPadding),
@@ -8126,8 +8119,8 @@ MaxSize=Vector2.new(300,400),
 }),
 })
 
--- The popup is outside the main window glass, so give it an independent glass
--- host. It is only enabled while this dropdown is open.
+
+-- Native RealGlass popup host. No mobile ScreenCapture fallback.
 local __XHanPopupGlassHost=al("Frame",{
 Name="XHanPopupLiquidGlassHost",
 Parent=ap.UIElements.MenuCanvas,
@@ -8151,17 +8144,14 @@ local ok,controller=pcall(function()
 return attach(ao.WindUI,__XHanPopupGlassHost,{
 Enabled=false,
 CornerRadius=aq.MenuCorner,
-Transparency=0.78,
-Thickness=0.065,
-LensStrength=0.15,
+Transparency=0.72,
+Thickness=0.080,
+LensStrength=0.20,
+BackCurve=0.90,
+LensRings=9,
 RefractionLayers=2,
-MobileColumns=9,
-MobileRows=7,
-MobileStrength=26,
-MobileVerticalStrength=0.80,
-MobileRefresh=0.48,
-MobileImageTransparency=0.04,
-MobileTintTransparency=0.94,
+LayerGap=0.009,
+Reflectance=0.045,
 })
 end)
 if ok then
@@ -8383,10 +8373,9 @@ aq.MenuCorner-aq.MenuPadding,
 {
 Size=UDim2.new(1,0,0,36),
 AutomaticSize=az.Desc and"Y",
-ImageTransparency=0.96,
-ImageColor3=Color3.fromRGB(242,248,255),
+ImageTransparency=0.97,
+ImageColor3=Color3.fromRGB(245,250,255),
 Parent=ap.UIElements.Menu.Frame.ScrollingFrame,
-
 Active=not az.Locked,
 },
 {
@@ -8531,7 +8520,7 @@ end
 -- We mirror WindUI's own ImageTransparency state, so native selection logic remains authoritative.
 local __AltexItemGlow=al("ImageLabel",{
     Image="rbxassetid://104482361987216",
-    ImageColor3=Color3.fromRGB(190,228,255),
+    ImageColor3=Color3.fromRGB(0,0,0),
     ImageTransparency=1,
     BackgroundTransparency=1,
     Size=UDim2.new(1,20,1,20),
@@ -8552,7 +8541,7 @@ local function __AltexSyncSelectedGlow()
         return
     end
     if az.UIElements.TabItem.ImageTransparency<0.95 then
-        __AltexItemGlow.ImageTransparency=0.74
+        __AltexItemGlow.ImageTransparency=0.34
     else
         __AltexItemGlow.ImageTransparency=1
     end
@@ -8698,7 +8687,7 @@ ap.UIElements.MenuCanvas.Active=true
 ap.UIElements.Menu.Size=UDim2.new(1,0,0,0)
 am(ap.UIElements.Menu,0.1,{
 Size=UDim2.new(1,0,1,0),
-ImageTransparency=0.88,
+ImageTransparency=0.90,
 },Enum.EasingStyle.Quart,Enum.EasingDirection.Out):Play()
 
 UpdatePosition()
@@ -8879,9 +8868,9 @@ ap.UIElements.Dropdown.AnchorPoint=Vector2.new(1,ao.Window.NewElements and 0 or 
 
 end
 
--- XHanUI: selector liquid-glass shell.
--- The selector sits inside the main window, so it reuses the main LiquidGlass
--- refraction beneath it instead of creating another expensive renderer.
+-- XHanUI borderless selector.
+-- It reuses the main window's RealGlass underneath; rounded/square box edge,
+-- black shadow and white halo are intentionally removed.
 local __XHanSelectorTarget=ap.UIElements.Dropdown or ap.DropdownFrame.UIElements.Main
 if __XHanSelectorTarget then
     pcall(function() __XHanSelectorTarget.ClipsDescendants=false end)
@@ -8892,61 +8881,26 @@ if __XHanSelectorTarget then
         local __outer=ap.UIElements.Dropdown.Frame
         local __surface=__outer:FindFirstChild("Frame")
 
-        -- Remove WindUI's dark placeholder/shadow slices.
         for _,child in ipairs(__outer:GetChildren()) do
-            if child:IsA("ImageLabel") and child~=__surface then
+            if child:IsA("ImageLabel") then
                 child.ImageTransparency=1
+            elseif child:IsA("UIStroke") then
+                child.Enabled=false
             end
         end
 
-        if __surface and __surface:IsA("ImageLabel") then
-            __surface.ImageColor3=Color3.fromRGB(244,249,255)
-            __surface.ImageTransparency=0.88
-
-            ag("UIGradient",{
-                Parent=__surface,
-                Rotation=90,
-                Color=ColorSequence.new({
-                    ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),
-                    ColorSequenceKeypoint.new(0.50,Color3.fromRGB(225,241,255)),
-                    ColorSequenceKeypoint.new(1,Color3.fromRGB(255,255,255)),
-                }),
-                Transparency=NumberSequence.new({
-                    NumberSequenceKeypoint.new(0,0.16),
-                    NumberSequenceKeypoint.new(0.45,0.62),
-                    NumberSequenceKeypoint.new(1,0.34),
-                }),
-            })
-
-            ag("UIStroke",{
-                Parent=__surface,
-                Name="XHanSelectorGlassStroke",
-                Color=Color3.fromRGB(255,255,255),
-                Transparency=0.56,
-                Thickness=1.05,
-                ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
-                LineJoinMode=Enum.LineJoinMode.Round,
-            })
+        if __surface then
+            pcall(function()
+                if __surface:IsA("ImageLabel") then
+                    __surface.ImageTransparency=1
+                elseif __surface:IsA("GuiObject") then
+                    __surface.BackgroundTransparency=1
+                end
+                local stroke=__surface:FindFirstChildOfClass("UIStroke")
+                if stroke then stroke.Enabled=false end
+            end)
         end
     end
-
-    -- Soft white edge bloom. No black selector shadow.
-    local __glassHalo=ag("ImageLabel",{
-        Image="rbxassetid://104482361987216",
-        ImageColor3=Color3.fromRGB(210,238,255),
-        ImageTransparency=0.88,
-        BackgroundTransparency=1,
-        Size=UDim2.new(1,24,1,22),
-        Position=UDim2.new(0.5,0,0.5,0),
-        AnchorPoint=Vector2.new(0.5,0.5),
-        ScaleType="Slice",
-        SliceCenter=Rect.new(99,99,99,99),
-        Active=false,
-        ZIndex=math.max((__XHanSelectorTarget.ZIndex or 1)-1,1),
-        Name="XHanSelectorGlassHalo",
-        Parent=__XHanSelectorTarget,
-    })
-    ap.UIElements.XHanSelectorGlassHalo=__glassHalo
 end
 
 ap.DropdownMenu=ak(ao,ap,am,aq,"Dropdown")
@@ -15620,7 +15574,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.9-IslandBrandFlow-SelectorGlass"
+aa.Version="External-2.0-BloomFlowIsland-BorderlessSelector-RealGlass"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15744,69 +15698,162 @@ return function(WindUI, Window, Options)
     Island.UI.Root=Root
 
 
-    -- Rounded full-perimeter glow. Every carrier has a UICorner, so
-    -- stretching the island never exposes square Bloom-image endpoints.
+    -- Dynamic Island BloomFlow renderer.
+    -- Same Bloom16/Bloom8 halo method and continuous flow sampling used by
+    -- FeatureList BloomFlow. No extra glow TextLabel is added to "Syntax".
+    local Bloom16Image="rbxassetid://104490578391522"
+    local Bloom8Image="rbxassetid://102472648910048"
+
     local IslandGlowSegments={}
 
-    local function makeIslandGlowRing(index,scale,transparency)
+    local function matrixFlowColor(normalized,phaseOffset)
+        normalized=math.clamp(tonumber(normalized) or 0,0,1)
+        local hue=(
+            0.96
+            + (Island.GlowTime/6.4)
+            + (normalized*0.92)
+            + (phaseOffset or 0)
+        )%1
+        return Color3.fromHSV(hue,0.76,1)
+    end
+
+    local function makeBloomEdge(name,horizontal,z)
         local Carrier=New("Frame",{
-            Name="IslandGlowRing"..index,
+            Name=name,
             Parent=Root,
-            AnchorPoint=Vector2.new(0.5,0.5),
-            Position=UDim2.fromScale(0.5,0.5),
-            Size=UDim2.fromScale(1,1),
-            BackgroundTransparency=1,
+            BackgroundColor3=Color3.new(1,1,1),
+            BackgroundTransparency=0,
             BorderSizePixel=0,
-            Active=false,
-            Selectable=false,
+            Size=UDim2.fromOffset(1,1),
+            Position=UDim2.fromOffset(0,0),
             Visible=Island.GlowEnabled,
             ClipsDescendants=false,
-            ZIndex=1,
+            Active=false,
+            Selectable=false,
+            ZIndex=z,
         })
-        local Corner=New("UICorner",{
+
+        local Outer=New("ImageLabel",{
+            Name=name.."Bloom16",
             Parent=Carrier,
-            CornerRadius=UDim.new(0,20),
+            BackgroundTransparency=1,
+            Image=Bloom16Image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=0.62,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=horizontal and UDim2.new(1,26,1,22) or UDim2.new(1,22,1,26),
+            ZIndex=z-2,
+            Active=false,
         })
-        local Stroke=New("UIStroke",{
+
+        local Inner=New("ImageLabel",{
+            Name=name.."Bloom8",
             Parent=Carrier,
-            ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
-            LineJoinMode=Enum.LineJoinMode.Round,
-            Color=Color3.new(1,1,1),
-            Thickness=1,
-            Transparency=transparency,
+            BackgroundTransparency=1,
+            Image=Bloom8Image,
+            ImageColor3=Color3.new(1,1,1),
+            ImageTransparency=0.46,
+            ScaleType=Enum.ScaleType.Stretch,
+            AnchorPoint=Vector2.new(0.5,0.5),
+            Position=UDim2.fromScale(0.5,0.5),
+            Size=horizontal and UDim2.new(1,14,1,12) or UDim2.new(1,12,1,14),
+            ZIndex=z-1,
+            Active=false,
         })
+
         local Gradient=New("UIGradient",{
-            Parent=Stroke,
-            Rotation=0,
+            Parent=Carrier,
+            Rotation=horizontal and 0 or 90,
             Color=ColorSequence.new(Color3.new(1,1,1)),
         })
-        return {Carrier=Carrier,Corner=Corner,Stroke=Stroke,Gradient=Gradient,Scale=scale}
+        local OuterGradient=New("UIGradient",{
+            Parent=Outer,
+            Rotation=horizontal and 0 or 90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+        local InnerGradient=New("UIGradient",{
+            Parent=Inner,
+            Rotation=horizontal and 0 or 90,
+            Color=ColorSequence.new(Color3.new(1,1,1)),
+        })
+
+        local edge={
+            Carrier=Carrier,
+            Outer=Outer,
+            Inner=Inner,
+            Gradient=Gradient,
+            OuterGradient=OuterGradient,
+            InnerGradient=InnerGradient,
+            Horizontal=horizontal,
+        }
+        IslandGlowSegments[#IslandGlowSegments+1]=edge
+        return edge
+    end
+
+    local GlowTop=makeBloomEdge("BloomFlowTop",true,3)
+    local GlowRight=makeBloomEdge("BloomFlowRight",false,3)
+    local GlowBottom=makeBloomEdge("BloomFlowBottom",true,3)
+    local GlowLeft=makeBloomEdge("BloomFlowLeft",false,3)
+
+    Island.UI.BorderGlowSegments=IslandGlowSegments
+    Island.GlowRenderer="BloomFlow"
+
+    local function setEdgeGradient(edge,colorA,colorB,rotation)
+        local sequence=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,colorA),
+            ColorSequenceKeypoint.new(1,colorB),
+        })
+        edge.Gradient.Rotation=rotation or 0
+        edge.OuterGradient.Rotation=rotation or 0
+        edge.InnerGradient.Rotation=rotation or 0
+        edge.Gradient.Color=sequence
+        edge.OuterGradient.Color=sequence
+        edge.InnerGradient.Color=sequence
     end
 
     local function updateIslandGlowBounds()
         local pad=math.clamp(
-            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),1,8
+            math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),
+            1,
+            8
         )
-        for _,ring in ipairs(IslandGlowSegments) do
-            local expansion=pad*ring.Scale
-            ring.Carrier.Size=UDim2.new(1,expansion*2,1,expansion*2)
-            ring.Corner.CornerRadius=UDim.new(0,20+expansion)
-            ring.Stroke.Thickness=math.max(1,pad*0.42)
+        local thickness=math.max(1,math.floor(1+(pad*0.18)))
+
+        GlowTop.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
+        GlowTop.Carrier.Position=UDim2.new(0.5,0,0,0)
+        GlowTop.Carrier.Size=UDim2.new(1,-30,0,thickness)
+
+        GlowBottom.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
+        GlowBottom.Carrier.Position=UDim2.new(0.5,0,1,0)
+        GlowBottom.Carrier.Size=UDim2.new(1,-30,0,thickness)
+
+        GlowLeft.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
+        GlowLeft.Carrier.Position=UDim2.new(0,0,0.5,0)
+        GlowLeft.Carrier.Size=UDim2.new(0,thickness,1,-30)
+
+        GlowRight.Carrier.AnchorPoint=Vector2.new(0.5,0.5)
+        GlowRight.Carrier.Position=UDim2.new(1,0,0.5,0)
+        GlowRight.Carrier.Size=UDim2.new(0,thickness,1,-30)
+
+        local outerExpand=18+(pad*2.4)
+        local innerExpand=8+(pad*1.25)
+
+        for _,edge in ipairs(IslandGlowSegments) do
+            if edge.Horizontal then
+                edge.Outer.Size=UDim2.new(1,outerExpand,1,18+(pad*1.5))
+                edge.Inner.Size=UDim2.new(1,innerExpand,1,8+pad)
+            else
+                edge.Outer.Size=UDim2.new(1,18+(pad*1.5),1,outerExpand)
+                edge.Inner.Size=UDim2.new(1,8+pad,1,innerExpand)
+            end
         end
     end
 
-    -- Create outer rings first; the opaque body covers their inner halves.
-    -- Geometry uses scale=1 plus padding, and follows every size tween natively.
-    for index,spec in ipairs({{1,0.98},{0.8,0.96},{0.6,0.93},{0.4,0.89},{0.2,0.83}}) do
-        IslandGlowSegments[index]=makeIslandGlowRing(index,spec[1],spec[2])
-    end
-    Island.UI.BorderGlowSegments=IslandGlowSegments
-    Island.GlowRenderer="RoundedStrokeRings"
     updateIslandGlowBounds()
 
-    -- Use a real rounded Frame instead of a sliced Squircle image.
-    -- The old image slice could render as a misplaced black rectangle on
-    -- very wide Dynamic Island sizes.
+    -- Keep the black-block fix: a real rounded Frame, not a sliced image.
     local Body=New("Frame",{
         Name="Body",
         Parent=Root,
@@ -15817,13 +15864,11 @@ return function(WindUI, Window, Options)
         BackgroundTransparency=0.90,
         BorderSizePixel=0,
         ClipsDescendants=false,
-        ZIndex=2,
+        ZIndex=4,
     })
     Island.UI.Body=Body
     New("UICorner",{Parent=Body,CornerRadius=UDim.new(0,20)})
 
-    -- The Dynamic Island replaces WindUI's old floating OpenButton.
-    -- Its hitbox follows the island's animated size automatically.
     local ToggleUIHitbox=New("TextButton",{
         Name="ToggleUIHitbox",
         Parent=Body,
@@ -15845,7 +15890,7 @@ return function(WindUI, Window, Options)
         end
     end)
 
-    -- The visible outline and halo share the body's exact rounded geometry.
+    -- Crisp rounded outline over the BloomFlow halo.
     local FlowBorder=New("Frame",{
         Name="FlowBorder",
         Parent=Body,
@@ -15863,11 +15908,17 @@ return function(WindUI, Window, Options)
         ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
         LineJoinMode=Enum.LineJoinMode.Round,
         Color=Color3.new(1,1,1),
-        Thickness=1.15,
-        Transparency=0.07,
+        Thickness=1.05,
+        Transparency=0.10,
     })
     Island.UI.FlowBorder=FlowBorder
     Island.UI.FlowBorderStroke=FlowBorderStroke
+
+    local FlowBorderGradient=New("UIGradient",{
+        Parent=FlowBorderStroke,
+        Rotation=0,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
 
     local NeutralBorder=New("Frame",{
         Name="NeutralBorder",
@@ -15891,70 +15942,58 @@ return function(WindUI, Window, Options)
     })
     Island.UI.NeutralBorder=NeutralBorder
 
-    local FlowBorderGradient=New("UIGradient",{
-        Parent=FlowBorderStroke,
-        Rotation=0,
-        Color=ColorSequence.new(Color3.new(1,1,1)),
-    })
-
-    local function islandFlowSequence(phase)
-        local keys={}
-        local steps=8
-        for i=0,steps do
-            local t=i/steps
-            local hue=(phase+(t*0.92))%1
-            table.insert(
-                keys,
-                ColorSequenceKeypoint.new(
-                    t,
-                    Color3.fromHSV(hue,0.78,1)
-                )
-            )
-        end
-        return ColorSequence.new(keys)
-    end
-
-    local BrandFlowGradient
-    local BrandGlowGradient
-
     local lastGlowUpdate=0
     table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
         if Island.Destroyed then return end
 
         Island.GlowTime=Island.GlowTime+dt
         lastGlowUpdate=lastGlowUpdate+dt
-
-        -- All rounded rings share one sequence, updated about 30 times/second.
         if lastGlowUpdate<0.032 then return end
         lastGlowUpdate=0
 
-        local phase=(Island.GlowTime/6.2)%1
-        local sequence=islandFlowSequence(phase)
+        local size=Root.AbsoluteSize
+        local w=math.max(size.X,1)
+        local h=math.max(size.Y,1)
+        local perimeter=math.max(2*(w+h),1)
 
-        FlowBorderGradient.Color=sequence
+        local t0=0
+        local t1=w/perimeter
+        local t2=(w+h)/perimeter
+        local t3=(2*w+h)/perimeter
+        local t4=1
 
-        for _,ring in ipairs(IslandGlowSegments) do
-            ring.Gradient.Color=sequence
-        end
+        setEdgeGradient(GlowTop,
+            matrixFlowColor(t0,0),
+            matrixFlowColor(t1,0),0)
+        setEdgeGradient(GlowRight,
+            matrixFlowColor(t1,0),
+            matrixFlowColor(t2,0),90)
+        setEdgeGradient(GlowBottom,
+            matrixFlowColor(t3,0),
+            matrixFlowColor(t2,0),0)
+        setEdgeGradient(GlowLeft,
+            matrixFlowColor(t4,0),
+            matrixFlowColor(t3,0),90)
 
-        -- "Syntax" shares the same flowing RGB phase as the island outline.
-        if BrandFlowGradient then
-            BrandFlowGradient.Color=sequence
+        local keys={}
+        for i=0,8 do
+            local t=i/8
+            keys[#keys+1]=ColorSequenceKeypoint.new(
+                t,
+                matrixFlowColor(t,0)
+            )
         end
-        if BrandGlowGradient then
-            BrandGlowGradient.Color=sequence
-        end
+        FlowBorderGradient.Color=ColorSequence.new(keys)
     end))
 
     ----------------------------------------------------------------
     -- Idle status line
     ----------------------------------------------------------------
-    local IdleHolder=New("CanvasGroup",{
+    local IdleHolder=New("Frame",{
         Name="IdleHolder",
         Parent=Body,
         Size=UDim2.fromScale(1,1),
         BackgroundTransparency=1,
-        GroupTransparency=0,
         ZIndex=5,
         Visible=true,
     })
@@ -15977,84 +16016,18 @@ return function(WindUI, Window, Options)
         ZIndex=6,
     })
 
-    -- Flowing RGB brand painted over the first word of the normal status line.
-    -- Keeping the status line itself intact means layout/truncation behavior stays
-    -- exactly the same while only the "Syntax" word gets the animated bloom.
-    local BrandGlow=New("TextLabel",{
-        Name="BrandGlow",
-        Parent=IdleHolder,
-        AnchorPoint=Vector2.new(0.5,0.5),
-        Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.fromOffset(120,24),
-        BackgroundTransparency=1,
-        Text=Island.Brand,
-        TextColor3=Color3.new(1,1,1),
-        TextTransparency=0.44,
-        TextStrokeColor3=Color3.new(1,1,1),
-        TextStrokeTransparency=0.62,
-        TextSize=16,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.SemiBold),
-        ZIndex=6,
-    })
-
-    local BrandFlow=New("TextLabel",{
-        Name="BrandFlow",
-        Parent=IdleHolder,
-        AnchorPoint=Vector2.new(0.5,0.5),
-        Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.fromOffset(120,22),
-        BackgroundTransparency=1,
-        Text=Island.Brand,
-        TextColor3=Color3.new(1,1,1),
-        TextTransparency=0,
-        TextStrokeTransparency=1,
-        TextSize=14,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.SemiBold),
-        ZIndex=7,
-    })
-
-    BrandGlowGradient=New("UIGradient",{
-        Parent=BrandGlow,
-        Rotation=0,
-        Color=islandFlowSequence(0),
-    })
-    BrandFlowGradient=New("UIGradient",{
-        Parent=BrandFlow,
-        Rotation=0,
-        Color=islandFlowSequence(0),
-    })
-
-    local function syncBrandPosition()
-        if Island.Destroyed then return end
-
-        -- IdleText is centered. Its TextBounds tells us the exact rendered width,
-        -- so place the brand overlay over the first word without hardcoding x.
-        local totalWidth=IdleText.TextBounds.X
-        local brandWidth=BrandFlow.TextBounds.X
-        if totalWidth<=0 or brandWidth<=0 then return end
-
-        local x=(-totalWidth*0.5)+(brandWidth*0.5)
-        local position=UDim2.new(0.5,x,0.5,0)
-        BrandFlow.Position=position
-        BrandGlow.Position=position
-    end
-
     local function updateIdleText()
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
 
         IdleText.Text=string.format(
-            '<font color="#DCE3EC">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
+            '<font color="#6EC8F1">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             Island.Brand,
             Island.UserText,
             ping,
             Island.ServerText,
             fps
         )
-
-        BrandGlow.Text=Island.Brand
-        BrandFlow.Text=Island.Brand
-        task.defer(syncBrandPosition)
     end
 
     local function readPing()
@@ -16238,8 +16211,8 @@ return function(WindUI, Window, Options)
 
         cancelTween(Island.IdleTextTween)
         Island.IdleTextTween=Tween(
-            IdleHolder,0.10,
-            {GroupTransparency=1},
+            IdleText,0.10,
+            {TextTransparency=1},
             Enum.EasingStyle.Quint,
             Enum.EasingDirection.In
         )
@@ -16319,12 +16292,12 @@ return function(WindUI, Window, Options)
 
             RowLayer.Visible=false
             IdleHolder.Visible=true
-            IdleHolder.GroupTransparency=1
+            IdleText.TextTransparency=1
 
             cancelTween(Island.IdleTextTween)
             Island.IdleTextTween=Tween(
-                IdleHolder,0.16,
-                {GroupTransparency=0},
+                IdleText,0.16,
+                {TextTransparency=0},
                 Enum.EasingStyle.Quint,
                 Enum.EasingDirection.Out
             )
@@ -18360,20 +18333,20 @@ return function(WindUI, Window, Options)
     -- like a grey overlay on mobile and hid most of the optical displacement.
     -- Keep each shell much clearer and stack several curved shells with tiny
     -- depth offsets so Roblox samples the refractive pass more than once.
-    local transparency = number(options.Transparency, 0.72, 0.20, 0.96)
-    local thickness = number(options.Thickness, 0.085, 0.010, 0.30)
+    local transparency = number(options.Transparency, 0.68, 0.18, 0.96)
+    local thickness = number(options.Thickness, 0.100, 0.010, 0.30)
     local requestedDistance = number(options.Distance, 1, 0.2, 8)
-    local segments = math.floor(number(options.CornerSegments, 14, 6, 24))
-    local bevelPixels = number(options.Bevel, 10, 0.25, 48)
+    local segments = math.floor(number(options.CornerSegments, 16, 6, 24))
+    local bevelPixels = number(options.Bevel, 12, 0.25, 48)
     local edgeInset = number(options.EdgeInset, 0.6, 0, 8)
-    local lensStrength = number(options.LensStrength, 0.18, 0.0, 0.36)
-    local backCurve = number(options.BackCurve, 0.85, 0.0, 1.0)
-    local curvePower = number(options.CurvePower, 1.42, 1.02, 4.0)
-    local lensRings = math.floor(number(options.LensRings, 9, 5, 16))
+    local lensStrength = number(options.LensStrength, 0.23, 0.0, 0.40)
+    local backCurve = number(options.BackCurve, 0.95, 0.0, 1.0)
+    local curvePower = number(options.CurvePower, 1.34, 1.02, 4.0)
+    local lensRings = math.floor(number(options.LensRings, 10, 5, 16))
     local refractionLayers = math.floor(number(options.RefractionLayers, 3, 1, 3))
-    local layerGap = number(options.LayerGap, 0.008, 0.001, 0.035)
+    local layerGap = number(options.LayerGap, 0.011, 0.001, 0.040)
     local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(247, 251, 255)
-    local reflectance = number(options.Reflectance, 0.04, 0, 1)
+    local reflectance = number(options.Reflectance, 0.055, 0, 1)
     local radiusOption = options.CornerRadius
     local perimeterCount = 4 * (segments + 1)
 
@@ -18849,510 +18822,8 @@ end
 end)();
 
 
--- ============================================================
--- Mobile liquid-glass fallback
--- Real Roblox Glass refraction is weak/unsupported on many mobile render paths.
--- This fallback periodically captures the screen and re-samples it through a
--- rounded tile grid with radial lens displacement. The result is an actual
--- visible screen-space warp rather than a grey transparent overlay.
--- ============================================================
-local __XHanMobileLiquidGlass=(function()
-return function(WindUI, Window, Options)
-    local options=type(Options)=="table" and Options or {}
-    local CaptureService=game:GetService("CaptureService")
-    local AssetService=game:GetService("AssetService")
-    local RunService=game:GetService("RunService")
-    local Workspace=game:GetService("Workspace")
-
-    local root=Window and Window.UIElements and Window.UIElements.Main
-
-    local function number(value,fallback,minimum,maximum)
-        value=tonumber(value)
-        if not value or value~=value or math.abs(value)==math.huge then
-            value=fallback
-        end
-        return math.clamp(value,minimum,maximum)
-    end
-
-    local controller={
-        State="Initializing",
-        Status="Initializing",
-        Error=nil,
-        Supported=true,
-        Enabled=options.Enabled~=false,
-        Backend="ScreenCapture/GridRefraction",
-        Destroyed=false,
-    }
-
-    local columns=math.floor(number(options.MobileColumns,10,6,16))
-    local rows=math.floor(number(options.MobileRows,7,4,12))
-    local strength=number(options.MobileStrength,34,6,80)
-    local verticalStrength=number(options.MobileVerticalStrength,0.82,0.35,1.5)
-    local refreshInterval=number(options.MobileRefresh,0.42,0.18,1.5)
-    local imageTransparency=number(options.MobileImageTransparency,0.06,0,0.55)
-    local tintTransparency=number(options.MobileTintTransparency,0.90,0.60,1)
-    local edgeFade=number(options.MobileEdgeFade,0.12,0,0.45)
-    local useEditableCapture=options.MobileEditableCapture~=false
-
-    local container
-    local tintLayer
-    local tiles={}
-    local captureBusy=false
-    local captureSerial=0
-    local lastCapture=0
-    local lastMode="None"
-    local captureContentId=nil
-    local editableCapture=nil
-    local renderConnection
-    local heartbeatConnection
-    local currentViewport=Vector2.new(0,0)
-    local currentRootPos=Vector2.new(0,0)
-    local currentRootSize=Vector2.new(0,0)
-    local lastGeometryKey=""
-    local cornerRadius=tonumber(Window and Window.UICorner) or 18
-
-    local function setState(state,message)
-        controller.State=state
-        controller.Status=state
-        controller.Error=message
-    end
-
-    function controller:GetStatus()
-        return {
-            State=self.State,
-            Status=self.Status,
-            Error=self.Error,
-            Supported=self.Supported,
-            Enabled=self.Enabled,
-            Backend=self.Backend,
-            CaptureMode=lastMode,
-            Columns=columns,
-            Rows=rows,
-            Strength=strength,
-            Refresh=refreshInterval,
-        }
-    end
-
-    local function clearSource()
-        captureContentId=nil
-        if editableCapture then
-            pcall(function()
-                editableCapture:Destroy()
-            end)
-            editableCapture=nil
-        end
-    end
-
-    local function destroyTiles()
-        for _,entry in ipairs(tiles) do
-            pcall(function()
-                entry.Clip:Destroy()
-            end)
-        end
-        table.clear(tiles)
-    end
-
-    local function createContainer()
-        if not root or not root:IsA("GuiObject") then
-            controller.Supported=false
-            setState("Unavailable","UIElements.Main must be a GuiObject.")
-            return false
-        end
-
-        container=Instance.new("Frame")
-        container.Name="XHanMobileLiquidGlass"
-        container.Size=UDim2.fromScale(1,1)
-        container.Position=UDim2.fromScale(0,0)
-        container.BackgroundTransparency=1
-        container.BorderSizePixel=0
-        container.ClipsDescendants=true
-        container.Active=false
-        container.Selectable=false
-        container.ZIndex=2
-        container.Parent=root
-
-        local corner=Instance.new("UICorner")
-        corner.CornerRadius=UDim.new(0,cornerRadius)
-        corner.Parent=container
-
-        tintLayer=Instance.new("Frame")
-        tintLayer.Name="LiquidTint"
-        tintLayer.Size=UDim2.fromScale(1,1)
-        tintLayer.BackgroundColor3=typeof(options.Tint)=="Color3"
-            and options.Tint or Color3.fromRGB(235,245,255)
-        tintLayer.BackgroundTransparency=tintTransparency
-        tintLayer.BorderSizePixel=0
-        tintLayer.ZIndex=4
-        tintLayer.Active=false
-        tintLayer.Parent=container
-
-        local tintCorner=Instance.new("UICorner")
-        tintCorner.CornerRadius=UDim.new(0,cornerRadius)
-        tintCorner.Parent=tintLayer
-
-        local stroke=Instance.new("UIStroke")
-        stroke.Name="LiquidEdge"
-        stroke.Color=Color3.fromRGB(255,255,255)
-        stroke.Transparency=0.78
-        stroke.Thickness=1
-        stroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-        stroke.Parent=tintLayer
-
-        return true
-    end
-
-    local function buildTiles()
-        destroyTiles()
-        if not container then return end
-
-        for row=1,rows do
-            for column=1,columns do
-                local x0=(column-1)/columns
-                local x1=column/columns
-                local y0=(row-1)/rows
-                local y1=row/rows
-
-                local clip=Instance.new("Frame")
-                clip.Name=("R%dC%d"):format(row,column)
-                clip.BackgroundTransparency=1
-                clip.BorderSizePixel=0
-                clip.ClipsDescendants=true
-                clip.Position=UDim2.fromScale(x0,y0)
-                -- tiny overlap prevents 1px seams while the window animates
-                clip.Size=UDim2.new(x1-x0,1,y1-y0,1)
-                clip.ZIndex=2
-                clip.Active=false
-                clip.Parent=container
-
-                local image=Instance.new("ImageLabel")
-                image.Name="Sample"
-                image.BackgroundTransparency=1
-                image.BorderSizePixel=0
-                image.Size=UDim2.fromScale(1,1)
-                image.Position=UDim2.fromScale(0,0)
-                image.ScaleType=Enum.ScaleType.Stretch
-                image.ResampleMode=Enum.ResamplerMode.Default
-                image.ImageTransparency=imageTransparency
-                image.ZIndex=2
-                image.Active=false
-                image.Parent=clip
-
-                tiles[#tiles+1]={
-                    Clip=clip,
-                    Image=image,
-                    Row=row,
-                    Column=column,
-                    NX=((column-0.5)/columns)*2-1,
-                    NY=((row-0.5)/rows)*2-1,
-                }
-            end
-        end
-    end
-
-    local function setTileSource()
-        for _,entry in ipairs(tiles) do
-            local image=entry.Image
-            if editableCapture then
-                local ok=pcall(function()
-                    image.Image=""
-                    image.ImageContent=Content.fromObject(editableCapture)
-                end)
-                if not ok and captureContentId then
-                    image.Image=captureContentId
-                end
-            elseif captureContentId then
-                image.Image=captureContentId
-            end
-        end
-    end
-
-    local function geometryKey(pos,size,viewport)
-        return string.format(
-            "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f",
-            pos.X,pos.Y,size.X,size.Y,viewport.X,viewport.Y
-        )
-    end
-
-    local function updateTileSampling(force)
-        if not container or not root or not root.Parent then return end
-        local camera=Workspace.CurrentCamera
-        if not camera then return end
-
-        local viewport=camera.ViewportSize
-        local pos=root.AbsolutePosition
-        local size=root.AbsoluteSize
-        if size.X<8 or size.Y<8 or viewport.X<16 or viewport.Y<16 then
-            return
-        end
-
-        local key=geometryKey(pos,size,viewport)
-        if not force and key==lastGeometryKey then
-            return
-        end
-        lastGeometryKey=key
-        currentViewport=viewport
-        currentRootPos=pos
-        currentRootSize=size
-
-        for _,entry in ipairs(tiles) do
-            local column,row=entry.Column,entry.Row
-            local tileX=(column-1)*size.X/columns
-            local tileY=(row-1)*size.Y/rows
-            local tileW=size.X/columns+2
-            local tileH=size.Y/rows+2
-
-            local nx,ny=entry.NX,entry.NY
-            local r2=math.min(nx*nx+ny*ny,1)
-            local radial=math.pow(math.max(1-r2,0),0.62)
-
-            -- zero displacement at center and edge, strongest through the
-            -- middle of the lens. This visibly bends straight world lines.
-            local warpX=nx*strength*radial
-            local warpY=ny*strength*verticalStrength*radial
-
-            -- subtle second-order "liquid" swell around the perimeter
-            local ripple=math.sin(math.sqrt(r2)*math.pi)
-            warpX=warpX+nx*strength*0.16*ripple
-            warpY=warpY+ny*strength*0.11*ripple
-
-            local srcX=pos.X+tileX+warpX
-            local srcY=pos.Y+tileY+warpY
-
-            srcX=math.clamp(srcX,0,math.max(0,viewport.X-tileW))
-            srcY=math.clamp(srcY,0,math.max(0,viewport.Y-tileH))
-
-            local image=entry.Image
-            image.ImageRectOffset=Vector2.new(
-                math.floor(srcX+0.5),
-                math.floor(srcY+0.5)
-            )
-            image.ImageRectSize=Vector2.new(
-                math.max(1,math.floor(tileW+0.5)),
-                math.max(1,math.floor(tileH+0.5))
-            )
-
-            local edge=math.max(math.abs(nx),math.abs(ny))
-            image.ImageTransparency=math.clamp(
-                imageTransparency+math.max(0,edge-0.74)*edgeFade,
-                0,
-                0.85
-            )
-        end
-    end
-
-    local function acceptContentId(contentId,mode)
-        if controller.Destroyed or not contentId then return end
-        captureContentId=tostring(contentId)
-        if editableCapture then
-            pcall(function() editableCapture:Destroy() end)
-            editableCapture=nil
-        end
-        lastMode=mode or "TemporaryContentId"
-        setTileSource()
-        updateTileSampling(true)
-        setState("Ready")
-    end
-
-    local function tryEditableScreenshot()
-        if not useEditableCapture then return false end
-        if type(CaptureService.TakeScreenshotCaptureAsync)~="function" then
-            return false
-        end
-
-        local invoked=false
-        local ok=pcall(function()
-            CaptureService:TakeScreenshotCaptureAsync(function(result,capture)
-                invoked=true
-                if controller.Destroyed then
-                    captureBusy=false
-                    return
-                end
-                if result~=Enum.ScreenshotCaptureResult.Success or not capture then
-                    captureBusy=false
-                    return
-                end
-
-                task.spawn(function()
-                    local okImage,newImage=pcall(function()
-                        return AssetService:CreateEditableImageAsync(
-                            Content.fromObject(capture)
-                        )
-                    end)
-
-                    if controller.Destroyed then
-                        if okImage and newImage then
-                            pcall(function() newImage:Destroy() end)
-                        end
-                        captureBusy=false
-                        return
-                    end
-
-                    if okImage and newImage then
-                        if editableCapture then
-                            pcall(function() editableCapture:Destroy() end)
-                        end
-                        editableCapture=newImage
-                        captureContentId=nil
-                        lastMode="UICaptureMode.None/EditableImage"
-                        setTileSource()
-                        updateTileSampling(true)
-                        setState("Ready")
-                        captureBusy=false
-                    else
-                        -- This client does not accept ScreenshotCapture as an
-                        -- EditableImage source. The caller will use the legacy
-                        -- temporary-content screenshot path on the next cycle.
-                        useEditableCapture=false
-                        captureBusy=false
-                    end
-                end)
-            end,{
-                UICaptureMode=Enum.UICaptureMode.None,
-            })
-        end)
-
-        return ok
-    end
-
-    local function capture()
-        if captureBusy or controller.Destroyed or not controller.Enabled then
-            return
-        end
-        if Window.Destroyed or Window.Closed then return end
-
-        captureBusy=true
-        captureSerial+=1
-        local thisSerial=captureSerial
-
-        if useEditableCapture and tryEditableScreenshot() then
-            -- callback completes asynchronously
-            task.delay(1.25,function()
-                if not controller.Destroyed
-                    and captureBusy
-                    and captureSerial==thisSerial then
-                    useEditableCapture=false
-                    captureBusy=false
-                end
-            end)
-            return
-        end
-
-        -- Widely-supported fallback. Hide only our previous refracted snapshot
-        -- so recursive "glass inside glass" capture does not accumulate.
-        local previousVisible=container and container.Visible
-        if container then container.Visible=false end
-
-        local ok=pcall(function()
-            CaptureService:CaptureScreenshot(function(contentId)
-                if container and not controller.Destroyed then
-                    container.Visible=previousVisible~=false
-                end
-                if controller.Destroyed then
-                    captureBusy=false
-                    return
-                end
-                acceptContentId(contentId,"CaptureScreenshot/TemporaryContentId")
-                captureBusy=false
-            end)
-        end)
-
-        if not ok then
-            if container then container.Visible=previousVisible~=false end
-            captureBusy=false
-            controller.Supported=false
-            setState("Unavailable","CaptureService screenshot APIs are unavailable on this client.")
-        else
-            task.delay(1.25,function()
-                if not controller.Destroyed
-                    and captureBusy
-                    and captureSerial==thisSerial then
-                    if container then container.Visible=previousVisible~=false end
-                    captureBusy=false
-                end
-            end)
-        end
-    end
-
-    function controller:SetEnabled(enabled)
-        if self.Destroyed then return self end
-        self.Enabled=enabled==true
-        if container then container.Visible=self.Enabled end
-        if self.Enabled then
-            setState("Initializing")
-            lastCapture=0
-            capture()
-        else
-            setState("Disabled")
-        end
-        return self
-    end
-
-    function controller:Destroy()
-        if self.Destroyed then return end
-        self.Destroyed=true
-        if renderConnection then
-            renderConnection:Disconnect()
-            renderConnection=nil
-        end
-        if heartbeatConnection then
-            heartbeatConnection:Disconnect()
-            heartbeatConnection=nil
-        end
-        destroyTiles()
-        if container then
-            pcall(function() container:Destroy() end)
-            container=nil
-        end
-        clearSource()
-        setState("Destroyed")
-    end
-
-    if not createContainer() then
-        return controller
-    end
-    buildTiles()
-
-    if root.Destroying then
-        root.Destroying:Connect(function()
-            controller:Destroy()
-        end)
-    end
-
-    renderConnection=RunService.RenderStepped:Connect(function()
-        if controller.Destroyed then return end
-        if not controller.Enabled or Window.Closed then
-            if container then container.Visible=false end
-            return
-        end
-        if container then container.Visible=true end
-        updateTileSampling(false)
-    end)
-
-    heartbeatConnection=RunService.Heartbeat:Connect(function()
-        if controller.Destroyed or not controller.Enabled or Window.Closed then
-            return
-        end
-        local now=os.clock()
-        if now-lastCapture>=refreshInterval then
-            lastCapture=now
-            capture()
-        end
-    end)
-
-    if controller.Enabled then
-        task.defer(capture)
-    else
-        setState("Disabled")
-    end
-
-    return controller
-end
-end)();
-
-
-
--- Attach the same hybrid glass backend to any standalone GuiObject, such as a
--- Dropdown popup that lives outside the main window hierarchy.
+-- Standalone native RealGlass attachment helper for popup GuiObjects.
+-- This build intentionally has no ScreenCapture/EditableImage mobile fallback.
 function aa.AttachLiquidGlassToGui(selfOrGui,maybeGui,maybeOptions)
     local gui,options
     if typeof(selfOrGui)=="Instance" then
@@ -19376,21 +18847,7 @@ function aa.AttachLiquidGlassToGui(selfOrGui,maybeGui,maybeOptions)
         UICorner=tonumber(options.CornerRadius) or 16,
     }
 
-    local UserInputService=game:GetService("UserInputService")
-    local useMobileFallback=
-        options.ForceMobileFallback==true
-        or (
-            options.MobileFallback~=false
-            and UserInputService.TouchEnabled
-            and not UserInputService.KeyboardEnabled
-        )
-
-    local controller
-    if useMobileFallback then
-        controller=__XHanMobileLiquidGlass(aa,fakeWindow,options)
-    else
-        controller=__XHanRealGlass(aa,fakeWindow,options)
-    end
+    local controller=__XHanRealGlass(aa,fakeWindow,options)
 
     if gui.Destroying then
         gui.Destroying:Connect(function()
@@ -19510,54 +18967,24 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     local function installRealGlass()
         if window.LiquidGlass then return window.LiquidGlass end
         glassOptions.Enabled=true
-
-        local UserInputService=game:GetService("UserInputService")
-        local useMobileFallback=
-            glassOptions.ForceMobileFallback==true
-            or (
-                glassOptions.MobileFallback~=false
-                and UserInputService.TouchEnabled
-                and not UserInputService.KeyboardEnabled
-            )
-
-        if useMobileFallback then
-            window.LiquidGlass=__XHanMobileLiquidGlass(
-                aa,
-                window,
-                glassOptions
-            )
-        else
-            window.LiquidGlass=__XHanRealGlass(
-                aa,
-                window,
-                glassOptions
-            )
-        end
-
+        window.LiquidGlass=__XHanRealGlass(aa,window,glassOptions)
         local controller=window.LiquidGlass
-        if controller and controller.Supported then
-            setLegacyGlassLayersHidden(true)
-        end
-
-        if controller and (
-            controller.State=="Unavailable"
-            or controller.State=="Failed"
-        ) then
+        if controller and controller.Supported then setLegacyGlassLayersHidden(true) end
+        if controller and (controller.State=="Unavailable" or controller.State=="Failed") then
             pcall(function()
                 aa:Notify({
-                    Title="液态玻璃不可用",
+                    Title="真实玻璃不可用",
                     Content=tostring(controller.Error or controller.State),
                     Duration=10,
                 })
             end)
         end
-
         return controller
     end
 
     function window:GetLiquidGlassStatus()
         if self.LiquidGlass then return self.LiquidGlass:GetStatus() end
-        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,Backend="Auto"}
+        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,Backend="EditableMesh/Glass"}
     end
 
     function window:SetLiquidGlassEnabled(enabled)
