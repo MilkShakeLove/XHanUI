@@ -1768,22 +1768,20 @@ Parent=p,
 end
 
 local r=b.NewRoundFrame(f.UICorner,"Squircle",{
+Name="XHanNotificationGlassSurface",
 Size=UDim2.new(1,0,0,0),
 Position=UDim2.new(2,0,1,0),
 AnchorPoint=Vector2.new(0,1),
 AutomaticSize="Y",
-ImageTransparency=0.05,
-ThemeTag={
-ImageColor3="Notification",
-},
+ImageColor3=Color3.fromRGB(248,252,255),
+ImageTransparency=0.94,
 
 },{
 b.NewRoundFrame(f.UICorner,"Squircle",{
+Name="GlassInner",
 Size=UDim2.new(1,0,1,0),
-ThemeTag={
-ImageColor3="Notification2",
-ImageTransparency="Notification2Transparency",
-},
+ImageColor3=Color3.fromRGB(225,240,255),
+ImageTransparency=0.97,
 }),
 d("Frame",{
 Size=UDim2.new(1,0,1,0),
@@ -1834,6 +1832,10 @@ Parent=g.Holder,
 },{
 r,
 })
+
+-- Expose only for the XHanUI RealGlass wrapper below.
+h.__XHanGlassFrame=r
+h.__XHanGlassHolder=u
 
 function h.Close(v)
 if not h.Closed then
@@ -15574,7 +15576,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-2.2-SyntaxTrueBloomFlow-IdleTextRestored"
+aa.Version="External-2.3-SyntaxResourceBloom-NotificationGlass"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15901,9 +15903,8 @@ return function(WindUI, Window, Options)
         Visible=true,
     })
 
-    -- Restore the original one-piece IdleText layout exactly.
-    -- This keeps Brand / user / ping / server / FPS from being clipped or
-    -- displaced. Syntax BloomFlow is drawn only as an aligned overlay.
+    -- Keep the original one-piece IdleText layout.
+    -- Syntax uses the exact Bloom resource method from FeatureList BloomFlow.
     local IdleText=New("TextLabel",{
         Name="IdleText",
         Parent=IdleHolder,
@@ -15922,159 +15923,60 @@ return function(WindUI, Window, Options)
         ZIndex=7,
     })
 
-    -- Syntax overlay. It never participates in layout, so it cannot hide,
-    -- squeeze, or move the original idle text.
-    local BrandBloom=New("CanvasGroup",{
+    -- Exact assets used by FeatureList BloomFlow.
+    local SyntaxBloom16Image="rbxassetid://104490578391522"
+    local SyntaxBloom8Image="rbxassetid://102472648910048"
+
+    -- This host is positioned from IdleText.TextBounds. It does not
+    -- participate in layout, so user/ping/server/FPS remain untouched.
+    local SyntaxBloomHost=New("Frame",{
         Name="SyntaxBloomFlow",
         Parent=IdleHolder,
-        Position=IdleText.Position,
-        Size=IdleText.Size,
+        AnchorPoint=Vector2.new(0,0.5),
+        Position=UDim2.new(0,0,0.5,0),
+        Size=UDim2.fromOffset(1,18),
         BackgroundTransparency=1,
-        GroupTransparency=0,
+        BorderSizePixel=0,
         ClipsDescendants=false,
-        ZIndex=6,
-    })
-
-    local BrandGlowFar=New("TextLabel",{
-        Name="NameBloomFar",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,0,0.5,0),
-        Size=UDim2.fromOffset(1,18),
-        BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0.84,
-        TextStrokeColor3=Color3.fromRGB(110,200,241),
-        TextStrokeTransparency=0.78,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
         ZIndex=5,
     })
 
-    -- This layer matches FeatureList BloomFlow's NameShadow behavior:
-    -- same flowing color, 1px offset, TextTransparency 0.64.
-    local BrandNameShadow=New("TextLabel",{
-        Name="NameShadow",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,1,0.5,1),
-        Size=UDim2.fromOffset(1,18),
+    -- Same broad Bloom16 layer as FeatureList's makeBloomGlow().
+    local SyntaxBloomOuter=New("ImageLabel",{
+        Name="SyntaxBloom16",
+        Parent=SyntaxBloomHost,
         BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0.64,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
-        ZIndex=6,
+        Image=SyntaxBloom16Image,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.78,
+        ScaleType=Enum.ScaleType.Stretch,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,10,1,8),
+        ZIndex=4,
+        Active=false,
     })
 
-    local BrandMain=New("TextLabel",{
-        Name="Name",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,0,0.5,0),
-        Size=UDim2.fromOffset(1,18),
+    -- Same tighter Bloom8 layer as FeatureList's makeBloomGlow().
+    local SyntaxBloomInner=New("ImageLabel",{
+        Name="SyntaxBloom8",
+        Parent=SyntaxBloomHost,
         BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
-        ZIndex=7,
-    })
-
-    -- Additional faint copies only widen the visible bloom radius on mobile.
-    -- They share the exact same BloomFlow color and position basis.
-    local BrandGlowLeft=New("TextLabel",{
-        Name="NameBloomLeft",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,-1,0.5,0),
-        Size=UDim2.fromOffset(1,18),
-        BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0.82,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
+        Image=SyntaxBloom8Image,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.62,
+        ScaleType=Enum.ScaleType.Stretch,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,4,1,4),
         ZIndex=5,
+        Active=false,
     })
 
-    local BrandGlowRight=New("TextLabel",{
-        Name="NameBloomRight",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,2,0.5,0),
-        Size=UDim2.fromOffset(1,18),
-        BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0.82,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
-        ZIndex=5,
-    })
-
-    local BrandGlowUp=New("TextLabel",{
-        Name="NameBloomUp",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,0,0.5,-1),
-        Size=UDim2.fromOffset(1,18),
-        BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0.84,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
-        ZIndex=5,
-    })
-
-    local BrandGlowDown=New("TextLabel",{
-        Name="NameBloomDown",
-        Parent=BrandBloom,
-        AnchorPoint=Vector2.new(0,0.5),
-        Position=UDim2.new(0,0,0.5,2),
-        Size=UDim2.fromOffset(1,18),
-        BackgroundTransparency=1,
-        Text=tostring(Island.Brand),
-        TextColor3=Color3.fromRGB(110,200,241),
-        TextTransparency=0.84,
-        TextSize=14,
-        TextXAlignment=Enum.TextXAlignment.Left,
-        TextYAlignment=Enum.TextYAlignment.Center,
-        FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
-        ZIndex=5,
-    })
-
-    local BrandLayers={
-        BrandGlowFar,
-        BrandNameShadow,
-        BrandMain,
-        BrandGlowLeft,
-        BrandGlowRight,
-        BrandGlowUp,
-        BrandGlowDown,
-    }
-
-    local currentPlainText=""
     local currentBrandColor=Color3.fromRGB(110,200,241)
 
-    local function bloomFlowBrandColor()
-        -- Exact FeatureList BloomFlow timing/saturation.
+    local function syntaxMatrixFlowColor()
+        -- Same flow formula used by FeatureList BloomFlow.
         local normalizedY=0.5
         local cycleSeconds=6.4
         local verticalSpan=0.92
@@ -16095,43 +15997,53 @@ return function(WindUI, Window, Options)
         )
     end
 
-    local function syncBrandOverlay()
+    local function measureBrandWidth()
+        local ok,result=pcall(function()
+            return game:GetService("TextService"):GetTextSize(
+                tostring(Island.Brand),
+                14,
+                Enum.Font.GothamMedium,
+                Vector2.new(1000,100)
+            ).X
+        end)
+        if ok and result and result>0 then
+            return math.ceil(result)
+        end
+        return math.max(1,math.ceil(#tostring(Island.Brand)*7.5))
+    end
+
+    local function syncSyntaxBloom()
         if not IdleText.Parent then return end
 
-        local brandWidth=math.max(math.ceil(BrandMain.TextBounds.X),1)
         local totalWidth=math.max(math.ceil(IdleText.TextBounds.X),1)
+        local brandWidth=measureBrandWidth()
 
-        -- IdleText is center-aligned, so the first rendered character starts
-        -- exactly at (label width - TextBounds.X)/2.
+        -- IdleText is center aligned; this is the x coordinate of its
+        -- first rendered character inside the label.
         local startX=(IdleText.AbsoluteSize.X-totalWidth)*0.5
 
-        for _,layer in ipairs(BrandLayers) do
-            layer.Size=UDim2.fromOffset(brandWidth,18)
-        end
-
-        BrandMain.Position=UDim2.new(0,startX,0.5,0)
-        BrandGlowFar.Position=UDim2.new(0,startX,0.5,0)
-        BrandNameShadow.Position=UDim2.new(0,startX+1,0.5,1)
-        BrandGlowLeft.Position=UDim2.new(0,startX-1,0.5,0)
-        BrandGlowRight.Position=UDim2.new(0,startX+2,0.5,0)
-        BrandGlowUp.Position=UDim2.new(0,startX,0.5,-1)
-        BrandGlowDown.Position=UDim2.new(0,startX,0.5,2)
+        SyntaxBloomHost.Position=UDim2.new(0,startX,0.5,0)
+        SyntaxBloomHost.Size=UDim2.fromOffset(
+            math.max(brandWidth,1),
+            18
+        )
     end
 
     Creator.AddSignal(
         IdleText:GetPropertyChangedSignal("TextBounds"),
-        syncBrandOverlay
+        syncSyntaxBloom
     )
     Creator.AddSignal(
         IdleText:GetPropertyChangedSignal("AbsoluteSize"),
-        syncBrandOverlay
+        syncSyntaxBloom
     )
 
-    -- Follow the original IdleText fade exactly, including alerts.
     Creator.AddSignal(
         IdleText:GetPropertyChangedSignal("TextTransparency"),
         function()
-            BrandBloom.GroupTransparency=IdleText.TextTransparency
+            local t=IdleText.TextTransparency
+            SyntaxBloomOuter.ImageTransparency=math.clamp(0.78+(0.22*t),0,1)
+            SyntaxBloomInner.ImageTransparency=math.clamp(0.62+(0.38*t),0,1)
         end
     )
 
@@ -16139,57 +16051,37 @@ return function(WindUI, Window, Options)
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
 
-        local brand=tostring(Island.Brand)
-        local brandColor=currentBrandColor
-
-        BrandMain.Text=brand
-        BrandNameShadow.Text=brand
-        BrandGlowFar.Text=brand
-        BrandGlowLeft.Text=brand
-        BrandGlowRight.Text=brand
-        BrandGlowUp.Text=brand
-        BrandGlowDown.Text=brand
-
-        currentPlainText=string.format(
-            '%s  •  ◯ %s  •  ▥ %dms To %s  •  ▥ %d FPS',
-            brand,
-            Island.UserText,
-            ping,
-            Island.ServerText,
-            fps
-        )
-
         IdleText.Text=string.format(
             '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
-            colorToHex(brandColor),
-            brand,
+            colorToHex(currentBrandColor),
+            tostring(Island.Brand),
             Island.UserText,
             ping,
             Island.ServerText,
             fps
         )
 
-        task.defer(syncBrandOverlay)
+        task.defer(syncSyntaxBloom)
     end
 
-    local lastBrandFlowUpdate=0
+    local lastSyntaxBloomUpdate=0
     table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
         if Island.Destroyed then return end
 
-        lastBrandFlowUpdate=lastBrandFlowUpdate+dt
-        if lastBrandFlowUpdate<0.032 then return end
-        lastBrandFlowUpdate=0
+        lastSyntaxBloomUpdate=lastSyntaxBloomUpdate+dt
+        if lastSyntaxBloomUpdate<0.032 then return end
+        lastSyntaxBloomUpdate=0
 
-        currentBrandColor=bloomFlowBrandColor()
+        currentBrandColor=syntaxMatrixFlowColor()
 
-        for _,layer in ipairs(BrandLayers) do
-            layer.TextColor3=currentBrandColor
-        end
+        -- The two Bloom resources and the visible Syntax text carry
+        -- the same continuous BloomFlow color.
+        SyntaxBloomOuter.ImageColor3=currentBrandColor
+        SyntaxBloomInner.ImageColor3=currentBrandColor
 
-        -- Keep the visible Syntax in the original full IdleText synchronized
-        -- with the glow color without touching the rest of the line.
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
+
         IdleText.Text=string.format(
             '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             colorToHex(currentBrandColor),
@@ -19030,6 +18922,59 @@ function aa.AttachLiquidGlassToGui(selfOrGui,maybeGui,maybeOptions)
     end
 
     return controller
+end
+
+
+-- Liquid-glass notifications.
+-- The native notification module still owns timing/animation; this wrapper
+-- only attaches/detaches a RealGlass pane to the actual notification card.
+local __XHanNotifyWithoutGlass=aa.Notify
+
+function aa.Notify(selfOrOptions,maybeOptions)
+    local options
+    if maybeOptions~=nil then
+        options=maybeOptions
+    else
+        options=selfOrOptions
+    end
+
+    local notification=__XHanNotifyWithoutGlass(
+        aa,
+        options
+    )
+
+    if notification
+        and notification.__XHanGlassFrame
+        and notification.__XHanGlassFrame.Parent then
+
+        local ok,controller=pcall(function()
+            return aa:AttachLiquidGlassToGui(
+                notification.__XHanGlassFrame,
+                {
+                    Enabled=true,
+                    CornerRadius=
+                        (aa.Window and aa.Window.UICorner)
+                        or 16,
+                    Transparency=0.72,
+                    Thickness=0.072,
+                    LensStrength=0.19,
+                    BackCurve=0.90,
+                    CurvePower=1.38,
+                    LensRings=9,
+                    RefractionLayers=2,
+                    LayerGap=0.008,
+                    Reflectance=0.045,
+                    Tint=Color3.fromRGB(247,251,255),
+                }
+            )
+        end)
+
+        if ok and controller then
+            notification.LiquidGlass=controller
+        end
+    end
+
+    return notification
 end
 
 local __XHanOriginalCreateWindow=aa.CreateWindow
