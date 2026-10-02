@@ -15281,20 +15281,22 @@ aa.Themes=a.load'v'(aa,as)
 
 as.Themes=aa.Themes
 
--- XHanUI theme: transparent structural shell with shadow-only depth.
+-- XHanUI theme: transparent structural shell.
+-- Do NOT inherit from the black Dark theme.
 do
-local base=aa.Themes.Dark
+local base=aa.Themes.Light
 local t={}
 for k,v in pairs(base)do t[k]=v end
 
 t.Name="AltexSomnia"
 
-t.Accent=Color3.fromHex"0A0D12"
-t.Dialog=Color3.fromHex"10151C"
+t.Accent=Color3.fromHex"FFFFFF"
+t.Dialog=Color3.fromHex"FFFFFF"
 t.Outline=Color3.fromHex"303946"
 t.Text=Color3.fromHex"F2F5F8"
 t.Placeholder=Color3.fromHex"8A96A5"
-t.Background=Color3.fromHex"05070A"
+t.Background=Color3.fromHex"FFFFFF"
+t.BackgroundTransparency=1
 t.Button=Color3.fromHex"1D2631"
 t.Icon=Color3.fromHex"C2CBD6"
 t.Primary=Color3.fromHex"8FAEE8"
@@ -15363,6 +15365,9 @@ t.ViewportBackgroundTransparency=1
 aa.Themes.XHanUI=t
 aa.Themes.AltexSomnia=t -- compatibility alias
 end
+
+-- Remove the black Dark theme completely so it cannot be selected/restored.
+aa.Themes.Dark=nil
 
 aa:SetTheme"XHanUI"
 aa:SetLanguage(as.Language)
@@ -15512,7 +15517,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.4-DynamicIslandFlowGlowShadow"
+aa.Version="External-1.5-NoBlackTheme-IslandFrameFix"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15696,19 +15701,22 @@ return function(WindUI, Window, Options)
     Island.GlowRenderer="RoundedStrokeRings"
     updateIslandGlowBounds()
 
-    local Body=Creator.NewRoundFrame(20,"Squircle",{
+    -- Use a real rounded Frame instead of a sliced Squircle image.
+    -- The old image slice could render as a misplaced black rectangle on
+    -- very wide Dynamic Island sizes.
+    local Body=New("Frame",{
         Name="Body",
         Parent=Root,
         AnchorPoint=Vector2.new(0.5,0.5),
         Position=UDim2.fromScale(0.5,0.5),
         Size=UDim2.fromScale(1,1),
-        ImageColor3=Color3.fromRGB(48,49,52),
-        ImageTransparency=0.07,
-        ZIndex=1,
+        BackgroundColor3=Color3.fromRGB(255,255,255),
+        BackgroundTransparency=0.90,
+        BorderSizePixel=0,
+        ClipsDescendants=false,
+        ZIndex=2,
     })
     Island.UI.Body=Body
-    -- Clip the sliced image surface to the same radius as the real UIStroke.
-    -- UICorner affects the surface only; notification descendants remain visible.
     New("UICorner",{Parent=Body,CornerRadius=UDim.new(0,20)})
 
     -- The Dynamic Island replaces WindUI's old floating OpenButton.
@@ -15733,20 +15741,6 @@ return function(WindUI, Window, Options)
             Window:Toggle()
         end
     end)
-
-    New("UIGradient",{
-        Parent=Body,
-        Rotation=0,
-        Color=ColorSequence.new({
-            ColorSequenceKeypoint.new(0,Color3.fromRGB(47,47,49)),
-            ColorSequenceKeypoint.new(0.58,Color3.fromRGB(54,55,58)),
-            ColorSequenceKeypoint.new(1,Color3.fromRGB(63,68,73)),
-        }),
-        Transparency=NumberSequence.new({
-            NumberSequenceKeypoint.new(0,0.01),
-            NumberSequenceKeypoint.new(1,0.07),
-        }),
-    })
 
     -- The visible outline and halo share the body's exact rounded geometry.
     local FlowBorder=New("Frame",{
