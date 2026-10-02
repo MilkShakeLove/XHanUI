@@ -15517,7 +15517,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.5-NoBlackTheme-IslandFrameFix"
+aa.Version="External-1.6-CurvedLiquidLens"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -18175,16 +18175,25 @@ return function(WindUI, Window, Options)
     end
 
     local transparency = number(options.Transparency, 0.30, 0.02, 0.97)
-    local thickness = number(options.Thickness, 0.035, 0.002, 0.3)
+
+    -- Lens build:
+    -- The previous pane was almost completely planar and only curved through
+    -- a ~5px edge bevel. That leaves the center visually flat, so refraction
+    -- is concentrated at the border. Use a thicker, multi-ring biconvex lens
+    -- so the whole window bends the 3D scene gradually.
+    local thickness = number(options.Thickness, 0.055, 0.006, 0.3)
     local requestedDistance = number(options.Distance, 1, 0.2, 8)
     local segments = math.floor(number(options.CornerSegments, 12, 4, 24))
-    local bevelPixels = number(options.Bevel, 5, 0.25, 48)
+    local bevelPixels = number(options.Bevel, 9, 0.25, 48)
     local edgeInset = number(options.EdgeInset, 0.6, 0, 8)
+    local lensStrength = number(options.LensStrength, 0.085, 0.0, 0.30)
+    local backCurve = number(options.BackCurve, 0.55, 0.0, 1.0)
+    local curvePower = number(options.CurvePower, 1.65, 1.05, 4.0)
+    local lensRings = math.floor(number(options.LensRings, 7, 4, 14))
     local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(220, 235, 255)
     local reflectance = number(options.Reflectance, 0.12, 0, 1)
     local radiusOption = options.CornerRadius
     local perimeterCount = 4 * (segments + 1)
-    local bevelSteps = 3
 
     local function setState(state, message)
         if controller.State == state and controller.Error == message then return end
@@ -18203,6 +18212,10 @@ return function(WindUI, Window, Options)
             State = self.State, Status = self.Status, Error = self.Error,
             Supported = self.Supported, Enabled = self.Enabled,
             Backend = self.Backend,
+            LensStrength = lensStrength,
+            LensRings = lensRings,
+            Thickness = thickness,
+            Bevel = bevelPixels,
         }
     end
 
@@ -18337,59 +18350,133 @@ return function(WindUI, Window, Options)
         local width, height = p[1], p[2]
         local left, top, right, bottom = p[3], p[4], p[5], p[6]
         local depth, thick, radius = p[7], p[8], p[9]
-        local bevel = math.min(p[10], radius * 0.7, math.min(width, height) * 0.12)
-        local bevelDepth = math.min(thick * 0.36, (right - left) * depth / width * bevel)
+        local bevel = math.min(p[10], radius * 0.72, math.min(width, height) * 0.14)
+
         local points, ringIndices = {}, {}
         local minimum = Vector3.new(math.huge, math.huge, math.huge)
         local maximum = Vector3.new(-math.huge, -math.huge, -math.huge)
+
         local function add(x, y, zDepth)
-            -- Every depth layer projects to its exact rounded screen contour.
-            -- The resulting solid is gently tapered/sheared off-axis. Unlike
-            -- a camera-aligned box, its back edge cannot leak beyond the UI.
+            -- Keep every vertex on the ray for its screen-space coordinate.
+            -- Varying zDepth therefore changes the real 3D surface normal
+            -- without changing the pane's 2D outline.
             local point = Vector3.new(
                 (left + (right - left) * x / width) * zDepth,
                 (top + (bottom - top) * y / height) * zDepth,
                 -zDepth
             )
             points[#points + 1] = point
-            minimum = Vector3.new(math.min(minimum.X, point.X), math.min(minimum.Y, point.Y), math.min(minimum.Z, point.Z))
-            maximum = Vector3.new(math.max(maximum.X, point.X), math.max(maximum.Y, point.Y), math.max(maximum.Z, point.Z))
+            minimum = Vector3.new(
+                math.min(minimum.X, point.X),
+                math.min(minimum.Y, point.Y),
+                math.min(minimum.Z, point.Z)
+            )
+            maximum = Vector3.new(
+                math.max(maximum.X, point.X),
+                math.max(maximum.Y, point.Y),
+                math.max(maximum.Z, point.Z)
+            )
             return #points
         end
-        local function ring(inset, zDepth)
-            local indices = {}
-            local r = math.max(0.05, radius - inset)
-            local halfWidth, halfHeight = width / 2 - inset, height / 2 - inset
+
+        -- Build the exact rounded-rectangle perimeter, then scale that contour
+        -- toward the center for interior lens rings. The outermost ring remains
+        -- pixel-perfect with the UI while inner rings form a smooth lens.
+        local boundary = {}
+        do
+            local r = math.max(0.05, radius)
+            local halfWidth, halfHeight = width / 2, height / 2
             for quadrant = 0, 3 do
                 local sx = (quadrant == 0 or quadrant == 3) and 1 or -1
                 local sy = quadrant < 2 and 1 or -1
                 local cx, cy = sx * (halfWidth - r), sy * (halfHeight - r)
                 for step = 0, segments do
                     local theta = (quadrant + step / segments) * math.pi / 2
-                    indices[#indices + 1] = add(width / 2 + cx + r * math.cos(theta),
-                        height / 2 - cy - r * math.sin(theta), zDepth)
+                    boundary[#boundary + 1] = Vector2.new(
+                        width / 2 + cx + r * math.cos(theta),
+                        height / 2 - cy - r * math.sin(theta)
+                    )
                 end
+            end
+        end
+
+        local function ringScaled(scale, zDepth)
+            local indices = {}
+            for _, p2 in ipairs(boundary) do
+                local x = width / 2 + (p2.X - width / 2) * scale
+                local y = height / 2 + (p2.Y - height / 2) * scale
+                indices[#indices + 1] = add(x, y, zDepth)
             end
             ringIndices[#ringIndices + 1] = indices
         end
-        for step = 0, bevelSteps do
-            local theta = step / bevelSteps * math.pi / 2
-            ring(bevel * (1 - math.sin(theta)), depth + bevelDepth * (1 - math.cos(theta)))
+
+        -- The curvature amount is based on the pane's projected world size,
+        -- not pixels, so it remains visually similar across resolutions.
+        local projectedWidth = math.abs(right - left) * depth
+        local projectedHeight = math.abs(top - bottom) * depth
+        local projectedMin = math.max(math.min(projectedWidth, projectedHeight), 0.001)
+        local bulge = projectedMin * lensStrength
+
+        -- Keep the front surface safely in front of the camera and avoid an
+        -- excessively deep lens on very large windows.
+        bulge = math.min(
+            bulge,
+            projectedMin * 0.18,
+            depth * 0.20
+        )
+
+        local rearBulge = bulge * backCurve
+
+        local function profile(scale)
+            -- Cosine profile has a flat tangent at both center and edge.
+            -- Raising it above 1 concentrates a little more optical power
+            -- through the middle without producing a hard ridge.
+            local c = math.cos(math.clamp(scale, 0, 1) * math.pi * 0.5)
+            return math.pow(math.max(c, 0), curvePower)
         end
-        for step = bevelSteps, 0, -1 do
-            local theta = step / bevelSteps * math.pi / 2
-            ring(bevel * (1 - math.sin(theta)), depth + thick - bevelDepth * (1 - math.cos(theta)))
+
+        -- Front convex surface: center is closer to the camera than the edge.
+        for step = 1, lensRings do
+            local scale = step / lensRings
+            ringScaled(scale, depth - bulge * profile(scale))
         end
-        local frontCenter = add(width / 2, height / 2, depth)
-        local backCenter = add(width / 2, height / 2, depth + thick)
+
+        -- A small inward waist replaces the old 5px-only bevel. It gives the
+        -- edge a genuine glass thickness while the main refraction now comes
+        -- from the curved front/back surfaces.
+        local halfMin = math.max(math.min(width, height) * 0.5, 1)
+        local edgeLip = math.clamp((bevel / halfMin) * 0.72, 0.004, 0.055)
+        local waistScale = 1 - edgeLip
+        ringScaled(waistScale, depth + thick * 0.30)
+        ringScaled(waistScale, depth + thick * 0.70)
+
+        -- Back edge returns to the exact UI contour.
+        ringScaled(1, depth + thick)
+
+        -- Back convex surface: use a slightly weaker curve so the pane behaves
+        -- like a polished liquid lens rather than a thick magnifying bubble.
+        for step = lensRings - 1, 1, -1 do
+            local scale = step / lensRings
+            ringScaled(scale, depth + thick + rearBulge * profile(scale))
+        end
+
+        local frontCenter = add(width / 2, height / 2, depth - bulge)
+        local backCenter = add(width / 2, height / 2, depth + thick + rearBulge)
+
         local center, size = (minimum + maximum) / 2, maximum - minimum
+
         -- Normalized bounds remain [-.5,.5] on every update. MeshPart.Size
-        -- therefore maps the same linked EditableMesh onto the new dimensions
-        -- without rebuilding mesh/collision assets for every resize frame.
+        -- therefore maps the same linked EditableMesh onto new window sizes
+        -- without recreating the MeshPart every frame.
         for i, point in ipairs(points) do
             local v = point - center
-            points[i] = Vector3.new(v.X / size.X, v.Y / size.Y, v.Z / size.Z)
+            points[i] = Vector3.new(
+                v.X / math.max(size.X, 0.000001),
+                v.Y / math.max(size.Y, 0.000001),
+                v.Z / math.max(size.Z, 0.000001)
+            )
         end
+
         return points, ringIndices, frontCenter, backCenter, center, size
     end
 
