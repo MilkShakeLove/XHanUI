@@ -8031,7 +8031,7 @@ local ak=a.load'd'
 local al=ak.New
 local am=ak.Tween
 
-local an=0.67
+local an=0.84
 
 function aa.New(ao,ap,aq,ar,as)
 local at={}
@@ -8047,14 +8047,33 @@ HorizontalAlignment="Center",
 })
 
 ap.UIElements.Menu=ak.NewRoundFrame(aq.MenuCorner,"Squircle",{
-ThemeTag={
-ImageColor3="DropdownBackground",
-},
+ImageColor3=Color3.fromRGB(244,249,255),
 ImageTransparency=1,
 Size=UDim2.new(1,0,1,0),
 AnchorPoint=Vector2.new(1,0),
 Position=UDim2.new(1,0,0,0),
+ZIndex=3,
 },{
+al("UIGradient",{
+Rotation=92,
+Color=ColorSequence.new({
+ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),
+ColorSequenceKeypoint.new(0.45,Color3.fromRGB(222,239,255)),
+ColorSequenceKeypoint.new(1,Color3.fromRGB(255,255,255)),
+}),
+Transparency=NumberSequence.new({
+NumberSequenceKeypoint.new(0,0.18),
+NumberSequenceKeypoint.new(0.42,0.64),
+NumberSequenceKeypoint.new(1,0.30),
+}),
+}),
+al("UIStroke",{
+Color=Color3.fromRGB(255,255,255),
+Transparency=0.58,
+Thickness=1.15,
+ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
+LineJoinMode=Enum.LineJoinMode.Round,
+}),
 al("UIPadding",{
 PaddingTop=UDim.new(0,aq.MenuPadding),
 PaddingLeft=UDim.new(0,aq.MenuPadding),
@@ -8106,6 +8125,52 @@ MinSize=Vector2.new(170,0),
 MaxSize=Vector2.new(300,400),
 }),
 })
+
+-- The popup is outside the main window glass, so give it an independent glass
+-- host. It is only enabled while this dropdown is open.
+local __XHanPopupGlassHost=al("Frame",{
+Name="XHanPopupLiquidGlassHost",
+Parent=ap.UIElements.MenuCanvas,
+Size=UDim2.fromScale(1,1),
+Position=UDim2.fromScale(0,0),
+BackgroundTransparency=1,
+BorderSizePixel=0,
+Active=false,
+ZIndex=1,
+})
+local __XHanPopupGlassController=nil
+
+local function __XHanEnsurePopupGlass()
+if __XHanPopupGlassController then
+return __XHanPopupGlassController
+end
+
+local attach=ao.WindUI and ao.WindUI.AttachLiquidGlassToGui
+if type(attach)=="function" then
+local ok,controller=pcall(function()
+return attach(ao.WindUI,__XHanPopupGlassHost,{
+Enabled=false,
+CornerRadius=aq.MenuCorner,
+Transparency=0.78,
+Thickness=0.065,
+LensStrength=0.15,
+RefractionLayers=2,
+MobileColumns=9,
+MobileRows=7,
+MobileStrength=26,
+MobileVerticalStrength=0.80,
+MobileRefresh=0.48,
+MobileImageTransparency=0.04,
+MobileTintTransparency=0.94,
+})
+end)
+if ok then
+__XHanPopupGlassController=controller
+end
+end
+
+return __XHanPopupGlassController
+end
 
 local function RecalculateCanvasSize()
 ap.UIElements.Menu.Frame.ScrollingFrame.CanvasSize=
@@ -8318,12 +8383,10 @@ aq.MenuCorner-aq.MenuPadding,
 {
 Size=UDim2.new(1,0,0,36),
 AutomaticSize=az.Desc and"Y",
-ImageTransparency=1,
+ImageTransparency=0.96,
+ImageColor3=Color3.fromRGB(242,248,255),
 Parent=ap.UIElements.Menu.Frame.ScrollingFrame,
 
-ThemeTag={
-ImageColor3="DropdownTabBackground",
-},
 Active=not az.Locked,
 },
 {
@@ -8468,7 +8531,7 @@ end
 -- We mirror WindUI's own ImageTransparency state, so native selection logic remains authoritative.
 local __AltexItemGlow=al("ImageLabel",{
     Image="rbxassetid://104482361987216",
-    ImageColor3=Color3.fromRGB(0,0,0),
+    ImageColor3=Color3.fromRGB(190,228,255),
     ImageTransparency=1,
     BackgroundTransparency=1,
     Size=UDim2.new(1,20,1,20),
@@ -8489,7 +8552,7 @@ local function __AltexSyncSelectedGlow()
         return
     end
     if az.UIElements.TabItem.ImageTransparency<0.95 then
-        __AltexItemGlow.ImageTransparency=0.34
+        __AltexItemGlow.ImageTransparency=0.74
     else
         __AltexItemGlow.ImageTransparency=1
     end
@@ -8635,15 +8698,20 @@ ap.UIElements.MenuCanvas.Active=true
 ap.UIElements.Menu.Size=UDim2.new(1,0,0,0)
 am(ap.UIElements.Menu,0.1,{
 Size=UDim2.new(1,0,1,0),
-ImageTransparency=0,
+ImageTransparency=0.88,
 },Enum.EasingStyle.Quart,Enum.EasingDirection.Out):Play()
+
+UpdatePosition()
+
+local __glass=__XHanEnsurePopupGlass()
+if __glass and type(__glass.SetEnabled)=="function" then
+pcall(function() __glass:SetEnabled(true) end)
+end
 
 task.spawn(function()
 task.wait(0.1)
 ap.Opened=true
 end)
-
-UpdatePosition()
 end
 end
 
@@ -8661,7 +8729,14 @@ ap.UIElements.Menu.Visible=false
 end)
 
 task.spawn(function()
-task.wait(0.25)
+task.wait(0.22)
+if __XHanPopupGlassController
+and type(__XHanPopupGlassController.SetEnabled)=="function" then
+pcall(function()
+__XHanPopupGlassController:SetEnabled(false)
+end)
+end
+task.wait(0.03)
 ap.UIElements.MenuCanvas.Visible=false
 ap.UIElements.MenuCanvas.Active=false
 end)
@@ -8804,46 +8879,74 @@ ap.UIElements.Dropdown.AnchorPoint=Vector2.new(1,ao.Window.NewElements and 0 or 
 
 end
 
--- XHanUI: native WindUI selector shadow.
--- This is attached to the real Dropdown control; it does not replace the control.
-local __AltexSelectorTarget=ap.UIElements.Dropdown or ap.DropdownFrame.UIElements.Main
-if __AltexSelectorTarget then
-    pcall(function() __AltexSelectorTarget.ClipsDescendants=false end)
+-- XHanUI: selector liquid-glass shell.
+-- The selector sits inside the main window, so it reuses the main LiquidGlass
+-- refraction beneath it instead of creating another expensive renderer.
+local __XHanSelectorTarget=ap.UIElements.Dropdown or ap.DropdownFrame.UIElements.Main
+if __XHanSelectorTarget then
+    pcall(function() __XHanSelectorTarget.ClipsDescendants=false end)
 
-    local __AltexSelectorGlowOuter=ag("ImageLabel",{
+    if ap.UIElements.Dropdown
+        and ap.UIElements.Dropdown:FindFirstChild("Frame") then
+
+        local __outer=ap.UIElements.Dropdown.Frame
+        local __surface=__outer:FindFirstChild("Frame")
+
+        -- Remove WindUI's dark placeholder/shadow slices.
+        for _,child in ipairs(__outer:GetChildren()) do
+            if child:IsA("ImageLabel") and child~=__surface then
+                child.ImageTransparency=1
+            end
+        end
+
+        if __surface and __surface:IsA("ImageLabel") then
+            __surface.ImageColor3=Color3.fromRGB(244,249,255)
+            __surface.ImageTransparency=0.88
+
+            ag("UIGradient",{
+                Parent=__surface,
+                Rotation=90,
+                Color=ColorSequence.new({
+                    ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),
+                    ColorSequenceKeypoint.new(0.50,Color3.fromRGB(225,241,255)),
+                    ColorSequenceKeypoint.new(1,Color3.fromRGB(255,255,255)),
+                }),
+                Transparency=NumberSequence.new({
+                    NumberSequenceKeypoint.new(0,0.16),
+                    NumberSequenceKeypoint.new(0.45,0.62),
+                    NumberSequenceKeypoint.new(1,0.34),
+                }),
+            })
+
+            ag("UIStroke",{
+                Parent=__surface,
+                Name="XHanSelectorGlassStroke",
+                Color=Color3.fromRGB(255,255,255),
+                Transparency=0.56,
+                Thickness=1.05,
+                ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
+                LineJoinMode=Enum.LineJoinMode.Round,
+            })
+        end
+    end
+
+    -- Soft white edge bloom. No black selector shadow.
+    local __glassHalo=ag("ImageLabel",{
         Image="rbxassetid://104482361987216",
-        ImageColor3=Color3.fromRGB(0,0,0),
-        ImageTransparency=0.48,
+        ImageColor3=Color3.fromRGB(210,238,255),
+        ImageTransparency=0.88,
         BackgroundTransparency=1,
-        Size=UDim2.new(1,34,1,30),
+        Size=UDim2.new(1,24,1,22),
         Position=UDim2.new(0.5,0,0.5,0),
         AnchorPoint=Vector2.new(0.5,0.5),
         ScaleType="Slice",
         SliceCenter=Rect.new(99,99,99,99),
         Active=false,
-        ZIndex=math.max((__AltexSelectorTarget.ZIndex or 1)-1,1),
-        Name="AltexSelectorGlowOuter",
-        Parent=__AltexSelectorTarget,
+        ZIndex=math.max((__XHanSelectorTarget.ZIndex or 1)-1,1),
+        Name="XHanSelectorGlassHalo",
+        Parent=__XHanSelectorTarget,
     })
-
-    local __AltexSelectorGlowInner=ag("ImageLabel",{
-        Image="rbxassetid://104482361987216",
-        ImageColor3=Color3.fromRGB(0,0,0),
-        ImageTransparency=0.24,
-        BackgroundTransparency=1,
-        Size=UDim2.new(1,18,1,16),
-        Position=UDim2.new(0.5,0,0.5,0),
-        AnchorPoint=Vector2.new(0.5,0.5),
-        ScaleType="Slice",
-        SliceCenter=Rect.new(99,99,99,99),
-        Active=false,
-        ZIndex=math.max((__AltexSelectorTarget.ZIndex or 1)-1,1),
-        Name="AltexSelectorGlowInner",
-        Parent=__AltexSelectorTarget,
-    })
-
-    ap.UIElements.AltexSelectorGlowOuter=__AltexSelectorGlowOuter
-    ap.UIElements.AltexSelectorGlowInner=__AltexSelectorGlowInner
+    ap.UIElements.XHanSelectorGlassHalo=__glassHalo
 end
 
 ap.DropdownMenu=ak(ao,ap,am,aq,"Dropdown")
@@ -15517,7 +15620,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-1.8-HybridMobileGridRefraction"
+aa.Version="External-1.9-IslandBrandFlow-SelectorGlass"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15811,6 +15914,9 @@ return function(WindUI, Window, Options)
         return ColorSequence.new(keys)
     end
 
+    local BrandFlowGradient
+    local BrandGlowGradient
+
     local lastGlowUpdate=0
     table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
         if Island.Destroyed then return end
@@ -15830,16 +15936,25 @@ return function(WindUI, Window, Options)
         for _,ring in ipairs(IslandGlowSegments) do
             ring.Gradient.Color=sequence
         end
+
+        -- "Syntax" shares the same flowing RGB phase as the island outline.
+        if BrandFlowGradient then
+            BrandFlowGradient.Color=sequence
+        end
+        if BrandGlowGradient then
+            BrandGlowGradient.Color=sequence
+        end
     end))
 
     ----------------------------------------------------------------
     -- Idle status line
     ----------------------------------------------------------------
-    local IdleHolder=New("Frame",{
+    local IdleHolder=New("CanvasGroup",{
         Name="IdleHolder",
         Parent=Body,
         Size=UDim2.fromScale(1,1),
         BackgroundTransparency=1,
+        GroupTransparency=0,
         ZIndex=5,
         Visible=true,
     })
@@ -15862,18 +15977,84 @@ return function(WindUI, Window, Options)
         ZIndex=6,
     })
 
+    -- Flowing RGB brand painted over the first word of the normal status line.
+    -- Keeping the status line itself intact means layout/truncation behavior stays
+    -- exactly the same while only the "Syntax" word gets the animated bloom.
+    local BrandGlow=New("TextLabel",{
+        Name="BrandGlow",
+        Parent=IdleHolder,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.fromOffset(120,24),
+        BackgroundTransparency=1,
+        Text=Island.Brand,
+        TextColor3=Color3.new(1,1,1),
+        TextTransparency=0.44,
+        TextStrokeColor3=Color3.new(1,1,1),
+        TextStrokeTransparency=0.62,
+        TextSize=16,
+        FontFace=Font.new(Creator.Font,Enum.FontWeight.SemiBold),
+        ZIndex=6,
+    })
+
+    local BrandFlow=New("TextLabel",{
+        Name="BrandFlow",
+        Parent=IdleHolder,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.fromOffset(120,22),
+        BackgroundTransparency=1,
+        Text=Island.Brand,
+        TextColor3=Color3.new(1,1,1),
+        TextTransparency=0,
+        TextStrokeTransparency=1,
+        TextSize=14,
+        FontFace=Font.new(Creator.Font,Enum.FontWeight.SemiBold),
+        ZIndex=7,
+    })
+
+    BrandGlowGradient=New("UIGradient",{
+        Parent=BrandGlow,
+        Rotation=0,
+        Color=islandFlowSequence(0),
+    })
+    BrandFlowGradient=New("UIGradient",{
+        Parent=BrandFlow,
+        Rotation=0,
+        Color=islandFlowSequence(0),
+    })
+
+    local function syncBrandPosition()
+        if Island.Destroyed then return end
+
+        -- IdleText is centered. Its TextBounds tells us the exact rendered width,
+        -- so place the brand overlay over the first word without hardcoding x.
+        local totalWidth=IdleText.TextBounds.X
+        local brandWidth=BrandFlow.TextBounds.X
+        if totalWidth<=0 or brandWidth<=0 then return end
+
+        local x=(-totalWidth*0.5)+(brandWidth*0.5)
+        local position=UDim2.new(0.5,x,0.5,0)
+        BrandFlow.Position=position
+        BrandGlow.Position=position
+    end
+
     local function updateIdleText()
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
 
         IdleText.Text=string.format(
-            '<font color="#6EC8F1">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
+            '<font color="#DCE3EC">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             Island.Brand,
             Island.UserText,
             ping,
             Island.ServerText,
             fps
         )
+
+        BrandGlow.Text=Island.Brand
+        BrandFlow.Text=Island.Brand
+        task.defer(syncBrandPosition)
     end
 
     local function readPing()
@@ -16057,8 +16238,8 @@ return function(WindUI, Window, Options)
 
         cancelTween(Island.IdleTextTween)
         Island.IdleTextTween=Tween(
-            IdleText,0.10,
-            {TextTransparency=1},
+            IdleHolder,0.10,
+            {GroupTransparency=1},
             Enum.EasingStyle.Quint,
             Enum.EasingDirection.In
         )
@@ -16138,12 +16319,12 @@ return function(WindUI, Window, Options)
 
             RowLayer.Visible=false
             IdleHolder.Visible=true
-            IdleText.TextTransparency=1
+            IdleHolder.GroupTransparency=1
 
             cancelTween(Island.IdleTextTween)
             Island.IdleTextTween=Tween(
-                IdleText,0.16,
-                {TextTransparency=0},
+                IdleHolder,0.16,
+                {GroupTransparency=0},
                 Enum.EasingStyle.Quint,
                 Enum.EasingDirection.Out
             )
@@ -19168,6 +19349,60 @@ return function(WindUI, Window, Options)
 end
 end)();
 
+
+
+-- Attach the same hybrid glass backend to any standalone GuiObject, such as a
+-- Dropdown popup that lives outside the main window hierarchy.
+function aa.AttachLiquidGlassToGui(selfOrGui,maybeGui,maybeOptions)
+    local gui,options
+    if typeof(selfOrGui)=="Instance" then
+        gui=selfOrGui
+        options=maybeGui
+    else
+        gui=maybeGui
+        options=maybeOptions
+    end
+
+    if not gui or not gui:IsA("GuiObject") then
+        return nil
+    end
+
+    options=type(options)=="table" and options or {}
+
+    local fakeWindow={
+        UIElements={Main=gui},
+        Destroyed=false,
+        Closed=false,
+        UICorner=tonumber(options.CornerRadius) or 16,
+    }
+
+    local UserInputService=game:GetService("UserInputService")
+    local useMobileFallback=
+        options.ForceMobileFallback==true
+        or (
+            options.MobileFallback~=false
+            and UserInputService.TouchEnabled
+            and not UserInputService.KeyboardEnabled
+        )
+
+    local controller
+    if useMobileFallback then
+        controller=__XHanMobileLiquidGlass(aa,fakeWindow,options)
+    else
+        controller=__XHanRealGlass(aa,fakeWindow,options)
+    end
+
+    if gui.Destroying then
+        gui.Destroying:Connect(function()
+            fakeWindow.Destroyed=true
+            if controller and type(controller.Destroy)=="function" then
+                pcall(function() controller:Destroy() end)
+            end
+        end)
+    end
+
+    return controller
+end
 
 local __XHanOriginalCreateWindow=aa.CreateWindow
 
