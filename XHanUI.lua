@@ -15576,7 +15576,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="External-2.3-SyntaxResourceBloom-NotificationGlass"
+aa.Version="External-2.4-StrictSyntaxResourceBloom-NotificationGlass"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15585,6 +15585,7 @@ return function(WindUI, Window, Options)
     local Players=game:GetService("Players")
     local RunService=game:GetService("RunService")
     local Stats=game:GetService("Stats")
+    local TextService=game:GetService("TextService")
 
     local Creator=WindUI.Creator
     local New=Creator.New
@@ -15903,8 +15904,8 @@ return function(WindUI, Window, Options)
         Visible=true,
     })
 
-    -- Keep the original one-piece IdleText layout.
-    -- Syntax uses the exact Bloom resource method from FeatureList BloomFlow.
+    -- ORIGINAL one-piece IdleText layout is kept intact.
+    -- Only Syntax receives resource-based BloomFlow glow.
     local IdleText=New("TextLabel",{
         Name="IdleText",
         Parent=IdleHolder,
@@ -15923,12 +15924,46 @@ return function(WindUI, Window, Options)
         ZIndex=7,
     })
 
-    -- Exact assets used by FeatureList BloomFlow.
+    -- EXACT Bloom resources used by FeatureList BloomFlow.
     local SyntaxBloom16Image="rbxassetid://104490578391522"
     local SyntaxBloom8Image="rbxassetid://102472648910048"
 
-    -- This host is positioned from IdleText.TextBounds. It does not
-    -- participate in layout, so user/ping/server/FPS remain untouched.
+    -- Same font-measurement path as FeatureList.widthOf().
+    local function syntaxWidthOf(value,size)
+        value=tostring(value or "")
+        size=size or 14
+
+        local ok,result=pcall(function()
+            local params=Instance.new("GetTextBoundsParams")
+            params.Text=value
+            params.Size=size
+            params.Width=2048
+            params.Font=Font.new(Creator.Font,Enum.FontWeight.Medium)
+            local bounds=TextService:GetTextBoundsAsync(params)
+            params:Destroy()
+            return bounds.X
+        end)
+        if ok and type(result)=="number" and result>0 then
+            return result
+        end
+
+        local ok2,result2=pcall(function()
+            return TextService:GetTextSize(
+                value,
+                size,
+                Enum.Font.GothamMedium,
+                Vector2.new(2048,128)
+            ).X
+        end)
+        if ok2 and type(result2)=="number" then
+            return result2
+        end
+
+        return math.floor(#value*size*0.56)
+    end
+
+    -- Host is independent from IdleText layout. No user/ping/server/FPS text
+    -- is split or moved, so nothing else on the island can disappear.
     local SyntaxBloomHost=New("Frame",{
         Name="SyntaxBloomFlow",
         Parent=IdleHolder,
@@ -15941,50 +15976,65 @@ return function(WindUI, Window, Options)
         ZIndex=5,
     })
 
-    -- Same broad Bloom16 layer as FeatureList's makeBloomGlow().
+    -- Active BloomFlow MatrixBack uses these exact resource sizes:
+    -- Bloom16 = +38/+26, Bloom8 = +22/+16.
     local SyntaxBloomOuter=New("ImageLabel",{
         Name="SyntaxBloom16",
         Parent=SyntaxBloomHost,
         BackgroundTransparency=1,
         Image=SyntaxBloom16Image,
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.78,
+        ImageTransparency=0.606,
         ScaleType=Enum.ScaleType.Stretch,
         AnchorPoint=Vector2.new(0.5,0.5),
         Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.new(1,10,1,8),
-        ZIndex=4,
+        Size=UDim2.new(1,38,1,26),
+        ZIndex=5,
         Active=false,
     })
 
-    -- Same tighter Bloom8 layer as FeatureList's makeBloomGlow().
     local SyntaxBloomInner=New("ImageLabel",{
         Name="SyntaxBloom8",
         Parent=SyntaxBloomHost,
         BackgroundTransparency=1,
         Image=SyntaxBloom8Image,
         ImageColor3=Color3.new(1,1,1),
-        ImageTransparency=0.62,
+        ImageTransparency=0.4704,
         ScaleType=Enum.ScaleType.Stretch,
         AnchorPoint=Vector2.new(0.5,0.5),
         Position=UDim2.fromScale(0.5,0.5),
-        Size=UDim2.new(1,4,1,4),
-        ZIndex=5,
+        Size=UDim2.new(1,22,1,16),
+        ZIndex=6,
         Active=false,
+    })
+
+    -- FeatureList MatrixBack colors the Bloom resources through UIGradient.
+    local SyntaxBloomOuterGradient=New("UIGradient",{
+        Parent=SyntaxBloomOuter,
+        Rotation=90,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+    local SyntaxBloomInnerGradient=New("UIGradient",{
+        Parent=SyntaxBloomInner,
+        Rotation=90,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
     })
 
     local currentBrandColor=Color3.fromRGB(110,200,241)
 
-    local function syntaxMatrixFlowColor()
-        -- Same flow formula used by FeatureList BloomFlow.
-        local normalizedY=0.5
+    local function syntaxMatrixFlowColor(normalizedY,phaseOffset)
+        normalizedY=math.clamp(tonumber(normalizedY) or 0,0,1)
+
+        -- Exact active FeatureList BloomFlow formula.
         local cycleSeconds=6.4
         local verticalSpan=0.92
         local hue=(
             0.96
             + (Island.GlowTime/cycleSeconds)
             + (normalizedY*verticalSpan)
+            + (phaseOffset or 0)
         )%1
+
         return Color3.fromHSV(hue,0.76,1)
     end
 
@@ -15997,35 +16047,72 @@ return function(WindUI, Window, Options)
         )
     end
 
-    local function measureBrandWidth()
-        local ok,result=pcall(function()
-            return game:GetService("TextService"):GetTextSize(
-                tostring(Island.Brand),
-                14,
-                Enum.Font.GothamMedium,
-                Vector2.new(1000,100)
-            ).X
-        end)
-        if ok and result and result>0 then
-            return math.ceil(result)
-        end
-        return math.max(1,math.ceil(#tostring(Island.Brand)*7.5))
+    local function currentBloomStrength()
+        local list=(Window and Window.FeatureList) or WindUI.FeatureList
+        return math.clamp(
+            tonumber(list and list.ShadowStrength) or 78,
+            0,
+            100
+        )/100
+    end
+
+    local function setSyntaxBloomAlpha()
+        local strength=currentBloomStrength()
+
+        -- Exact active MatrixBack BloomFlow alpha formulas.
+        local outerBase=math.clamp(
+            0.84-(0.30*strength),
+            0.48,
+            0.84
+        )
+        local innerBase=math.clamp(
+            0.72-(0.32*strength),
+            0.36,
+            0.72
+        )
+
+        local fade=math.clamp(IdleText.TextTransparency,0,1)
+        SyntaxBloomOuter.ImageTransparency=
+            1-((1-outerBase)*(1-fade))
+        SyntaxBloomInner.ImageTransparency=
+            1-((1-innerBase)*(1-fade))
     end
 
     local function syncSyntaxBloom()
-        if not IdleText.Parent then return end
+        if not IdleText.Parent or not IdleHolder.Parent then
+            return
+        end
 
-        local totalWidth=math.max(math.ceil(IdleText.TextBounds.X),1)
-        local brandWidth=measureBrandWidth()
+        local brand=tostring(Island.Brand)
+        local brandWidth=math.max(
+            1,
+            math.ceil(syntaxWidthOf(brand,14))
+        )
 
-        -- IdleText is center aligned; this is the x coordinate of its
-        -- first rendered character inside the label.
-        local startX=(IdleText.AbsoluteSize.X-totalWidth)*0.5
+        -- Use the ACTUAL rendered full-line TextBounds for the starting point.
+        -- This avoids font-width guesses and keeps Bloom exactly behind Syntax.
+        local renderedWidth=math.max(
+            1,
+            math.ceil(IdleText.TextBounds.X)
+        )
 
-        SyntaxBloomHost.Position=UDim2.new(0,startX,0.5,0)
+        local labelLeft=
+            IdleText.AbsolutePosition.X
+            - IdleHolder.AbsolutePosition.X
+
+        local startX=
+            labelLeft
+            + ((IdleText.AbsoluteSize.X-renderedWidth)*0.5)
+
+        SyntaxBloomHost.Position=UDim2.new(
+            0,
+            math.floor(startX+0.5),
+            0.5,
+            0
+        )
         SyntaxBloomHost.Size=UDim2.fromOffset(
-            math.max(brandWidth,1),
-            18
+            brandWidth,
+            math.max(18,math.ceil(IdleText.TextBounds.Y))
         )
     end
 
@@ -16037,14 +16124,13 @@ return function(WindUI, Window, Options)
         IdleText:GetPropertyChangedSignal("AbsoluteSize"),
         syncSyntaxBloom
     )
-
+    Creator.AddSignal(
+        IdleText:GetPropertyChangedSignal("AbsolutePosition"),
+        syncSyntaxBloom
+    )
     Creator.AddSignal(
         IdleText:GetPropertyChangedSignal("TextTransparency"),
-        function()
-            local t=IdleText.TextTransparency
-            SyntaxBloomOuter.ImageTransparency=math.clamp(0.78+(0.22*t),0,1)
-            SyntaxBloomInner.ImageTransparency=math.clamp(0.62+(0.38*t),0,1)
-        end
+        setSyntaxBloomAlpha
     )
 
     local function updateIdleText()
@@ -16054,14 +16140,17 @@ return function(WindUI, Window, Options)
         IdleText.Text=string.format(
             '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             colorToHex(currentBrandColor),
-            tostring(Island.Brand),
+            Island.Brand,
             Island.UserText,
             ping,
             Island.ServerText,
             fps
         )
 
-        task.defer(syncSyntaxBloom)
+        task.defer(function()
+            syncSyntaxBloom()
+            setSyntaxBloomAlpha()
+        end)
     end
 
     local lastSyntaxBloomUpdate=0
@@ -16072,12 +16161,21 @@ return function(WindUI, Window, Options)
         if lastSyntaxBloomUpdate<0.032 then return end
         lastSyntaxBloomUpdate=0
 
-        currentBrandColor=syntaxMatrixFlowColor()
+        -- Sample a small vertical span exactly like connected MatrixBack.
+        local topColor=syntaxMatrixFlowColor(0.42,0)
+        local centerColor=syntaxMatrixFlowColor(0.50,0)
+        local bottomColor=syntaxMatrixFlowColor(0.58,0)
 
-        -- The two Bloom resources and the visible Syntax text carry
-        -- the same continuous BloomFlow color.
-        SyntaxBloomOuter.ImageColor3=currentBrandColor
-        SyntaxBloomInner.ImageColor3=currentBrandColor
+        local sequence=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,topColor),
+            ColorSequenceKeypoint.new(1,bottomColor),
+        })
+
+        SyntaxBloomOuterGradient.Color=sequence
+        SyntaxBloomInnerGradient.Color=sequence
+        currentBrandColor=centerColor
+
+        setSyntaxBloomAlpha()
 
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
@@ -16085,7 +16183,7 @@ return function(WindUI, Window, Options)
         IdleText.Text=string.format(
             '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             colorToHex(currentBrandColor),
-            tostring(Island.Brand),
+            Island.Brand,
             Island.UserText,
             ping,
             Island.ServerText,
