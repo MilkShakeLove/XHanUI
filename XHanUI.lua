@@ -15596,7 +15596,7 @@ return function(WindUI, Window, Options)
         IdleWidth=tonumber(Options.IdleWidth) or 390,
         IdleHeight=tonumber(Options.IdleHeight) or 42,
 
-        -- Alert mode shrinks inward from both sides while dropping downward.
+        -- Reference mode morphs a wide pill into a taller, narrower notification.
         AlertWidth=tonumber(Options.Width) or 340,
         RowHeight=tonumber(Options.RowHeight) or 46,
         AlertYOffset=tonumber(Options.AlertYOffset) or 10,
@@ -15632,7 +15632,14 @@ return function(WindUI, Window, Options)
         AnimationSoftness=math.clamp(tonumber(Options.AnimationSoftness) or 1,0,1),
         Tasks={},
         MeasureParams={},
+        ReferenceGeometry=Options.ReferenceGeometry~=false,
     }
+
+    if Island.ReferenceGeometry then
+        Island.AlertWidth=Island.IdleWidth*0.55
+        Island.RowHeight=Island.IdleHeight*1.60
+        Island.AlertYOffset=0
+    end
 
     local ENABLED=Color3.fromRGB(49,196,124)
     local DISABLED=Color3.fromRGB(216,83,91)
@@ -16368,8 +16375,8 @@ return function(WindUI, Window, Options)
 
     Island.UI.Rows=RowLayer
 
-    -- One spring owns the root's size and position: soft, lightly elastic
-    -- opening and a slower, critically damped close. Targets
+    -- One spring owns the root's size and position: a simultaneous narrow/tall
+    -- morph with the reference video's small terminal correction. Targets
     -- change without replacing the current values or velocity, so a reversal
     -- during opening/closing does not restart an easing curve from rest.
     local motion={
@@ -16379,10 +16386,11 @@ return function(WindUI, Window, Options)
         Velocity={0,0,0,0,0,0},
         Target={},
         Moving=false,
+        HeightContracting=false,
     }
     for i,value in ipairs(motion.Value) do motion.Target[i]=value end
     Island.MotionState="Idle"
-    Island.AnimationVersion="SoftElasticV2"
+    Island.AnimationVersion="VideoReferenceV4"
     local desiredMode="Idle"
     local idleAlphaTarget=0
     local IdleHideTask
@@ -16394,11 +16402,11 @@ return function(WindUI, Window, Options)
         IdleHideTask=nil
         cancelTween(Island.IdleTextTween)
         IdleHolder.Visible=true
-        Island.IdleTextTween=Tween(IdleText,0.18/Island.AnimationSpeed,
-            {TextTransparency=alpha},Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+        Island.IdleTextTween=Tween(IdleText,0.09/Island.AnimationSpeed,
+            {TextTransparency=alpha},Enum.EasingStyle.Sine,Enum.EasingDirection.Out)
         Island.IdleTextTween:Play()
         if alpha==1 then
-            IdleHideTask=scheduleTask(0.18/Island.AnimationSpeed,function()
+            IdleHideTask=scheduleTask(0.09/Island.AnimationSpeed,function()
                 IdleHideTask=nil
                 if idleAlphaTarget==1 then IdleHolder.Visible=false end
             end)
@@ -16411,6 +16419,9 @@ return function(WindUI, Window, Options)
         local changed=false
         for i,value in ipairs(target) do
             if motion.Target[i]~=value then changed=true end
+            if i==2 and motion.Target[i]~=value then
+                motion.HeightContracting=value<motion.Value[i]
+            end
             motion.Target[i]=value
         end
         if changed then motion.Moving=true end
@@ -16426,8 +16437,12 @@ return function(WindUI, Window, Options)
             local size=i<=2
             local opening=desiredMode=="Alert"
             local softness=Island.AnimationSoftness
-            local frequency=24-(size and (opening and 10 or 12) or 8)*softness
-            local damping=(size and opening) and (1-0.20*softness) or 1
+            local frequency=(size and opening) and 20 or 22
+            local elasticity=size and (opening and 0.18 or 0.14) or 0.10
+            -- Removing many rows is a large height contraction. Use a smaller
+            -- rebound there so the remaining row's text is never compressed away.
+            if i==2 and opening and motion.HeightContracting then elasticity=0.10 end
+            local damping=1-elasticity*softness
             local omega=frequency*Island.AnimationSpeed
             local nextOffset,nextVelocity
             if damping>=0.9999 then
@@ -16500,6 +16515,8 @@ return function(WindUI, Window, Options)
         end
         RowLayer.Visible=false
         retargetRoot(Island.IdleWidth,Island.IdleHeight,Island.Position)
+        -- The video's idle line returns while the shell is still restoring.
+        setIdleAlpha(0)
         if not motion.Moving then
             Island.MotionState="Idle"
             setIdleAlpha(0)
@@ -16527,7 +16544,7 @@ return function(WindUI, Window, Options)
                     row.MoveTween=nil
                     local target=UDim2.new(0,0,0,y)
                     if animateRows then
-                        row.MoveTween=Tween(row.Root,0.28/Island.AnimationSpeed,
+                        row.MoveTween=Tween(row.Root,0.16/Island.AnimationSpeed,
                             {Position=target},Enum.EasingStyle.Sine,Enum.EasingDirection.Out)
                         row.MoveTween:Play()
                     else
@@ -16545,7 +16562,7 @@ return function(WindUI, Window, Options)
         cancelTween(row.FadeTween)
         row.FadeTween=Tween(row.Content,duration/Island.AnimationSpeed,
             {GroupTransparency=alpha,Position=UDim2.fromOffset(x,0)},
-            Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+            Enum.EasingStyle.Sine,Enum.EasingDirection.Out)
         row.FadeTween:Play()
     end
 
@@ -16556,7 +16573,9 @@ return function(WindUI, Window, Options)
         row.Serial+=1
         cancelTask(row.ExpireTask)
         cancelTask(row.CloseTask)
-        row.ExpireTask,row.CloseTask=nil,nil
+        cancelTask(row.StateTask)
+        row.StateSerial=(row.StateSerial or 0)+1
+        row.ExpireTask,row.CloseTask,row.StateTask=nil,nil,nil
         for _,key in ipairs({"MoveTween","FadeTween","TrackTween","KnobTween"}) do
             cancelTween(row[key])
             row[key]=nil
@@ -16590,13 +16609,13 @@ return function(WindUI, Window, Options)
             row.Knob.Position=pos
         else
             row.TrackTween=Tween(
-                row.Track,0.20/Island.AnimationSpeed,
+                row.Track,0.12/Island.AnimationSpeed,
                 {ImageColor3=color},
                 Enum.EasingStyle.Sine,
                 Enum.EasingDirection.Out
             )
             row.KnobTween=Tween(
-                row.Knob,0.24/Island.AnimationSpeed,
+                row.Knob,0.14/Island.AnimationSpeed,
                 {Position=pos},
                 Enum.EasingStyle.Sine,
                 Enum.EasingDirection.Out
@@ -16656,7 +16675,7 @@ return function(WindUI, Window, Options)
 
         local SwitchArea=New("Frame",{
             Parent=Content,
-            Size=UDim2.new(0,64,1,0),
+            Size=UDim2.new(0,48,1,0),
             BackgroundTransparency=1,
             ZIndex=11,
         })
@@ -16691,22 +16710,23 @@ return function(WindUI, Window, Options)
 
         local TextHolder=New("Frame",{
             Parent=Content,
-            Position=UDim2.new(0,72,0,0),
-            Size=UDim2.new(1,-144,1,0),
+            AnchorPoint=Vector2.new(0,0.5),
+            Position=UDim2.new(0,60,0.5,0),
+            Size=UDim2.new(1,-74,0,36),
             BackgroundTransparency=1,
             ZIndex=11,
         })
 
         row.Title=New("TextLabel",{
             Parent=TextHolder,
-            Position=UDim2.new(0,0,0,4),
+            Position=UDim2.fromOffset(0,0),
             Size=UDim2.new(1,0,0,16),
             BackgroundTransparency=1,
             Text="功能开关",
             TextColor3=Color3.fromRGB(247,247,248),
             TextTransparency=0,
             TextSize=13,
-            TextXAlignment=Enum.TextXAlignment.Center,
+            TextXAlignment=Enum.TextXAlignment.Left,
             TextYAlignment=Enum.TextYAlignment.Center,
             FontFace=Font.new(Creator.Font,Enum.FontWeight.SemiBold),
             ZIndex=12,
@@ -16714,19 +16734,24 @@ return function(WindUI, Window, Options)
 
         row.Subtitle=New("TextLabel",{
             Parent=TextHolder,
-            Position=UDim2.new(0,0,0,21),
+            Position=UDim2.fromOffset(0,20),
             Size=UDim2.new(1,0,0,14),
             BackgroundTransparency=1,
             RichText=true,
+            TextScaled=true,
             Text="",
             TextColor3=Color3.fromRGB(195,198,205),
             TextTransparency=0.05,
             TextSize=13,
-            TextXAlignment=Enum.TextXAlignment.Center,
+            TextXAlignment=Enum.TextXAlignment.Left,
             TextYAlignment=Enum.TextYAlignment.Center,
             TextTruncate=Enum.TextTruncate.AtEnd,
             FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
             ZIndex=12,
+        })
+
+        New("UITextSizeConstraint",{
+            Parent=row.Subtitle,MinTextSize=10,MaxTextSize=13,
         })
 
         -- Deliberately NO horizontal separator line between rows.
@@ -16740,19 +16765,37 @@ return function(WindUI, Window, Options)
             self.Serial+=1
             cancelTask(self.CloseTask)
             self.CloseTask=nil
+            cancelTask(self.StateTask)
+            self.StateTask=nil
+            self.StateSerial=(self.StateSerial or 0)+1
             self.Root.Visible=true
-            animateRowContent(self,0,0,0.24)
+            animateRowContent(self,0,0,0.12)
         end
 
         function row:SetState(newState,newDuration)
             if self.Destroyed or Island.Destroyed then return end
+            local crossfade=self.State~=newState and not self.Closing
+                and self.Content.GroupTransparency<0.75
             self:CancelClose()
             self.State=newState
             Island.States[self.Name]=newState
             Island.OrderCounter+=1
             self.Order=Island.OrderCounter
-            setRowText(self,newState)
-            setSwitch(self,newState,false)
+            if crossfade then
+                local serial=self.StateSerial
+                animateRowContent(self,0.85,-5,0.06)
+                self.StateTask=scheduleTask(0.06/Island.AnimationSpeed,function()
+                    if self.Destroyed or self.Closing or self.StateSerial~=serial
+                        or Island.Active[self.Name]~=self then return end
+                    self.StateTask=nil
+                    setRowText(self,self.State)
+                    setSwitch(self,self.State,false)
+                    animateRowContent(self,0,0,0.10)
+                end)
+            else
+                setRowText(self,newState)
+                setSwitch(self,newState,false)
+            end
             refreshExpiry(self,newDuration)
             requestLayout(true)
         end
@@ -16771,8 +16814,11 @@ return function(WindUI, Window, Options)
             local serial=self.Serial
             cancelTask(self.ExpireTask)
             self.ExpireTask=nil
-            animateRowContent(self,1,10,0.20)
-            self.CloseTask=scheduleTask(0.20/Island.AnimationSpeed,function()
+            cancelTask(self.StateTask)
+            self.StateTask=nil
+            self.StateSerial=(self.StateSerial or 0)+1
+            animateRowContent(self,1,10,0.11)
+            self.CloseTask=scheduleTask(0.11/Island.AnimationSpeed,function()
                 if self.Destroyed or not self.Closing or self.Serial~=serial
                     or Island.Active[self.Name]~=self then return end
                 self.CloseTask=nil
@@ -16783,7 +16829,7 @@ return function(WindUI, Window, Options)
 
         Island.Active[name]=row
         Island.States[name]=state
-        animateRowContent(row,0,0,0.30)
+        animateRowContent(row,0,0,0.12)
         setSwitch(row,state,false)
         refreshExpiry(row,duration)
 
