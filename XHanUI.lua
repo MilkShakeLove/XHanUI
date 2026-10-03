@@ -15629,6 +15629,7 @@ return function(WindUI, Window, Options)
 
         GlowTime=0,
         AnimationSpeed=math.clamp(tonumber(Options.AnimationSpeed) or 1,0.5,2),
+        AnimationSoftness=math.clamp(tonumber(Options.AnimationSoftness) or 1,0,1),
         Tasks={},
         MeasureParams={},
     }
@@ -16367,7 +16368,8 @@ return function(WindUI, Window, Options)
 
     Island.UI.Rows=RowLayer
 
-    -- One critically damped spring owns the root's size and position. Targets
+    -- One spring owns the root's size and position: soft, lightly elastic
+    -- opening and a slower, critically damped close. Targets
     -- change without replacing the current values or velocity, so a reversal
     -- during opening/closing does not restart an easing curve from rest.
     local motion={
@@ -16380,7 +16382,7 @@ return function(WindUI, Window, Options)
     }
     for i,value in ipairs(motion.Value) do motion.Target[i]=value end
     Island.MotionState="Idle"
-    Island.AnimationVersion="ContinuousSpringV1"
+    Island.AnimationVersion="SoftElasticV2"
     local desiredMode="Idle"
     local idleAlphaTarget=0
     local IdleHideTask
@@ -16392,11 +16394,11 @@ return function(WindUI, Window, Options)
         IdleHideTask=nil
         cancelTween(Island.IdleTextTween)
         IdleHolder.Visible=true
-        Island.IdleTextTween=Tween(IdleText,0.12/Island.AnimationSpeed,
-            {TextTransparency=alpha},Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+        Island.IdleTextTween=Tween(IdleText,0.18/Island.AnimationSpeed,
+            {TextTransparency=alpha},Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
         Island.IdleTextTween:Play()
         if alpha==1 then
-            IdleHideTask=scheduleTask(0.12/Island.AnimationSpeed,function()
+            IdleHideTask=scheduleTask(0.18/Island.AnimationSpeed,function()
                 IdleHideTask=nil
                 if idleAlphaTarget==1 then IdleHolder.Visible=false end
             end)
@@ -16417,15 +16419,32 @@ return function(WindUI, Window, Options)
 
     table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
         if Island.Destroyed or not motion.Moving or dt<=0 then return end
-        local omega=24*Island.AnimationSpeed
-        local decay=math.exp(-omega*dt)
         local settled=true
         for i,target in ipairs(motion.Target) do
             local offset=motion.Value[i]-target
             local velocity=motion.Velocity[i]
-            local impulse=velocity+omega*offset
-            local nextOffset=(offset+impulse*dt)*decay
-            local nextVelocity=(velocity-omega*impulse*dt)*decay
+            local size=i<=2
+            local opening=desiredMode=="Alert"
+            local softness=Island.AnimationSoftness
+            local frequency=24-(size and (opening and 10 or 12) or 8)*softness
+            local damping=(size and opening) and (1-0.20*softness) or 1
+            local omega=frequency*Island.AnimationSpeed
+            local nextOffset,nextVelocity
+            if damping>=0.9999 then
+                local decay=math.exp(-omega*dt)
+                local impulse=velocity+omega*offset
+                nextOffset=(offset+impulse*dt)*decay
+                nextVelocity=(velocity-omega*impulse*dt)*decay
+            else
+                -- Exact damped oscillator step, including long render frames.
+                local a=damping*omega
+                local b=omega*math.sqrt(1-damping*damping)
+                local decay=math.exp(-a*dt)
+                local c=math.cos(b*dt)
+                local s=math.sin(b*dt)/b
+                nextOffset=(offset*c+(velocity+a*offset)*s)*decay
+                nextVelocity=(velocity*c-(a*velocity+omega*omega*offset)*s)*decay
+            end
             local scale=i==3 or i==5
             local epsilon=scale and 0.00001 or 0.06
             local velocityEpsilon=scale and 0.0001 or 0.6
@@ -16508,8 +16527,8 @@ return function(WindUI, Window, Options)
                     row.MoveTween=nil
                     local target=UDim2.new(0,0,0,y)
                     if animateRows then
-                        row.MoveTween=Tween(row.Root,0.22/Island.AnimationSpeed,
-                            {Position=target},Enum.EasingStyle.Quint,Enum.EasingDirection.Out)
+                        row.MoveTween=Tween(row.Root,0.28/Island.AnimationSpeed,
+                            {Position=target},Enum.EasingStyle.Sine,Enum.EasingDirection.Out)
                         row.MoveTween:Play()
                     else
                         row.Root.Position=target
@@ -16526,7 +16545,7 @@ return function(WindUI, Window, Options)
         cancelTween(row.FadeTween)
         row.FadeTween=Tween(row.Content,duration/Island.AnimationSpeed,
             {GroupTransparency=alpha,Position=UDim2.fromOffset(x,0)},
-            Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+            Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
         row.FadeTween:Play()
     end
 
@@ -16571,15 +16590,15 @@ return function(WindUI, Window, Options)
             row.Knob.Position=pos
         else
             row.TrackTween=Tween(
-                row.Track,0.16/Island.AnimationSpeed,
+                row.Track,0.20/Island.AnimationSpeed,
                 {ImageColor3=color},
-                Enum.EasingStyle.Quint,
+                Enum.EasingStyle.Sine,
                 Enum.EasingDirection.Out
             )
             row.KnobTween=Tween(
-                row.Knob,0.18/Island.AnimationSpeed,
+                row.Knob,0.24/Island.AnimationSpeed,
                 {Position=pos},
-                Enum.EasingStyle.Quint,
+                Enum.EasingStyle.Sine,
                 Enum.EasingDirection.Out
             )
             row.TrackTween:Play()
@@ -16722,7 +16741,7 @@ return function(WindUI, Window, Options)
             cancelTask(self.CloseTask)
             self.CloseTask=nil
             self.Root.Visible=true
-            animateRowContent(self,0,0,0.18)
+            animateRowContent(self,0,0,0.24)
         end
 
         function row:SetState(newState,newDuration)
@@ -16752,8 +16771,8 @@ return function(WindUI, Window, Options)
             local serial=self.Serial
             cancelTask(self.ExpireTask)
             self.ExpireTask=nil
-            animateRowContent(self,1,10,0.14)
-            self.CloseTask=scheduleTask(0.14/Island.AnimationSpeed,function()
+            animateRowContent(self,1,10,0.20)
+            self.CloseTask=scheduleTask(0.20/Island.AnimationSpeed,function()
                 if self.Destroyed or not self.Closing or self.Serial~=serial
                     or Island.Active[self.Name]~=self then return end
                 self.CloseTask=nil
@@ -16764,7 +16783,7 @@ return function(WindUI, Window, Options)
 
         Island.Active[name]=row
         Island.States[name]=state
-        animateRowContent(row,0,0,0.22)
+        animateRowContent(row,0,0,0.30)
         setSwitch(row,state,false)
         refreshExpiry(row,duration)
 
@@ -16887,6 +16906,11 @@ return function(WindUI, Window, Options)
 
     function Island:SetAnimationSpeed(value)
         self.AnimationSpeed=math.clamp(tonumber(value) or self.AnimationSpeed,0.5,2)
+        return self
+    end
+
+    function Island:SetAnimationSoftness(value)
+        self.AnimationSoftness=math.clamp(tonumber(value) or self.AnimationSoftness,0,1)
         return self
     end
 
