@@ -15600,7 +15600,7 @@ return function(WindUI, Window, Options)
         AlertWidth=tonumber(Options.Width) or 340,
         RowHeight=tonumber(Options.RowHeight) or 46,
         AlertYOffset=tonumber(Options.AlertYOffset) or 10,
-        MaxVisible=tonumber(Options.MaxVisible) or 6,
+        MaxVisible=math.max(1,math.floor(tonumber(Options.MaxVisible) or 6)),
         Duration=tonumber(Options.Duration) or 1.85,
         Position=Options.Position or UDim2.new(0.5,0,0,18),
 
@@ -15628,6 +15628,9 @@ return function(WindUI, Window, Options)
         GlowExpansion=math.clamp(math.floor((tonumber(Options.GlowExpansion) or 4)+0.5),1,8),
 
         GlowTime=0,
+        AnimationSpeed=math.clamp(tonumber(Options.AnimationSpeed) or 1,0.5,2),
+        Tasks={},
+        MeasureParams={},
     }
 
     local ENABLED=Color3.fromRGB(49,196,124)
@@ -15641,6 +15644,25 @@ return function(WindUI, Window, Options)
                 tween:Cancel()
             end)
         end
+    end
+
+    local function cancelTask(handle)
+        if not handle then return end
+        Island.Tasks[handle]=nil
+        pcall(task.cancel,handle)
+    end
+
+    local function scheduleTask(delay,callback)
+        if Island.Destroyed then return nil end
+        local handle
+        handle=task.delay(delay,function()
+            local ok,message=true,nil
+            if not Island.Destroyed then ok,message=pcall(callback) end
+            Island.Tasks[handle]=nil
+            if not ok then warn("[XHanUI Island] "..tostring(message)) end
+        end)
+        Island.Tasks[handle]=true
+        return handle
     end
 
     local function activeRows()
@@ -15882,6 +15904,7 @@ return function(WindUI, Window, Options)
         if lastGlowUpdate<0.032 then return end
         lastGlowUpdate=0
 
+        if not Island.GlowEnabled then return end
         local phase=(Island.GlowTime/6.2)%1
         local sequence=islandFlowSequence(phase)
 
@@ -15924,30 +15947,34 @@ return function(WindUI, Window, Options)
         ZIndex=7,
     })
 
+    Island.UI.IdleText=IdleText
+
     -- EXACT Bloom resources used by FeatureList BloomFlow.
     local SyntaxBloom16Image="rbxassetid://104490578391522"
     local SyntaxBloom8Image="rbxassetid://102472648910048"
 
-    -- Same font-measurement path as FeatureList.widthOf().
+    -- The synchronous layout path only reads cached widths. Each brand/size
+    -- receives one background measurement; failures keep the cached fallback.
+    local syntaxWidthCache={}
+    local syntaxMeasureFont=Font.new(Creator.Font,Enum.FontWeight.Medium)
+    local queueSyntaxBloomSync
+
     local function syntaxWidthOf(value,size)
         value=tostring(value or "")
         size=size or 14
 
-        local ok,result=pcall(function()
-            local params=Instance.new("GetTextBoundsParams")
-            params.Text=value
-            params.Size=size
-            params.Width=2048
-            params.Font=Font.new(Creator.Font,Enum.FontWeight.Medium)
-            local bounds=TextService:GetTextBoundsAsync(params)
-            params:Destroy()
-            return bounds.X
-        end)
-        if ok and type(result)=="number" and result>0 then
-            return result
+        local sizeCache=syntaxWidthCache[size]
+        if not sizeCache then
+            sizeCache={}
+            syntaxWidthCache[size]=sizeCache
+        end
+        local cached=sizeCache[value]
+        if cached then
+            return cached.Width
         end
 
-        local ok2,result2=pcall(function()
+        local fallback=math.floor(#value*size*0.56)
+        local fallbackOK,fallbackWidth=pcall(function()
             return TextService:GetTextSize(
                 value,
                 size,
@@ -15955,11 +15982,45 @@ return function(WindUI, Window, Options)
                 Vector2.new(2048,128)
             ).X
         end)
-        if ok2 and type(result2)=="number" then
-            return result2
+        if fallbackOK and type(fallbackWidth)=="number" then
+            fallback=fallbackWidth
         end
 
-        return math.floor(#value*size*0.56)
+        -- Publish the entry before scheduling so layout signals cannot enqueue
+        -- duplicate measurements while GetTextBoundsAsync is yielding.
+        cached={Width=fallback}
+        sizeCache[value]=cached
+        scheduleTask(0,function()
+            if Island.Destroyed then return end
+
+            local params
+            local ok,width=pcall(function()
+                params=Instance.new("GetTextBoundsParams")
+                Island.MeasureParams[params]=true
+                params.Text=value
+                params.Size=size
+                params.Width=2048
+                params.Font=syntaxMeasureFont
+                return TextService:GetTextBoundsAsync(params).X
+            end)
+
+            if params then
+                Island.MeasureParams[params]=nil
+                pcall(function()
+                    params:Destroy()
+                end)
+            end
+            if Island.Destroyed then return end
+
+            if ok and type(width)=="number" and width>0 then
+                cached.Width=width
+            end
+            if tostring(Island.Brand)==value and IdleText.TextSize==size then
+                queueSyntaxBloomSync()
+            end
+        end)
+
+        return cached.Width
     end
 
     -- Host is independent from IdleText layout. No user/ping/server/FPS text
@@ -16057,6 +16118,8 @@ return function(WindUI, Window, Options)
     end
 
     local function setSyntaxBloomAlpha()
+        if Island.Destroyed or not IdleHolder.Visible then return end
+
         local strength=currentBloomStrength()
 
         -- Exact active MatrixBack BloomFlow alpha formulas.
@@ -16079,14 +16142,15 @@ return function(WindUI, Window, Options)
     end
 
     local function syncSyntaxBloom()
-        if not IdleText.Parent or not IdleHolder.Parent then
+        if Island.Destroyed or not IdleHolder.Visible
+            or not IdleText.Parent or not IdleHolder.Parent then
             return
         end
 
         local brand=tostring(Island.Brand)
         local brandWidth=math.max(
             1,
-            math.ceil(syntaxWidthOf(brand,14))
+            math.ceil(syntaxWidthOf(brand,IdleText.TextSize))
         )
 
         -- Use the ACTUAL rendered full-line TextBounds for the starting point.
@@ -16116,28 +16180,26 @@ return function(WindUI, Window, Options)
         )
     end
 
-    Creator.AddSignal(
-        IdleText:GetPropertyChangedSignal("TextBounds"),
-        syncSyntaxBloom
-    )
-    Creator.AddSignal(
-        IdleText:GetPropertyChangedSignal("AbsoluteSize"),
-        syncSyntaxBloom
-    )
-    Creator.AddSignal(
-        IdleText:GetPropertyChangedSignal("AbsolutePosition"),
-        syncSyntaxBloom
-    )
-    Creator.AddSignal(
-        IdleText:GetPropertyChangedSignal("TextTransparency"),
-        setSyntaxBloomAlpha
-    )
+    -- Coalesce layout signals from the same frame into one tracked task.
+    local syntaxBloomTask
+    queueSyntaxBloomSync=function()
+        if Island.Destroyed or not IdleHolder.Visible or syntaxBloomTask then
+            return
+        end
 
-    local function updateIdleText()
+        syntaxBloomTask=scheduleTask(0,function()
+            syntaxBloomTask=nil
+            if Island.Destroyed then return end
+            syncSyntaxBloom()
+            setSyntaxBloomAlpha()
+        end)
+    end
+
+    local function formatIdleText()
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
 
-        IdleText.Text=string.format(
+        return string.format(
             '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
             colorToHex(currentBrandColor),
             Island.Brand,
@@ -16146,12 +16208,51 @@ return function(WindUI, Window, Options)
             Island.ServerText,
             fps
         )
-
-        task.defer(function()
-            syncSyntaxBloom()
-            setSyntaxBloomAlpha()
-        end)
     end
+
+    local previousIdleBrand
+    local previousIdleTextSize
+    local function updateIdleText()
+        if Island.Destroyed then return end
+
+        local brand=tostring(Island.Brand)
+        local size=IdleText.TextSize
+        syntaxWidthOf(brand,size)
+        if not IdleHolder.Visible then return end
+
+        local text=formatIdleText()
+        if IdleText.Text~=text then
+            IdleText.Text=text
+        end
+        if previousIdleBrand~=brand or previousIdleTextSize~=size then
+            previousIdleBrand=brand
+            previousIdleTextSize=size
+            queueSyntaxBloomSync()
+        end
+    end
+
+    table.insert(Island.Connections,
+        IdleText:GetPropertyChangedSignal("TextBounds"):Connect(queueSyntaxBloomSync)
+    )
+    table.insert(Island.Connections,
+        IdleText:GetPropertyChangedSignal("AbsoluteSize"):Connect(queueSyntaxBloomSync)
+    )
+    table.insert(Island.Connections,
+        IdleText:GetPropertyChangedSignal("AbsolutePosition"):Connect(queueSyntaxBloomSync)
+    )
+    table.insert(Island.Connections,
+        IdleText:GetPropertyChangedSignal("TextSize"):Connect(queueSyntaxBloomSync)
+    )
+    table.insert(Island.Connections,
+        IdleText:GetPropertyChangedSignal("TextTransparency"):Connect(setSyntaxBloomAlpha)
+    )
+    table.insert(Island.Connections,
+        IdleHolder:GetPropertyChangedSignal("Visible"):Connect(function()
+            if Island.Destroyed or not IdleHolder.Visible then return end
+            updateIdleText()
+            queueSyntaxBloomSync()
+        end)
+    )
 
     local lastSyntaxBloomUpdate=0
     table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
@@ -16160,6 +16261,7 @@ return function(WindUI, Window, Options)
         lastSyntaxBloomUpdate=lastSyntaxBloomUpdate+dt
         if lastSyntaxBloomUpdate<0.032 then return end
         lastSyntaxBloomUpdate=0
+        if not IdleHolder.Visible then return end
 
         -- Sample a small vertical span exactly like connected MatrixBack.
         local topColor=syntaxMatrixFlowColor(0.42,0)
@@ -16176,19 +16278,7 @@ return function(WindUI, Window, Options)
         currentBrandColor=centerColor
 
         setSyntaxBloomAlpha()
-
-        local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
-        local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
-
-        IdleText.Text=string.format(
-            '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
-            colorToHex(currentBrandColor),
-            Island.Brand,
-            Island.UserText,
-            ping,
-            Island.ServerText,
-            fps
-        )
+        updateIdleText()
     end))
 
     local function readPing()
@@ -16222,22 +16312,26 @@ return function(WindUI, Window, Options)
 
     do
         local smoothed=60
+        -- Match the previous 0.10 smoothing at 60 FPS across any frame rate.
+        local fpsSmoothingRate=-math.log(0.90)*60
+        local pingElapsed=0.45
 
         table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
+            if Island.Destroyed then return end
             if dt>0 then
                 local current=math.clamp(1/dt,1,360)
-                smoothed=smoothed+(current-smoothed)*0.10
+                local alpha=1-math.exp(-fpsSmoothingRate*dt)
+                smoothed=smoothed+(current-smoothed)*alpha
                 Island.FPS=smoothed
+                pingElapsed=pingElapsed+dt
             end
-        end))
 
-        task.spawn(function()
-            while not Island.Destroyed do
+            if pingElapsed>=0.45 then
+                pingElapsed=pingElapsed%0.45
                 readPing()
                 updateIdleText()
-                task.wait(0.45)
             end
-        end)
+        end))
     end
 
     ----------------------------------------------------------------
@@ -16271,33 +16365,201 @@ return function(WindUI, Window, Options)
         return math.max(Island.RowHeight,count*Island.RowHeight)
     end
 
-    local function tweenRootSize(width,height,duration,style,direction)
-        cancelTween(Island.RootSizeTween)
+    Island.UI.Rows=RowLayer
 
-        Island.RootSizeTween=Tween(
-            Root,
-            duration or 0.24,
-            {Size=UDim2.fromOffset(width,height)},
-            style or Enum.EasingStyle.Quint,
-            direction or Enum.EasingDirection.Out
-        )
-        Island.RootSizeTween:Play()
+    -- One critically damped spring owns the root's size and position. Targets
+    -- change without replacing the current values or velocity, so a reversal
+    -- during opening/closing does not restart an easing curve from rest.
+    local motion={
+        Value={Island.IdleWidth,Island.IdleHeight,
+            Island.Position.X.Scale,Island.Position.X.Offset,
+            Island.Position.Y.Scale,Island.Position.Y.Offset},
+        Velocity={0,0,0,0,0,0},
+        Target={},
+        Moving=false,
+    }
+    for i,value in ipairs(motion.Value) do motion.Target[i]=value end
+    Island.MotionState="Idle"
+    Island.AnimationVersion="ContinuousSpringV1"
+    local desiredMode="Idle"
+    local idleAlphaTarget=0
+    local IdleHideTask
+
+    local function setIdleAlpha(alpha)
+        if Island.Destroyed or idleAlphaTarget==alpha then return end
+        idleAlphaTarget=alpha
+        cancelTask(IdleHideTask)
+        IdleHideTask=nil
+        cancelTween(Island.IdleTextTween)
+        IdleHolder.Visible=true
+        Island.IdleTextTween=Tween(IdleText,0.12/Island.AnimationSpeed,
+            {TextTransparency=alpha},Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+        Island.IdleTextTween:Play()
+        if alpha==1 then
+            IdleHideTask=scheduleTask(0.12/Island.AnimationSpeed,function()
+                IdleHideTask=nil
+                if idleAlphaTarget==1 then IdleHolder.Visible=false end
+            end)
+        end
     end
 
-    local function tweenRootPosition(position,duration,style,direction)
-        cancelTween(Island.RootPositionTween)
+    local function retargetRoot(width,height,position)
+        local target={width,height,position.X.Scale,position.X.Offset,
+            position.Y.Scale,position.Y.Offset}
+        local changed=false
+        for i,value in ipairs(target) do
+            if motion.Target[i]~=value then changed=true end
+            motion.Target[i]=value
+        end
+        if changed then motion.Moving=true end
+        if not motion.Moving then Island.MotionState=desiredMode end
+    end
 
-        Island.RootPositionTween=Tween(
-            Root,
-            duration or 0.24,
-            {Position=position},
-            style or Enum.EasingStyle.Quint,
-            direction or Enum.EasingDirection.Out
-        )
-        Island.RootPositionTween:Play()
+    table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
+        if Island.Destroyed or not motion.Moving or dt<=0 then return end
+        local omega=24*Island.AnimationSpeed
+        local decay=math.exp(-omega*dt)
+        local settled=true
+        for i,target in ipairs(motion.Target) do
+            local offset=motion.Value[i]-target
+            local velocity=motion.Velocity[i]
+            local impulse=velocity+omega*offset
+            local nextOffset=(offset+impulse*dt)*decay
+            local nextVelocity=(velocity-omega*impulse*dt)*decay
+            local scale=i==3 or i==5
+            local epsilon=scale and 0.00001 or 0.06
+            local velocityEpsilon=scale and 0.0001 or 0.6
+            if math.abs(nextOffset)>epsilon or math.abs(nextVelocity)>velocityEpsilon then
+                settled=false
+            end
+            motion.Value[i]=target+nextOffset
+            motion.Velocity[i]=nextVelocity
+        end
+        if settled then
+            motion.Moving=false
+            for i,target in ipairs(motion.Target) do
+                motion.Value[i]=target
+                motion.Velocity[i]=0
+            end
+            Island.MotionState=desiredMode
+        end
+        Root.Size=UDim2.fromOffset(math.max(1,motion.Value[1]),math.max(1,motion.Value[2]))
+        Root.Position=UDim2.new(motion.Value[3],motion.Value[4],motion.Value[5],motion.Value[6])
+        if desiredMode=="Idle" and math.abs(motion.Value[1]-Island.IdleWidth)<8
+            and math.abs(motion.Value[2]-Island.IdleHeight)<8 then
+            setIdleAlpha(0)
+        end
+    end))
+
+    local function enterAlertMode()
+        desiredMode="Alert"
+        Island.MotionState="Opening"
+        Island.ModeSerial+=1
+        RowLayer.Visible=true
+        setIdleAlpha(1)
+        retargetRoot(Island.AlertWidth,targetHeight(activeCount()),
+            positionWithYOffset(Island.AlertYOffset))
+    end
+
+    local function resizeAlertMode()
+        if Island.Destroyed or activeCount()==0 then return end
+        if desiredMode~="Alert" then
+            enterAlertMode()
+            return
+        end
+        RowLayer.Visible=true
+        retargetRoot(Island.AlertWidth,targetHeight(activeCount()),
+            positionWithYOffset(Island.AlertYOffset))
+    end
+
+    local function returnToIdle()
+        if Island.Destroyed or activeCount()>0 then return end
+        if desiredMode~="Idle" then
+            Island.ModeSerial+=1
+            desiredMode="Idle"
+            Island.MotionState="Closing"
+        end
+        RowLayer.Visible=false
+        retargetRoot(Island.IdleWidth,Island.IdleHeight,Island.Position)
+        if not motion.Moving then
+            Island.MotionState="Idle"
+            setIdleAlpha(0)
+        end
+    end
+
+    local LayoutTask
+    local LayoutAnimated=false
+    local function requestLayout(animate)
+        if Island.Destroyed then return end
+        LayoutAnimated=LayoutAnimated or animate==true
+        if LayoutTask then return end
+        LayoutTask=scheduleTask(0,function()
+            LayoutTask=nil
+            local animateRows=LayoutAnimated
+            LayoutAnimated=false
+            local rows=activeRows()
+            for index,row in ipairs(rows) do
+                row.VisualIndex=index
+                row.Root.ZIndex=10+(#rows-index)
+                local y=(index-1)*Island.RowHeight
+                if row.LayoutY~=y then
+                    row.LayoutY=y
+                    cancelTween(row.MoveTween)
+                    row.MoveTween=nil
+                    local target=UDim2.new(0,0,0,y)
+                    if animateRows then
+                        row.MoveTween=Tween(row.Root,0.22/Island.AnimationSpeed,
+                            {Position=target},Enum.EasingStyle.Quint,Enum.EasingDirection.Out)
+                        row.MoveTween:Play()
+                    else
+                        row.Root.Position=target
+                    end
+                end
+            end
+            if #rows>0 then resizeAlertMode() else returnToIdle() end
+        end)
+    end
+
+    local function animateRowContent(row,alpha,x,duration)
+        if row.ContentAlphaTarget==alpha and row.ContentXTarget==x then return end
+        row.ContentAlphaTarget,row.ContentXTarget=alpha,x
+        cancelTween(row.FadeTween)
+        row.FadeTween=Tween(row.Content,duration/Island.AnimationSpeed,
+            {GroupTransparency=alpha,Position=UDim2.fromOffset(x,0)},
+            Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+        row.FadeTween:Play()
+    end
+
+    local function disposeRow(row)
+        if row.Destroyed then return end
+        row.Destroyed=true
+        row.Closing=false
+        row.Serial+=1
+        cancelTask(row.ExpireTask)
+        cancelTask(row.CloseTask)
+        row.ExpireTask,row.CloseTask=nil,nil
+        for _,key in ipairs({"MoveTween","FadeTween","TrackTween","KnobTween"}) do
+            cancelTween(row[key])
+            row[key]=nil
+        end
+        if Island.Active[row.Name]==row then Island.Active[row.Name]=nil end
+        row.Root:Destroy()
+    end
+
+    local function refreshExpiry(row,duration)
+        cancelTask(row.ExpireTask)
+        row.Serial+=1
+        local serial=row.Serial
+        row.ExpireTask=scheduleTask(math.max(0.2,tonumber(duration) or Island.Duration),function()
+            if row.Destroyed or row.Serial~=serial or Island.Active[row.Name]~=row then return end
+            row.ExpireTask=nil
+            row:Close(false)
+        end)
     end
 
     local function setSwitch(row,state,instant)
+        if not instant and row.SwitchState==state then return end
+        row.SwitchState=state
         local color=state and SWITCH_ON or SWITCH_OFF
         local pos=state and UDim2.new(1,-9,0.5,0) or UDim2.new(0,9,0.5,0)
 
@@ -16309,13 +16571,13 @@ return function(WindUI, Window, Options)
             row.Knob.Position=pos
         else
             row.TrackTween=Tween(
-                row.Track,0.16,
+                row.Track,0.16/Island.AnimationSpeed,
                 {ImageColor3=color},
                 Enum.EasingStyle.Quint,
                 Enum.EasingDirection.Out
             )
             row.KnobTween=Tween(
-                row.Knob,0.18,
+                row.Knob,0.18/Island.AnimationSpeed,
                 {Position=pos},
                 Enum.EasingStyle.Quint,
                 Enum.EasingDirection.Out
@@ -16334,136 +16596,6 @@ return function(WindUI, Window, Options)
             row.Name,
             stateText
         )
-    end
-
-    local function reflowRows(animate)
-        local rows=activeRows()
-
-        for index,row in ipairs(rows) do
-            row.VisualIndex=index
-            local target=UDim2.new(0,0,0,(index-1)*Island.RowHeight)
-
-            cancelTween(row.MoveTween)
-
-            if animate then
-                row.MoveTween=Tween(
-                    row.Root,0.18,
-                    {Position=target},
-                    Enum.EasingStyle.Quint,
-                    Enum.EasingDirection.Out
-                )
-                row.MoveTween:Play()
-            else
-                row.Root.Position=target
-            end
-        end
-
-        return rows
-    end
-
-    ----------------------------------------------------------------
-    -- Idle -> tag drops downward -> island body expands.
-    ----------------------------------------------------------------
-    local function enterAlertMode(latestName)
-        Island.ModeSerial=Island.ModeSerial+1
-        local serial=Island.ModeSerial
-
-        showTag(latestName)
-
-        cancelTween(Island.IdleTextTween)
-        Island.IdleTextTween=Tween(
-            IdleText,0.10,
-            {TextTransparency=1},
-            Enum.EasingStyle.Quint,
-            Enum.EasingDirection.In
-        )
-        Island.IdleTextTween:Play()
-
-        task.delay(0.09,function()
-            if Island.Destroyed or serial~=Island.ModeSerial then return end
-            if activeCount()==0 then return end
-
-            IdleHolder.Visible=false
-            RowLayer.Visible=true
-
-            tweenRootSize(
-                Island.AlertWidth,
-                targetHeight(activeCount()),
-                0.30,
-                Enum.EasingStyle.Back,
-                Enum.EasingDirection.Out
-            )
-            tweenRootPosition(
-                positionWithYOffset(Island.AlertYOffset),
-                0.28,
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.Out
-            )
-        end)
-    end
-
-    local function resizeAlertMode(latestName)
-        if activeCount()==0 then return end
-
-        updateTag(latestName)
-
-        IdleHolder.Visible=false
-        RowLayer.Visible=true
-
-        tweenRootSize(
-            Island.AlertWidth,
-            targetHeight(activeCount()),
-            0.20,
-            Enum.EasingStyle.Quint,
-            Enum.EasingDirection.Out
-        )
-        tweenRootPosition(
-            positionWithYOffset(Island.AlertYOffset),
-            0.20,
-            Enum.EasingStyle.Quint,
-            Enum.EasingDirection.Out
-        )
-    end
-
-    local function returnToIdle()
-        if activeCount()>0 or Island.Destroyed then return end
-
-        Island.ModeSerial=Island.ModeSerial+1
-        local serial=Island.ModeSerial
-
-        hideTag()
-
-        tweenRootSize(
-            Island.IdleWidth,
-            Island.IdleHeight,
-            0.30,
-            Enum.EasingStyle.Back,
-            Enum.EasingDirection.Out
-        )
-        tweenRootPosition(
-            Island.Position,
-            0.28,
-            Enum.EasingStyle.Quint,
-            Enum.EasingDirection.Out
-        )
-
-        task.delay(0.14,function()
-            if Island.Destroyed or serial~=Island.ModeSerial then return end
-            if activeCount()>0 then return end
-
-            RowLayer.Visible=false
-            IdleHolder.Visible=true
-            IdleText.TextTransparency=1
-
-            cancelTween(Island.IdleTextTween)
-            Island.IdleTextTween=Tween(
-                IdleText,0.16,
-                {TextTransparency=0},
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.Out
-            )
-            Island.IdleTextTween:Play()
-        end)
     end
 
     ----------------------------------------------------------------
@@ -16486,19 +16618,25 @@ return function(WindUI, Window, Options)
             Closing=false,
         }
 
-        local RootRow=New("CanvasGroup",{
+        local RootRow=New("Frame",{
             Name="Row_"..name:gsub("[^%w_]","_"),
             Parent=RowLayer,
-            Position=UDim2.new(0,18,0,0),
+            Position=UDim2.fromOffset(0,0),
             Size=UDim2.new(1,0,0,Island.RowHeight),
             BackgroundTransparency=1,
-            GroupTransparency=1,
-            ZIndex=10+Island.OrderCounter,
+            ClipsDescendants=false,
+            ZIndex=10,
         })
         row.Root=RootRow
+        local Content=New("CanvasGroup",{
+            Name="Content",Parent=RootRow,
+            Position=UDim2.fromOffset(10,0),Size=UDim2.fromScale(1,1),
+            BackgroundTransparency=1,GroupTransparency=1,ZIndex=11,
+        })
+        row.Content=Content
 
         local SwitchArea=New("Frame",{
-            Parent=RootRow,
+            Parent=Content,
             Size=UDim2.new(0,64,1,0),
             BackgroundTransparency=1,
             ZIndex=11,
@@ -16533,7 +16671,7 @@ return function(WindUI, Window, Options)
         })
 
         local TextHolder=New("Frame",{
-            Parent=RootRow,
+            Parent=Content,
             Position=UDim2.new(0,72,0,0),
             Size=UDim2.new(1,-144,1,0),
             BackgroundTransparency=1,
@@ -16578,142 +16716,68 @@ return function(WindUI, Window, Options)
         setRowText(row,state)
 
         function row:CancelClose()
+            if self.Destroyed then return end
             self.Closing=false
-            self.Serial=self.Serial+1
-
-            cancelTween(self.FadeTween)
-            self.FadeTween=nil
-
+            self.Serial+=1
+            cancelTask(self.CloseTask)
+            self.CloseTask=nil
             self.Root.Visible=true
-            self.Root.GroupTransparency=0
+            animateRowContent(self,0,0,0.18)
         end
 
         function row:SetState(newState,newDuration)
-            if self.Destroyed then return end
-
+            if self.Destroyed or Island.Destroyed then return end
             self:CancelClose()
-
-            self.Serial=self.Serial+1
-            local serial=self.Serial
-
             self.State=newState
             Island.States[self.Name]=newState
-
-            Island.OrderCounter=Island.OrderCounter+1
+            Island.OrderCounter+=1
             self.Order=Island.OrderCounter
-            self.Root.ZIndex=10+self.Order
-
             setRowText(self,newState)
             setSwitch(self,newState,false)
-
-            reflowRows(true)
-            resizeAlertMode(self.Name)
-
-            task.delay(
-                math.max(0.2,tonumber(newDuration) or Island.Duration),
-                function()
-                    if self.Destroyed or self.Serial~=serial then return end
-                    self:Close(false)
-                end
-            )
+            refreshExpiry(self,newDuration)
+            requestLayout(true)
         end
 
         function row:Close(immediate)
-            if self.Destroyed or self.Closing then return end
-
-            self.Closing=true
-            self.Serial=self.Serial+1
-
+            if self.Destroyed then return end
             if immediate then
-                self.Destroyed=true
-                Island.Active[self.Name]=nil
-
-                if RootRow and RootRow.Parent then
-                    RootRow:Destroy()
-                end
-
-                reflowRows(false)
-
-                if activeCount()==0 then
-                    returnToIdle()
-                else
-                    local rows=activeRows()
-                    resizeAlertMode(rows[1] and rows[1].Name or "")
-                end
+                -- Force removal includes a row already in its fade-out.
+                disposeRow(self)
+                requestLayout(true)
                 return
             end
-
-            self.FadeTween=Tween(
-                RootRow,0.15,
-                {
-                    GroupTransparency=1,
-                    Position=UDim2.new(
-                        0,14,
-                        0,RootRow.Position.Y.Offset
-                    ),
-                },
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.In
-            )
-            self.FadeTween:Play()
-
-            task.delay(0.15,function()
-                if self.Destroyed or not self.Closing then return end
-
-                self.Destroyed=true
-                Island.Active[self.Name]=nil
-
-                if RootRow and RootRow.Parent then
-                    RootRow:Destroy()
-                end
-
-                reflowRows(true)
-
-                if activeCount()==0 then
-                    returnToIdle()
-                else
-                    local rows=activeRows()
-                    resizeAlertMode(rows[1] and rows[1].Name or "")
-                end
+            if self.Closing or Island.Destroyed then return end
+            self.Closing=true
+            self.Serial+=1
+            local serial=self.Serial
+            cancelTask(self.ExpireTask)
+            self.ExpireTask=nil
+            animateRowContent(self,1,10,0.14)
+            self.CloseTask=scheduleTask(0.14/Island.AnimationSpeed,function()
+                if self.Destroyed or not self.Closing or self.Serial~=serial
+                    or Island.Active[self.Name]~=self then return end
+                self.CloseTask=nil
+                disposeRow(self)
+                requestLayout(true)
             end)
         end
 
         Island.Active[name]=row
         Island.States[name]=state
+        animateRowContent(row,0,0,0.22)
+        setSwitch(row,state,false)
+        refreshExpiry(row,duration)
 
-        local count=activeCount()
-
-        if count==1 then
-            enterAlertMode(name)
-        else
-            resizeAlertMode(name)
+        -- Keep the original newest-first presentation, bounded by MaxVisible.
+        -- Excess oldest rows are dismissed together before one layout commit.
+        local rows=activeRows()
+        for index=#rows,Island.MaxVisible+1,-1 do
+            disposeRow(rows[index])
         end
-
-        reflowRows(true)
-
-        RootRow.GroupTransparency=1
-        RootRow.Position=UDim2.new(0,18,0,0)
-
-        local rowFade=Tween(
-            RootRow,0.18,
-            {
-                GroupTransparency=0,
-                Position=UDim2.new(0,0,0,0),
-            },
-            Enum.EasingStyle.Back,
-            Enum.EasingDirection.Out
-        )
-        rowFade:Play()
-
-        task.delay(0.045,function()
-            if not row.Destroyed then
-                setSwitch(row,state,false)
-            end
-        end)
-
-        row:SetState(state,duration)
+        requestLayout(true)
         return row
     end
+
 
     ----------------------------------------------------------------
     -- Public API
@@ -16810,14 +16874,19 @@ return function(WindUI, Window, Options)
     end
 
     function Island:SetPosition(value)
-        if typeof(value)=="UDim2" then
+        if not self.Destroyed and typeof(value)=="UDim2" then
             self.Position=value
             if activeCount()>0 then
-                Root.Position=positionWithYOffset(self.AlertYOffset)
+                retargetRoot(self.AlertWidth,targetHeight(activeCount()),positionWithYOffset(self.AlertYOffset))
             else
-                Root.Position=value
+                retargetRoot(self.IdleWidth,self.IdleHeight,value)
             end
         end
+        return self
+    end
+
+    function Island:SetAnimationSpeed(value)
+        self.AnimationSpeed=math.clamp(tonumber(value) or self.AnimationSpeed,0.5,2)
         return self
     end
 
@@ -16843,12 +16912,11 @@ return function(WindUI, Window, Options)
     end
 
     function Island:ClearAlerts()
-        local rows=activeRows()
-
-        for _,row in ipairs(rows) do
-            row:Close(true)
-        end
-
+        if self.Destroyed then return self end
+        cancelTask(LayoutTask)
+        LayoutTask=nil
+        LayoutAnimated=false
+        for _,row in ipairs(activeRows()) do disposeRow(row) end
         returnToIdle()
         return self
     end
@@ -16856,29 +16924,27 @@ return function(WindUI, Window, Options)
     Island.ClearQueue=Island.ClearAlerts
 
     function Island:Destroy()
+        if self.Destroyed then return end
         self.Destroyed=true
-        Island.ModeSerial=Island.ModeSerial+1
-
-        cancelTween(Island.RootSizeTween)
-        cancelTween(Island.RootPositionTween)
-        cancelTween(Island.IdleTextTween)
-
+        self.ModeSerial+=1
+        motion.Moving=false
+        cancelTween(self.IdleTextTween)
+        for _,row in ipairs(activeRows()) do disposeRow(row) end
+        for handle in pairs(self.Tasks) do pcall(task.cancel,handle) end
+        table.clear(self.Tasks)
+        for params in pairs(self.MeasureParams) do pcall(function() params:Destroy() end) end
+        table.clear(self.MeasureParams)
         for _,connection in ipairs(self.Connections) do
-            pcall(function()
-                connection:Disconnect()
-            end)
+            pcall(function() connection:Disconnect() end)
         end
         table.clear(self.Connections)
-
-        local rows=activeRows()
-        for _,row in ipairs(rows) do
-            row:Close(true)
-        end
-
-        if Root then
-            Root:Destroy()
-        end
+        if Root and Root.Parent and not self.RootDestroying then Root:Destroy() end
     end
+
+    table.insert(Island.Connections,Root.Destroying:Connect(function()
+        Island.RootDestroying=true
+        Island:Destroy()
+    end))
 
     updateIdleText()
 
