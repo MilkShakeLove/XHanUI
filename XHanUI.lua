@@ -17129,7 +17129,7 @@ return function(WindUI, Window, Options)
         TextSize=Options.TextSize or 15,
         RowHeight=Options.RowHeight or 22,
         Gap=Options.Gap or 3,
-        Display=Options.Display or "None",
+        Display=Options.Display=="VideoGlow" and "BloomFlow" or (Options.Display or "None"),
         Glow=Options.Glow~=false,
         ShadowStrength=math.clamp(tonumber(Options.ShadowStrength) or 78,0,100),
         RenderMode=Options.RenderMode~=false,
@@ -17142,6 +17142,7 @@ return function(WindUI, Window, Options)
         Title=Options.Title or "ArrayList",
         Mode=Options.Mode or "SyntaxNext UI",
         Connection=nil,
+        GlowRenderer="ContinuousBloomCoverageV5",
         Time=0,
     }
 
@@ -17150,7 +17151,7 @@ return function(WindUI, Window, Options)
         Parent=WindUI.ScreenGui,
         BackgroundTransparency=1,
         AnchorPoint=Vector2.new(1,0),
-        Position=Options.Position or UDim2.new(1,-18,0,28),
+        Position=Options.Position or UDim2.new(1,-24,0,28),
         Size=UDim2.new(0,FeatureList.Width,0,0),
         AutomaticSize=Enum.AutomaticSize.Y,
         Visible=FeatureList.Visible,
@@ -17162,7 +17163,7 @@ return function(WindUI, Window, Options)
             HorizontalAlignment=Enum.HorizontalAlignment.Right,
             VerticalAlignment=Enum.VerticalAlignment.Top,
             SortOrder=Enum.SortOrder.LayoutOrder,
-            Padding=UDim.new(0,FeatureList.Gap),
+            Padding=UDim.new(0,FeatureList.Display=="BloomFlow" and 0 or FeatureList.Gap),
         }),
     })
     FeatureList.UI=Root
@@ -17220,10 +17221,10 @@ return function(WindUI, Window, Options)
         )
     end
 
-    local function sortedEnabled()
+    local function sortedEnabled(includeClosing)
         local list={}
         for _,item in pairs(FeatureList.Items) do
-            if item.Enabled and item.Refs then table.insert(list,item) end
+            if item.Refs and (item.Enabled or (includeClosing and item.Refs.Row.Visible)) then table.insert(list,item) end
         end
         table.sort(list,function(a,b)
             local an=tostring(a.Name or "")
@@ -17258,7 +17259,7 @@ return function(WindUI, Window, Options)
     end
 
     local function refreshOrders()
-        local enabled=sortedEnabled()
+        local enabled=sortedEnabled(FeatureList.Display=="BloomFlow")
         local enabledMap={}
 
         for index,item in ipairs(enabled) do
@@ -17370,6 +17371,22 @@ return function(WindUI, Window, Options)
             Active=false,
         })
 
+        local Coverage={}
+        for index,spec in ipairs({{9,0.04},{5,0.10},{2,0.18}}) do
+            local band=New("Frame",{
+                Name=name.."Coverage"..index,Parent=Frame,
+                BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,
+                BorderSizePixel=0,AnchorPoint=Vector2.new(0.5,0.5),
+                Position=UDim2.fromScale(0.5,0.5),
+                Size=UDim2.new(1,spec[1]*2,1,spec[1]*2),
+                ZIndex=z-1,ClipsDescendants=false,Active=false,
+            },{New("UICorner",{CornerRadius=UDim.new(0.5,0)})})
+            local gradient=New("UIGradient",{
+                Parent=band,Rotation=90,Color=ColorSequence.new(Color3.new(1,1,1)),
+            })
+            Coverage[index]={Frame=band,Gradient=gradient,Opacity=spec[2]}
+        end
+
         local Gradient=New("UIGradient",{
             Parent=Frame,
             Rotation=90,
@@ -17388,6 +17405,7 @@ return function(WindUI, Window, Options)
 
         return {
             Frame=Frame,
+            Coverage=Coverage,
             Outer=Outer,
             Inner=Inner,
             Gradient=Gradient,
@@ -17440,11 +17458,21 @@ return function(WindUI, Window, Options)
         edge.Gradient.Color=sequence
         edge.OuterGradient.Color=sequence
         edge.InnerGradient.Color=sequence
+        for _,band in ipairs(edge.Coverage) do
+            band.Gradient.Rotation=rotation or 0
+            band.Gradient.Color=sequence
+        end
     end
 
     local function setMatrixEdgeGlow(edge,strength)
         if not edge then return end
         strength=math.clamp(tonumber(strength) or 0.78,0,1)
+        edge.Outer.Visible=FeatureList.Glow
+        edge.Inner.Visible=FeatureList.Glow
+        for _,band in ipairs(edge.Coverage) do
+            band.Frame.Visible=FeatureList.Glow
+            band.Frame.BackgroundTransparency=1-band.Opacity*strength
+        end
 
         -- Narrow, overlapping Bloom so neighboring segments visually
         -- become one continuous halo instead of separate rectangles.
@@ -17758,7 +17786,7 @@ return function(WindUI, Window, Options)
     end
 
     local function applyColors()
-        local enabled=sortedEnabled()
+        local enabled=sortedEnabled(FeatureList.Display=="BloomFlow")
         local total=#enabled
         local bloomFlow=FeatureList.Display=="BloomFlow"
         local glowStrength=math.clamp(
@@ -17945,7 +17973,7 @@ return function(WindUI, Window, Options)
 
         -- Hidden rows must never leave matrix fragments behind.
         for _,item in pairs(FeatureList.Items) do
-            if not item.Enabled and item.Refs then
+            if not item.Enabled and item.Refs and not (FeatureList.Display=="BloomFlow" and item.Refs.Row.Visible) then
                 if item.Refs.Matrix then
                     for _,edge in pairs(item.Refs.Matrix) do
                         edge.Frame.Visible=false
@@ -17973,6 +18001,7 @@ return function(WindUI, Window, Options)
     function FeatureList:SetGlow(value)
         self.Glow=value~=false
         for _,item in pairs(self.Items) do restyle(item) end
+        applyColors()
         return self
     end
 
@@ -17981,6 +18010,7 @@ return function(WindUI, Window, Options)
         for _,item in pairs(self.Items) do
             applyShadowStrength(item)
         end
+        applyColors()
         return self
     end
 
@@ -18256,12 +18286,12 @@ return function(WindUI, Window, Options)
 
         -- Connected BloomFlow matrix.
         -- No internal horizontal separators are created.
-        local MatrixBack=makeMatrixBack(Content,"MatrixBack",7008)
-        local MatrixLeft=makeMatrixEdge(Content,"MatrixLeft",7017)
-        local MatrixRight=makeMatrixEdge(Content,"MatrixRight",7017)
-        local MatrixTop=makeMatrixEdge(Content,"MatrixTop",7017)
-        local MatrixStep=makeMatrixEdge(Content,"MatrixStep",7017)
-        local MatrixBottom=makeMatrixEdge(Content,"MatrixBottom",7017)
+        local MatrixBack=makeMatrixBack(Row,"MatrixBack",7008)
+        local MatrixLeft=makeMatrixEdge(Row,"MatrixLeft",7017)
+        local MatrixRight=makeMatrixEdge(Row,"MatrixRight",7017)
+        local MatrixTop=makeMatrixEdge(Row,"MatrixTop",7017)
+        local MatrixStep=makeMatrixEdge(Row,"MatrixStep",7017)
+        local MatrixBottom=makeMatrixEdge(Row,"MatrixBottom",7017)
 
         local Click=New("TextButton",{
             Name="Click",
@@ -18291,7 +18321,8 @@ return function(WindUI, Window, Options)
         }
 
         function item:Set(enabled,mode)
-            self.Serial=self.Serial+1
+            -- Mode-only changes must not invalidate the pending row exit.
+            if enabled~=nil then self.Serial=self.Serial+1 end
             local serial=self.Serial
             local on=nil
             local changed=false
@@ -18357,6 +18388,7 @@ return function(WindUI, Window, Options)
             FeatureList.Items[self.Name]=nil
             if Row then Row:Destroy() end
             refreshOrders()
+            applyColors()
         end
 
         Click.MouseButton1Click:Connect(function()
@@ -18555,7 +18587,7 @@ local function __XHanInstallFeatureList(window,options)
         Title="ArrayList",
         Mode="XHanUI",
         Width=380,
-        Position=UDim2.new(1,-18,0,28),
+        Position=UDim2.new(1,-24,0,28),
         Display="None",
         Glow=true,
         ShadowStrength=78,
