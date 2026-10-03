@@ -1,6 +1,3 @@
--- XHanUI RealGlass V2: curved lens and consistent native Dynamic Island geometry.
--- Ready means geometry is rendering; engine refraction has not been visually verified.
--- Mobile Glass refraction is unsupported by Roblox. No simulated fallback.
 -- XHanUI RealGlass: actual rounded/beveled EditableMesh with Roblox Glass material.
 -- Requires Mesh / Image API capability. No simulated fallback or global blur.
 -- ScreenGui layers cannot be refracted; only the rendered 3D scene is behind glass.
@@ -1771,22 +1768,20 @@ Parent=p,
 end
 
 local r=b.NewRoundFrame(f.UICorner,"Squircle",{
+Name="XHanNotificationGlassSurface",
 Size=UDim2.new(1,0,0,0),
 Position=UDim2.new(2,0,1,0),
 AnchorPoint=Vector2.new(0,1),
 AutomaticSize="Y",
-ImageTransparency=0.05,
-ThemeTag={
-ImageColor3="Notification",
-},
+ImageColor3=Color3.fromRGB(248,252,255),
+ImageTransparency=0.94,
 
 },{
 b.NewRoundFrame(f.UICorner,"Squircle",{
+Name="GlassInner",
 Size=UDim2.new(1,0,1,0),
-ThemeTag={
-ImageColor3="Notification2",
-ImageTransparency="Notification2Transparency",
-},
+ImageColor3=Color3.fromRGB(225,240,255),
+ImageTransparency=0.97,
 }),
 d("Frame",{
 Size=UDim2.new(1,0,1,0),
@@ -1837,6 +1832,10 @@ Parent=g.Holder,
 },{
 r,
 })
+
+-- Expose only for the XHanUI RealGlass wrapper below.
+h.__XHanGlassFrame=r
+h.__XHanGlassHolder=u
 
 function h.Close(v)
 if not h.Closed then
@@ -8034,7 +8033,7 @@ local ak=a.load'd'
 local al=ak.New
 local am=ak.Tween
 
-local an=0.67
+local an=0.84
 
 function aa.New(ao,ap,aq,ar,as)
 local at={}
@@ -8050,14 +8049,26 @@ HorizontalAlignment="Center",
 })
 
 ap.UIElements.Menu=ak.NewRoundFrame(aq.MenuCorner,"Squircle",{
-ThemeTag={
-ImageColor3="DropdownBackground",
-},
-ImageTransparency=1,
+ImageColor3=Color3.fromRGB(244,249,255),
+ImageTransparency=0.94,
 Size=UDim2.new(1,0,1,0),
 AnchorPoint=Vector2.new(1,0),
 Position=UDim2.new(1,0,0,0),
+ZIndex=3,
 },{
+al("UIGradient",{
+Rotation=92,
+Color=ColorSequence.new({
+ColorSequenceKeypoint.new(0,Color3.fromRGB(255,255,255)),
+ColorSequenceKeypoint.new(0.46,Color3.fromRGB(226,241,255)),
+ColorSequenceKeypoint.new(1,Color3.fromRGB(255,255,255)),
+}),
+Transparency=NumberSequence.new({
+NumberSequenceKeypoint.new(0,0.25),
+NumberSequenceKeypoint.new(0.48,0.72),
+NumberSequenceKeypoint.new(1,0.42),
+}),
+}),
 al("UIPadding",{
 PaddingTop=UDim.new(0,aq.MenuPadding),
 PaddingLeft=UDim.new(0,aq.MenuPadding),
@@ -8109,6 +8120,49 @@ MinSize=Vector2.new(170,0),
 MaxSize=Vector2.new(300,400),
 }),
 })
+
+
+-- Native RealGlass popup host. No mobile ScreenCapture fallback.
+local __XHanPopupGlassHost=al("Frame",{
+Name="XHanPopupLiquidGlassHost",
+Parent=ap.UIElements.MenuCanvas,
+Size=UDim2.fromScale(1,1),
+Position=UDim2.fromScale(0,0),
+BackgroundTransparency=1,
+BorderSizePixel=0,
+Active=false,
+ZIndex=1,
+})
+local __XHanPopupGlassController=nil
+
+local function __XHanEnsurePopupGlass()
+if __XHanPopupGlassController then
+return __XHanPopupGlassController
+end
+
+local attach=ao.WindUI and ao.WindUI.AttachLiquidGlassToGui
+if type(attach)=="function" then
+local ok,controller=pcall(function()
+return attach(ao.WindUI,__XHanPopupGlassHost,{
+Enabled=false,
+CornerRadius=aq.MenuCorner,
+Transparency=0.72,
+Thickness=0.080,
+LensStrength=0.20,
+BackCurve=0.90,
+LensRings=9,
+RefractionLayers=2,
+LayerGap=0.009,
+Reflectance=0.045,
+})
+end)
+if ok then
+__XHanPopupGlassController=controller
+end
+end
+
+return __XHanPopupGlassController
+end
 
 local function RecalculateCanvasSize()
 ap.UIElements.Menu.Frame.ScrollingFrame.CanvasSize=
@@ -8321,12 +8375,9 @@ aq.MenuCorner-aq.MenuPadding,
 {
 Size=UDim2.new(1,0,0,36),
 AutomaticSize=az.Desc and"Y",
-ImageTransparency=1,
+ImageTransparency=0.97,
+ImageColor3=Color3.fromRGB(245,250,255),
 Parent=ap.UIElements.Menu.Frame.ScrollingFrame,
-
-ThemeTag={
-ImageColor3="DropdownTabBackground",
-},
 Active=not az.Locked,
 },
 {
@@ -8638,15 +8689,20 @@ ap.UIElements.MenuCanvas.Active=true
 ap.UIElements.Menu.Size=UDim2.new(1,0,0,0)
 am(ap.UIElements.Menu,0.1,{
 Size=UDim2.new(1,0,1,0),
-ImageTransparency=0,
+ImageTransparency=0.90,
 },Enum.EasingStyle.Quart,Enum.EasingDirection.Out):Play()
+
+UpdatePosition()
+
+local __glass=__XHanEnsurePopupGlass()
+if __glass and type(__glass.SetEnabled)=="function" then
+pcall(function() __glass:SetEnabled(true) end)
+end
 
 task.spawn(function()
 task.wait(0.1)
 ap.Opened=true
 end)
-
-UpdatePosition()
 end
 end
 
@@ -8664,7 +8720,14 @@ ap.UIElements.Menu.Visible=false
 end)
 
 task.spawn(function()
-task.wait(0.25)
+task.wait(0.22)
+if __XHanPopupGlassController
+and type(__XHanPopupGlassController.SetEnabled)=="function" then
+pcall(function()
+__XHanPopupGlassController:SetEnabled(false)
+end)
+end
+task.wait(0.03)
 ap.UIElements.MenuCanvas.Visible=false
 ap.UIElements.MenuCanvas.Active=false
 end)
@@ -8807,46 +8870,39 @@ ap.UIElements.Dropdown.AnchorPoint=Vector2.new(1,ao.Window.NewElements and 0 or 
 
 end
 
--- XHanUI: native WindUI selector shadow.
--- This is attached to the real Dropdown control; it does not replace the control.
-local __AltexSelectorTarget=ap.UIElements.Dropdown or ap.DropdownFrame.UIElements.Main
-if __AltexSelectorTarget then
-    pcall(function() __AltexSelectorTarget.ClipsDescendants=false end)
+-- XHanUI borderless selector.
+-- It reuses the main window's RealGlass underneath; rounded/square box edge,
+-- black shadow and white halo are intentionally removed.
+local __XHanSelectorTarget=ap.UIElements.Dropdown or ap.DropdownFrame.UIElements.Main
+if __XHanSelectorTarget then
+    pcall(function() __XHanSelectorTarget.ClipsDescendants=false end)
 
-    local __AltexSelectorGlowOuter=ag("ImageLabel",{
-        Image="rbxassetid://104482361987216",
-        ImageColor3=Color3.fromRGB(0,0,0),
-        ImageTransparency=0.48,
-        BackgroundTransparency=1,
-        Size=UDim2.new(1,34,1,30),
-        Position=UDim2.new(0.5,0,0.5,0),
-        AnchorPoint=Vector2.new(0.5,0.5),
-        ScaleType="Slice",
-        SliceCenter=Rect.new(99,99,99,99),
-        Active=false,
-        ZIndex=math.max((__AltexSelectorTarget.ZIndex or 1)-1,1),
-        Name="AltexSelectorGlowOuter",
-        Parent=__AltexSelectorTarget,
-    })
+    if ap.UIElements.Dropdown
+        and ap.UIElements.Dropdown:FindFirstChild("Frame") then
 
-    local __AltexSelectorGlowInner=ag("ImageLabel",{
-        Image="rbxassetid://104482361987216",
-        ImageColor3=Color3.fromRGB(0,0,0),
-        ImageTransparency=0.24,
-        BackgroundTransparency=1,
-        Size=UDim2.new(1,18,1,16),
-        Position=UDim2.new(0.5,0,0.5,0),
-        AnchorPoint=Vector2.new(0.5,0.5),
-        ScaleType="Slice",
-        SliceCenter=Rect.new(99,99,99,99),
-        Active=false,
-        ZIndex=math.max((__AltexSelectorTarget.ZIndex or 1)-1,1),
-        Name="AltexSelectorGlowInner",
-        Parent=__AltexSelectorTarget,
-    })
+        local __outer=ap.UIElements.Dropdown.Frame
+        local __surface=__outer:FindFirstChild("Frame")
 
-    ap.UIElements.AltexSelectorGlowOuter=__AltexSelectorGlowOuter
-    ap.UIElements.AltexSelectorGlowInner=__AltexSelectorGlowInner
+        for _,child in ipairs(__outer:GetChildren()) do
+            if child:IsA("ImageLabel") then
+                child.ImageTransparency=1
+            elseif child:IsA("UIStroke") then
+                child.Enabled=false
+            end
+        end
+
+        if __surface then
+            pcall(function()
+                if __surface:IsA("ImageLabel") then
+                    __surface.ImageTransparency=1
+                elseif __surface:IsA("GuiObject") then
+                    __surface.BackgroundTransparency=1
+                end
+                local stroke=__surface:FindFirstChildOfClass("UIStroke")
+                if stroke then stroke.Enabled=false end
+            end)
+        end
+    end
 end
 
 ap.DropdownMenu=ak(ao,ap,am,aq,"Dropdown")
@@ -15284,20 +15340,22 @@ aa.Themes=a.load'v'(aa,as)
 
 as.Themes=aa.Themes
 
--- XHanUI theme: transparent structural shell with shadow-only depth.
+-- XHanUI theme: transparent structural shell.
+-- Do NOT inherit from the black Dark theme.
 do
-local base=aa.Themes.Dark
+local base=aa.Themes.Light
 local t={}
 for k,v in pairs(base)do t[k]=v end
 
 t.Name="AltexSomnia"
 
-t.Accent=Color3.fromHex"0A0D12"
-t.Dialog=Color3.fromHex"10151C"
+t.Accent=Color3.fromHex"FFFFFF"
+t.Dialog=Color3.fromHex"FFFFFF"
 t.Outline=Color3.fromHex"303946"
 t.Text=Color3.fromHex"F2F5F8"
 t.Placeholder=Color3.fromHex"8A96A5"
-t.Background=Color3.fromHex"05070A"
+t.Background=Color3.fromHex"FFFFFF"
+t.BackgroundTransparency=1
 t.Button=Color3.fromHex"1D2631"
 t.Icon=Color3.fromHex"C2CBD6"
 t.Primary=Color3.fromHex"8FAEE8"
@@ -15366,6 +15424,9 @@ t.ViewportBackgroundTransparency=1
 aa.Themes.XHanUI=t
 aa.Themes.AltexSomnia=t -- compatibility alias
 end
+
+-- Remove the black Dark theme completely so it cannot be selected/restored.
+aa.Themes.Dark=nil
 
 aa:SetTheme"XHanUI"
 aa:SetLanguage(as.Language)
@@ -15515,7 +15576,7 @@ end
 
 aa.LibraryName="XHanUI"
 aa.ScriptName="Syntax"
-aa.Version="RealGlass-V2-CurvedLens"
+aa.Version="External-2.4-StrictSyntaxResourceBloom-NotificationGlass"
 
 local __XHanDynamicIslandSource=[==[
 return function(WindUI, Window, Options)
@@ -15524,6 +15585,7 @@ return function(WindUI, Window, Options)
     local Players=game:GetService("Players")
     local RunService=game:GetService("RunService")
     local Stats=game:GetService("Stats")
+    local TextService=game:GetService("TextService")
 
     local Creator=WindUI.Creator
     local New=Creator.New
@@ -15639,16 +15701,13 @@ return function(WindUI, Window, Options)
     Island.UI.Root=Root
 
 
-    -- One native rounded silhouette: the body and every glow carrier use
-    -- the same bounds and radius. Wide overlapping low-alpha strokes create
-    -- a soft falloff instead of drawing separate narrow expanded outlines.
+    -- Rounded full-perimeter glow. Every carrier has a UICorner, so
+    -- stretching the island never exposes square Bloom-image endpoints.
     local IslandGlowSegments={}
-    local BodyCorner,FlowCorner,NeutralCorner
-    Island.CornerRadius=math.max(0,tonumber(Options.CornerRadius) or math.min(20,Island.IdleHeight/2))
 
     local function makeIslandGlowRing(index,scale,transparency)
         local Carrier=New("Frame",{
-            Name="IslandGlowLayer"..index,
+            Name="IslandGlowRing"..index,
             Parent=Root,
             AnchorPoint=Vector2.new(0.5,0.5),
             Position=UDim2.fromScale(0.5,0.5),
@@ -15663,7 +15722,7 @@ return function(WindUI, Window, Options)
         })
         local Corner=New("UICorner",{
             Parent=Carrier,
-            CornerRadius=UDim.new(0,Island.CornerRadius),
+            CornerRadius=UDim.new(0,20),
         })
         local Stroke=New("UIStroke",{
             Parent=Carrier,
@@ -15685,50 +15744,40 @@ return function(WindUI, Window, Options)
         local pad=math.clamp(
             math.floor((tonumber(Island.GlowExpansion) or 4)+0.5),1,8
         )
-        -- Root uses offset sizes for idle/alert tweens. Read that same current
-        -- size, rather than last frame's AbsoluteSize during a running tween.
-        local width=Root.Size.X.Scale==0 and Root.Size.X.Offset or Root.AbsoluteSize.X
-        local height=Root.Size.Y.Scale==0 and Root.Size.Y.Offset or Root.AbsoluteSize.Y
-        local radius=math.min(Island.CornerRadius,math.max(0,math.min(width,height)/2))
-        if BodyCorner then BodyCorner.CornerRadius=UDim.new(0,radius) end
-        if FlowCorner then FlowCorner.CornerRadius=UDim.new(0,radius) end
-        if NeutralCorner then NeutralCorner.CornerRadius=UDim.new(0,radius) end
         for _,ring in ipairs(IslandGlowSegments) do
-            ring.Corner.CornerRadius=UDim.new(0,radius)
-            ring.Stroke.Thickness=2*(0.5+pad*ring.Scale)
+            local expansion=pad*ring.Scale
+            ring.Carrier.Size=UDim2.new(1,expansion*2,1,expansion*2)
+            ring.Corner.CornerRadius=UDim.new(0,20+expansion)
+            ring.Stroke.Thickness=math.max(1,pad*0.42)
         end
     end
 
-    -- The widest, faintest stroke is drawn first. Every narrower stroke
-    -- overlaps it at the same centerline, yielding a monotonic outward fade.
-    for index,spec in ipairs({
-        {1,0.993},{0.875,0.990},{0.75,0.985},{0.625,0.980},
-        {0.5,0.975},{0.375,0.972},{0.25,0.970},{0.125,0.968},
-    }) do
+    -- Create outer rings first; the opaque body covers their inner halves.
+    -- Geometry uses scale=1 plus padding, and follows every size tween natively.
+    for index,spec in ipairs({{1,0.98},{0.8,0.96},{0.6,0.93},{0.4,0.89},{0.2,0.83}}) do
         IslandGlowSegments[index]=makeIslandGlowRing(index,spec[1],spec[2])
     end
     Island.UI.BorderGlowSegments=IslandGlowSegments
-    Island.GlowRenderer="RoundedSoftGlowV2"
+    Island.GlowRenderer="RoundedStrokeRings"
+    updateIslandGlowBounds()
 
-    -- A native background removes the old squircle sprite/UICorner
-    -- intersection. White is intentional: UIGradient supplies the dark tint
-    -- once, instead of multiplying two dark colors into a nearly black body.
+    -- Use a real rounded Frame instead of a sliced Squircle image.
+    -- The old image slice could render as a misplaced black rectangle on
+    -- very wide Dynamic Island sizes.
     local Body=New("Frame",{
         Name="Body",
         Parent=Root,
         AnchorPoint=Vector2.new(0.5,0.5),
         Position=UDim2.fromScale(0.5,0.5),
         Size=UDim2.fromScale(1,1),
-        BackgroundColor3=Color3.new(1,1,1),
-        BackgroundTransparency=0.07,
+        BackgroundColor3=Color3.fromRGB(255,255,255),
+        BackgroundTransparency=0.90,
         BorderSizePixel=0,
-        Active=false,
-        Selectable=false,
         ClipsDescendants=false,
         ZIndex=2,
     })
     Island.UI.Body=Body
-    BodyCorner=New("UICorner",{Parent=Body,CornerRadius=UDim.new(0,Island.CornerRadius)})
+    New("UICorner",{Parent=Body,CornerRadius=UDim.new(0,20)})
 
     -- The Dynamic Island replaces WindUI's old floating OpenButton.
     -- Its hitbox follows the island's animated size automatically.
@@ -15753,22 +15802,7 @@ return function(WindUI, Window, Options)
         end
     end)
 
-    New("UIGradient",{
-        Parent=Body,
-        Rotation=0,
-        Color=ColorSequence.new({
-            ColorSequenceKeypoint.new(0,Color3.fromRGB(47,47,49)),
-            ColorSequenceKeypoint.new(0.58,Color3.fromRGB(54,55,58)),
-            ColorSequenceKeypoint.new(1,Color3.fromRGB(63,68,73)),
-        }),
-        Transparency=NumberSequence.new({
-            NumberSequenceKeypoint.new(0,0.01),
-            NumberSequenceKeypoint.new(1,0.07),
-        }),
-    })
-
-    -- Exactly one crisp border is visible at a time, above the surface.
-    -- Glow carriers stay below Body (ZIndex=1 vs 2), including during tweens.
+    -- The visible outline and halo share the body's exact rounded geometry.
     local FlowBorder=New("Frame",{
         Name="FlowBorder",
         Parent=Body,
@@ -15780,14 +15814,14 @@ return function(WindUI, Window, Options)
         ZIndex=4,
         Visible=Island.GlowEnabled,
     })
-    FlowCorner=New("UICorner",{Parent=FlowBorder,CornerRadius=UDim.new(0,Island.CornerRadius)})
+    New("UICorner",{Parent=FlowBorder,CornerRadius=UDim.new(0,20)})
     local FlowBorderStroke=New("UIStroke",{
         Parent=FlowBorder,
         ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
         LineJoinMode=Enum.LineJoinMode.Round,
         Color=Color3.new(1,1,1),
-        Thickness=1,
-        Transparency=0.14,
+        Thickness=1.15,
+        Transparency=0.07,
     })
     Island.UI.FlowBorder=FlowBorder
     Island.UI.FlowBorderStroke=FlowBorderStroke
@@ -15803,7 +15837,7 @@ return function(WindUI, Window, Options)
         ZIndex=2,
         Visible=not Island.GlowEnabled,
     })
-    NeutralCorner=New("UICorner",{Parent=NeutralBorder,CornerRadius=UDim.new(0,Island.CornerRadius)})
+    New("UICorner",{Parent=NeutralBorder,CornerRadius=UDim.new(0,20)})
     New("UIStroke",{
         Parent=NeutralBorder,
         ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
@@ -15819,9 +15853,6 @@ return function(WindUI, Window, Options)
         Rotation=0,
         Color=ColorSequence.new(Color3.new(1,1,1)),
     })
-    updateIslandGlowBounds()
-    table.insert(Island.Connections,Root:GetPropertyChangedSignal("Size"):Connect(updateIslandGlowBounds))
-    table.insert(Island.Connections,Root:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateIslandGlowBounds))
 
     local function islandFlowSequence(phase)
         local keys={}
@@ -15838,13 +15869,6 @@ return function(WindUI, Window, Options)
             )
         end
         return ColorSequence.new(keys)
-    end
-
-    -- Initialize tint before the first render; never flash a white outline.
-    do
-        local sequence=islandFlowSequence(0)
-        FlowBorderGradient.Color=sequence
-        for _,ring in ipairs(IslandGlowSegments) do ring.Gradient.Color=sequence end
     end
 
     local lastGlowUpdate=0
@@ -15880,6 +15904,8 @@ return function(WindUI, Window, Options)
         Visible=true,
     })
 
+    -- ORIGINAL one-piece IdleText layout is kept intact.
+    -- Only Syntax receives resource-based BloomFlow glow.
     local IdleText=New("TextLabel",{
         Name="IdleText",
         Parent=IdleHolder,
@@ -15895,22 +15921,275 @@ return function(WindUI, Window, Options)
         TextYAlignment=Enum.TextYAlignment.Center,
         TextTruncate=Enum.TextTruncate.AtEnd,
         FontFace=Font.new(Creator.Font,Enum.FontWeight.Medium),
-        ZIndex=6,
+        ZIndex=7,
     })
+
+    -- EXACT Bloom resources used by FeatureList BloomFlow.
+    local SyntaxBloom16Image="rbxassetid://104490578391522"
+    local SyntaxBloom8Image="rbxassetid://102472648910048"
+
+    -- Same font-measurement path as FeatureList.widthOf().
+    local function syntaxWidthOf(value,size)
+        value=tostring(value or "")
+        size=size or 14
+
+        local ok,result=pcall(function()
+            local params=Instance.new("GetTextBoundsParams")
+            params.Text=value
+            params.Size=size
+            params.Width=2048
+            params.Font=Font.new(Creator.Font,Enum.FontWeight.Medium)
+            local bounds=TextService:GetTextBoundsAsync(params)
+            params:Destroy()
+            return bounds.X
+        end)
+        if ok and type(result)=="number" and result>0 then
+            return result
+        end
+
+        local ok2,result2=pcall(function()
+            return TextService:GetTextSize(
+                value,
+                size,
+                Enum.Font.GothamMedium,
+                Vector2.new(2048,128)
+            ).X
+        end)
+        if ok2 and type(result2)=="number" then
+            return result2
+        end
+
+        return math.floor(#value*size*0.56)
+    end
+
+    -- Host is independent from IdleText layout. No user/ping/server/FPS text
+    -- is split or moved, so nothing else on the island can disappear.
+    local SyntaxBloomHost=New("Frame",{
+        Name="SyntaxBloomFlow",
+        Parent=IdleHolder,
+        AnchorPoint=Vector2.new(0,0.5),
+        Position=UDim2.new(0,0,0.5,0),
+        Size=UDim2.fromOffset(1,18),
+        BackgroundTransparency=1,
+        BorderSizePixel=0,
+        ClipsDescendants=false,
+        ZIndex=5,
+    })
+
+    -- Active BloomFlow MatrixBack uses these exact resource sizes:
+    -- Bloom16 = +38/+26, Bloom8 = +22/+16.
+    local SyntaxBloomOuter=New("ImageLabel",{
+        Name="SyntaxBloom16",
+        Parent=SyntaxBloomHost,
+        BackgroundTransparency=1,
+        Image=SyntaxBloom16Image,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.606,
+        ScaleType=Enum.ScaleType.Stretch,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,38,1,26),
+        ZIndex=5,
+        Active=false,
+    })
+
+    local SyntaxBloomInner=New("ImageLabel",{
+        Name="SyntaxBloom8",
+        Parent=SyntaxBloomHost,
+        BackgroundTransparency=1,
+        Image=SyntaxBloom8Image,
+        ImageColor3=Color3.new(1,1,1),
+        ImageTransparency=0.4704,
+        ScaleType=Enum.ScaleType.Stretch,
+        AnchorPoint=Vector2.new(0.5,0.5),
+        Position=UDim2.fromScale(0.5,0.5),
+        Size=UDim2.new(1,22,1,16),
+        ZIndex=6,
+        Active=false,
+    })
+
+    -- FeatureList MatrixBack colors the Bloom resources through UIGradient.
+    local SyntaxBloomOuterGradient=New("UIGradient",{
+        Parent=SyntaxBloomOuter,
+        Rotation=90,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+    local SyntaxBloomInnerGradient=New("UIGradient",{
+        Parent=SyntaxBloomInner,
+        Rotation=90,
+        Color=ColorSequence.new(Color3.new(1,1,1)),
+    })
+
+    local currentBrandColor=Color3.fromRGB(110,200,241)
+
+    local function syntaxMatrixFlowColor(normalizedY,phaseOffset)
+        normalizedY=math.clamp(tonumber(normalizedY) or 0,0,1)
+
+        -- Exact active FeatureList BloomFlow formula.
+        local cycleSeconds=6.4
+        local verticalSpan=0.92
+        local hue=(
+            0.96
+            + (Island.GlowTime/cycleSeconds)
+            + (normalizedY*verticalSpan)
+            + (phaseOffset or 0)
+        )%1
+
+        return Color3.fromHSV(hue,0.76,1)
+    end
+
+    local function colorToHex(c)
+        return string.format(
+            "#%02X%02X%02X",
+            math.clamp(math.floor(c.R*255+0.5),0,255),
+            math.clamp(math.floor(c.G*255+0.5),0,255),
+            math.clamp(math.floor(c.B*255+0.5),0,255)
+        )
+    end
+
+    local function currentBloomStrength()
+        local list=(Window and Window.FeatureList) or WindUI.FeatureList
+        return math.clamp(
+            tonumber(list and list.ShadowStrength) or 78,
+            0,
+            100
+        )/100
+    end
+
+    local function setSyntaxBloomAlpha()
+        local strength=currentBloomStrength()
+
+        -- Exact active MatrixBack BloomFlow alpha formulas.
+        local outerBase=math.clamp(
+            0.84-(0.30*strength),
+            0.48,
+            0.84
+        )
+        local innerBase=math.clamp(
+            0.72-(0.32*strength),
+            0.36,
+            0.72
+        )
+
+        local fade=math.clamp(IdleText.TextTransparency,0,1)
+        SyntaxBloomOuter.ImageTransparency=
+            1-((1-outerBase)*(1-fade))
+        SyntaxBloomInner.ImageTransparency=
+            1-((1-innerBase)*(1-fade))
+    end
+
+    local function syncSyntaxBloom()
+        if not IdleText.Parent or not IdleHolder.Parent then
+            return
+        end
+
+        local brand=tostring(Island.Brand)
+        local brandWidth=math.max(
+            1,
+            math.ceil(syntaxWidthOf(brand,14))
+        )
+
+        -- Use the ACTUAL rendered full-line TextBounds for the starting point.
+        -- This avoids font-width guesses and keeps Bloom exactly behind Syntax.
+        local renderedWidth=math.max(
+            1,
+            math.ceil(IdleText.TextBounds.X)
+        )
+
+        local labelLeft=
+            IdleText.AbsolutePosition.X
+            - IdleHolder.AbsolutePosition.X
+
+        local startX=
+            labelLeft
+            + ((IdleText.AbsoluteSize.X-renderedWidth)*0.5)
+
+        SyntaxBloomHost.Position=UDim2.new(
+            0,
+            math.floor(startX+0.5),
+            0.5,
+            0
+        )
+        SyntaxBloomHost.Size=UDim2.fromOffset(
+            brandWidth,
+            math.max(18,math.ceil(IdleText.TextBounds.Y))
+        )
+    end
+
+    Creator.AddSignal(
+        IdleText:GetPropertyChangedSignal("TextBounds"),
+        syncSyntaxBloom
+    )
+    Creator.AddSignal(
+        IdleText:GetPropertyChangedSignal("AbsoluteSize"),
+        syncSyntaxBloom
+    )
+    Creator.AddSignal(
+        IdleText:GetPropertyChangedSignal("AbsolutePosition"),
+        syncSyntaxBloom
+    )
+    Creator.AddSignal(
+        IdleText:GetPropertyChangedSignal("TextTransparency"),
+        setSyntaxBloomAlpha
+    )
 
     local function updateIdleText()
         local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
         local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
 
         IdleText.Text=string.format(
-            '<font color="#6EC8F1">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
+            '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
+            colorToHex(currentBrandColor),
             Island.Brand,
             Island.UserText,
             ping,
             Island.ServerText,
             fps
         )
+
+        task.defer(function()
+            syncSyntaxBloom()
+            setSyntaxBloomAlpha()
+        end)
     end
+
+    local lastSyntaxBloomUpdate=0
+    table.insert(Island.Connections,RunService.RenderStepped:Connect(function(dt)
+        if Island.Destroyed then return end
+
+        lastSyntaxBloomUpdate=lastSyntaxBloomUpdate+dt
+        if lastSyntaxBloomUpdate<0.032 then return end
+        lastSyntaxBloomUpdate=0
+
+        -- Sample a small vertical span exactly like connected MatrixBack.
+        local topColor=syntaxMatrixFlowColor(0.42,0)
+        local centerColor=syntaxMatrixFlowColor(0.50,0)
+        local bottomColor=syntaxMatrixFlowColor(0.58,0)
+
+        local sequence=ColorSequence.new({
+            ColorSequenceKeypoint.new(0,topColor),
+            ColorSequenceKeypoint.new(1,bottomColor),
+        })
+
+        SyntaxBloomOuterGradient.Color=sequence
+        SyntaxBloomInnerGradient.Color=sequence
+        currentBrandColor=centerColor
+
+        setSyntaxBloomAlpha()
+
+        local ping=math.max(0,math.floor((Island.Ping or 0)+0.5))
+        local fps=math.max(0,math.floor((Island.FPS or 0)+0.5))
+
+        IdleText.Text=string.format(
+            '<font color="%s">%s</font>  •  ◯ %s  •  <font color="#35D7A0">▥ %dms</font> To %s  •  ▥ %d FPS',
+            colorToHex(currentBrandColor),
+            Island.Brand,
+            Island.UserText,
+            ping,
+            Island.ServerText,
+            fps
+        )
+    end))
 
     local function readPing()
         local ok,value=pcall(function()
@@ -18186,8 +18465,6 @@ local __XHanRealGlass=(function()
 -- Apple's Liquid Glass shader. Very near world geometry can occlude the pane.
 -- Published experiences must allow the Mesh / Image APIs; clients also have
 -- an EditableMesh memory budget. Unsupported clients receive an explicit error.
--- Refraction itself is not supported on mobile by the Roblox Glass renderer.
--- Ready means the mesh exists; it does not prove the engine enabled refraction.
 return function(WindUI, Window, Options)
     local options = type(Options) == "table" and Options or {}
     local AssetService = game:GetService("AssetService")
@@ -18200,10 +18477,11 @@ return function(WindUI, Window, Options)
         Supported = nil, Enabled = options.Enabled ~= false,
         Backend = "EditableMesh/Glass", Destroyed = false,
     }
-    local mesh, part, destroyConnection, cameraConnection
+    local mesh, part, glassLayers = nil, nil, {}
+    local destroyConnection, cameraConnection
     local binding = "XHanUI.RealGlass." .. tostring(controller)
     local bound = false
-    local vertices, normals, triangles = {}, {}, {}
+    local vertices, normals, rings = {}, {}, {}
     local lastProjection, localCenter
 
     local function number(value, fallback, minimum, maximum)
@@ -18212,20 +18490,26 @@ return function(WindUI, Window, Options)
         return math.clamp(value, minimum, maximum)
     end
 
-    local transparency = number(options.Transparency, 0.30, 0.02, 0.97)
-    local thickness = number(options.Thickness, 0.065, 0.002, 0.3)
+    -- Strong-refraction defaults. A single 30%-transparent Glass part looked
+    -- like a grey overlay on mobile and hid most of the optical displacement.
+    -- Keep each shell much clearer and stack several curved shells with tiny
+    -- depth offsets so Roblox samples the refractive pass more than once.
+    local transparency = number(options.Transparency, 0.68, 0.18, 0.96)
+    local thickness = number(options.Thickness, 0.100, 0.010, 0.30)
     local requestedDistance = number(options.Distance, 1, 0.2, 8)
-    local segments = math.floor(number(options.CornerSegments, 12, 4, 24))
-    local bevelPixels = number(options.Bevel, 18, 0.25, 64)
-    local bulge = number(options.Bulge, 0.08, 0, 0.3)
-    local surfaceRings = math.floor(number(options.SurfaceRings, 6, 3, 12))
-    local edgeSegments = math.floor(number(options.EdgeSegments, 10, 2, 24))
+    local segments = math.floor(number(options.CornerSegments, 16, 6, 24))
+    local bevelPixels = number(options.Bevel, 12, 0.25, 48)
     local edgeInset = number(options.EdgeInset, 0.6, 0, 8)
-    local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(220, 235, 255)
-    local reflectance = number(options.Reflectance, 0.035, 0, 1)
+    local lensStrength = number(options.LensStrength, 0.23, 0.0, 0.40)
+    local backCurve = number(options.BackCurve, 0.95, 0.0, 1.0)
+    local curvePower = number(options.CurvePower, 1.34, 1.02, 4.0)
+    local lensRings = math.floor(number(options.LensRings, 10, 5, 16))
+    local refractionLayers = math.floor(number(options.RefractionLayers, 3, 1, 3))
+    local layerGap = number(options.LayerGap, 0.011, 0.001, 0.040)
+    local tint = typeof(options.Tint) == "Color3" and options.Tint or Color3.fromRGB(247, 251, 255)
+    local reflectance = number(options.Reflectance, 0.055, 0, 1)
     local radiusOption = options.CornerRadius
-    local perimeterCount = 4 * (segments + edgeSegments)
-    local bevelSteps = 3
+    local perimeterCount = 4 * (segments + 1)
 
     local function setState(state, message)
         if controller.State == state and controller.Error == message then return end
@@ -18244,15 +18528,20 @@ return function(WindUI, Window, Options)
             State = self.State, Status = self.Status, Error = self.Error,
             Supported = self.Supported, Enabled = self.Enabled,
             Backend = self.Backend,
-            Shape = "RoundedConvexLens", RefractionVerified = false,
-            MobileRefractionSupported = false, ScreenGuiRefractionSupported = false,
-            Bulge = bulge, Thickness = thickness, Bevel = bevelPixels,
-            Transparency = transparency, Reflectance = reflectance,
+            LensStrength = lensStrength,
+            LensRings = lensRings,
+            Thickness = thickness,
+            Bevel = bevelPixels,
+            RefractionLayers = refractionLayers,
+            BaseTransparency = transparency,
+            LayerGap = layerGap,
         }
     end
 
     local function hide()
-        if part then part.Parent = nil end
+        for _, layer in ipairs(glassLayers) do
+            if layer then layer.Parent = nil end
+        end
     end
 
     function controller:SetEnabled(enabled)
@@ -18268,31 +18557,17 @@ return function(WindUI, Window, Options)
         return self
     end
 
-    -- These are physical geometry/material controls, not a fabricated
-    -- shader RefractionStrength or IndexOfRefraction API. Bulge=0 is a useful
-    -- planar-versus-curved comparison on the same client/graphics setting.
-    function controller:SetOptics(values)
-        if self.Destroyed or type(values) ~= "table" then return self end
-        if values.Bulge ~= nil then bulge = number(values.Bulge, bulge, 0, 0.3) end
-        if values.Thickness ~= nil then thickness = number(values.Thickness, thickness, 0.002, 0.3) end
-        if values.Bevel ~= nil then bevelPixels = number(values.Bevel, bevelPixels, 0.25, 64) end
-        if values.Transparency ~= nil then transparency = number(values.Transparency, transparency, 0.02, 0.97) end
-        if values.Reflectance ~= nil then reflectance = number(values.Reflectance, reflectance, 0, 1) end
-        if values.Distance ~= nil then requestedDistance = number(values.Distance, requestedDistance, 0.2, 8) end
-        if values.CornerRadius ~= nil then radiusOption = number(values.CornerRadius, 16, 0, 256) end
-        if typeof(values.Tint) == "Color3" then tint = values.Tint end
-        if part then part.Color, part.Reflectance = tint, reflectance end
-        lastProjection = nil
-        return self
-    end
-
     function controller:Destroy()
         if self.Destroyed then return end
         self.Destroyed = true
         if bound then RunService:UnbindFromRenderStep(binding); bound = false end
         if destroyConnection then destroyConnection:Disconnect(); destroyConnection = nil end
         if cameraConnection then cameraConnection:Disconnect(); cameraConnection = nil end
-        if part then part:Destroy(); part = nil end
+        for _, layer in ipairs(glassLayers) do
+            pcall(function() layer:Destroy() end)
+        end
+        table.clear(glassLayers)
+        part = nil
         if mesh then mesh:Destroy(); mesh = nil end
         setState("Destroyed")
     end
@@ -18300,7 +18575,11 @@ return function(WindUI, Window, Options)
     local function fail(state, reason)
         hide()
         if bound then RunService:UnbindFromRenderStep(binding); bound = false end
-        if part then part:Destroy(); part = nil end
+        for _, layer in ipairs(glassLayers) do
+            pcall(function() layer:Destroy() end)
+        end
+        table.clear(glassLayers)
+        part = nil
         if mesh then mesh:Destroy(); mesh = nil end
         controller.Supported = false
         setState(state, tostring(reason))
@@ -18400,158 +18679,201 @@ return function(WindUI, Window, Options)
         local width, height = p[1], p[2]
         local left, top, right, bottom = p[3], p[4], p[5], p[6]
         local depth, thick, radius = p[7], p[8], p[9]
-        local bevel = math.min(p[10], math.min(width, height) * 0.22)
-        local bevelDepth = math.min(thick * 0.32, (right - left) * depth / width * bevel)
+        local bevel = math.min(p[10], radius * 0.72, math.min(width, height) * 0.14)
+
         local points, ringIndices = {}, {}
         local minimum = Vector3.new(math.huge, math.huge, math.huge)
         local maximum = Vector3.new(-math.huge, -math.huge, -math.huge)
+
         local function add(x, y, zDepth)
-            -- Every depth layer follows camera rays through its intended
-            -- screen contour. The solid cannot leak beyond the rounded UI.
+            -- Keep every vertex on the ray for its screen-space coordinate.
+            -- Varying zDepth therefore changes the real 3D surface normal
+            -- without changing the pane's 2D outline.
             local point = Vector3.new(
                 (left + (right - left) * x / width) * zDepth,
                 (top + (bottom - top) * y / height) * zDepth,
                 -zDepth
             )
             points[#points + 1] = point
-            minimum = Vector3.new(math.min(minimum.X, point.X), math.min(minimum.Y, point.Y), math.min(minimum.Z, point.Z))
-            maximum = Vector3.new(math.max(maximum.X, point.X), math.max(maximum.Y, point.Y), math.max(maximum.Z, point.Z))
+            minimum = Vector3.new(
+                math.min(minimum.X, point.X),
+                math.min(minimum.Y, point.Y),
+                math.min(minimum.Z, point.Z)
+            )
+            maximum = Vector3.new(
+                math.max(maximum.X, point.X),
+                math.max(maximum.Y, point.Y),
+                math.max(maximum.Z, point.Z)
+            )
             return #points
         end
-        local function opticalDepth(x, y, back, bevelOffset)
-            local nx, ny = (x - width / 2) * 2 / width, (y - height / 2) * 2 / height
-            local sag = (nx * nx + ny * ny) * 0.5
-            if back then return depth + bulge + thick + bulge * 0.25 * (1 - sag) - bevelOffset end
-            return depth + bulge * sag + bevelOffset
-        end
-        local function ring(inset, scale, back, bevelOffset)
-            local indices = {}
-            local r = math.max(0.05, radius - inset)
-            local halfWidth, halfHeight = width / 2 - inset, height / 2 - inset
-            r = math.min(r, halfWidth * 0.99, halfHeight * 0.99)
-            local function point(x, y)
-                x, y = width / 2 + x * scale, height / 2 - y * scale
-                indices[#indices + 1] = add(x, y, opticalDepth(x, y, back, bevelOffset))
-            end
+
+        -- Build the exact rounded-rectangle perimeter, then scale that contour
+        -- toward the center for interior lens rings. The outermost ring remains
+        -- pixel-perfect with the UI while inner rings form a smooth lens.
+        local boundary = {}
+        do
+            local r = math.max(0.05, radius)
+            local halfWidth, halfHeight = width / 2, height / 2
             for quadrant = 0, 3 do
                 local sx = (quadrant == 0 or quadrant == 3) and 1 or -1
                 local sy = quadrant < 2 and 1 or -1
                 local cx, cy = sx * (halfWidth - r), sy * (halfHeight - r)
-                for step = 0, segments - 1 do
+                for step = 0, segments do
                     local theta = (quadrant + step / segments) * math.pi / 2
-                    point(cx + r * math.cos(theta), cy + r * math.sin(theta))
+                    boundary[#boundary + 1] = Vector2.new(
+                        width / 2 + cx + r * math.cos(theta),
+                        height / 2 - cy - r * math.sin(theta)
+                    )
                 end
-                -- Subdivide straight edges as well as corners. A perimeter-
-                -- only fan would leave huge flat triangles through the pane.
-                local theta = (quadrant + 1) * math.pi / 2
-                local ax, ay = cx + r * math.cos(theta), cy + r * math.sin(theta)
-                local nextQuadrant = (quadrant + 1) % 4
-                local nextSX = (nextQuadrant == 0 or nextQuadrant == 3) and 1 or -1
-                local nextSY = nextQuadrant < 2 and 1 or -1
-                local bx = nextSX * (halfWidth - r) + r * math.cos(theta)
-                local by = nextSY * (halfHeight - r) + r * math.sin(theta)
-                for step = 0, edgeSegments - 1 do
-                    local alpha = step / edgeSegments
-                    point(ax + (bx - ax) * alpha, ay + (by - ay) * alpha)
-                end
+            end
+        end
+
+        local function ringScaled(scale, zDepth)
+            local indices = {}
+            for _, p2 in ipairs(boundary) do
+                local x = width / 2 + (p2.X - width / 2) * scale
+                local y = height / 2 + (p2.Y - height / 2) * scale
+                indices[#indices + 1] = add(x, y, zDepth)
             end
             ringIndices[#ringIndices + 1] = indices
         end
-        -- A genuinely curved front/back lens, with interior rings and broad
-        -- rounded rim, replaces the old almost entirely coplanar glass slab.
-        for step = 1, surfaceRings do ring(bevel, step / surfaceRings, false, 0) end
-        for step = 1, bevelSteps do
-            local theta = step / bevelSteps * math.pi / 2
-            ring(bevel * (1 - math.sin(theta)), 1, false, bevelDepth * (1 - math.cos(theta)))
+
+        -- The curvature amount is based on the pane's projected world size,
+        -- not pixels, so it remains visually similar across resolutions.
+        local projectedWidth = math.abs(right - left) * depth
+        local projectedHeight = math.abs(top - bottom) * depth
+        local projectedMin = math.max(math.min(projectedWidth, projectedHeight), 0.001)
+        local bulge = projectedMin * lensStrength
+
+        -- Keep the front surface safely in front of the camera and avoid an
+        -- excessively deep lens on very large windows.
+        bulge = math.min(
+            bulge,
+            projectedMin * 0.18,
+            depth * 0.20
+        )
+
+        local rearBulge = bulge * backCurve
+
+        local function profile(scale)
+            -- Cosine profile has a flat tangent at both center and edge.
+            -- Raising it above 1 concentrates a little more optical power
+            -- through the middle without producing a hard ridge.
+            local c = math.cos(math.clamp(scale, 0, 1) * math.pi * 0.5)
+            return math.pow(math.max(c, 0), curvePower)
         end
-        for step = bevelSteps, 0, -1 do
-            local theta = step / bevelSteps * math.pi / 2
-            ring(bevel * (1 - math.sin(theta)), 1, true, bevelDepth * (1 - math.cos(theta)))
+
+        -- Front convex surface: center is closer to the camera than the edge.
+        for step = 1, lensRings do
+            local scale = step / lensRings
+            ringScaled(scale, depth - bulge * profile(scale))
         end
-        for step = surfaceRings - 1, 1, -1 do ring(bevel, step / surfaceRings, true, 0) end
-        local frontCenter = add(width / 2, height / 2, opticalDepth(width / 2, height / 2, false, 0))
-        local backCenter = add(width / 2, height / 2, opticalDepth(width / 2, height / 2, true, 0))
+
+        -- A small inward waist replaces the old 5px-only bevel. It gives the
+        -- edge a genuine glass thickness while the main refraction now comes
+        -- from the curved front/back surfaces.
+        local halfMin = math.max(math.min(width, height) * 0.5, 1)
+        local edgeLip = math.clamp((bevel / halfMin) * 0.72, 0.004, 0.055)
+        local waistScale = 1 - edgeLip
+        ringScaled(waistScale, depth + thick * 0.30)
+        ringScaled(waistScale, depth + thick * 0.70)
+
+        -- Back edge returns to the exact UI contour.
+        ringScaled(1, depth + thick)
+
+        -- Back convex surface: use a slightly weaker curve so the pane behaves
+        -- like a polished liquid lens rather than a thick magnifying bubble.
+        for step = lensRings - 1, 1, -1 do
+            local scale = step / lensRings
+            ringScaled(scale, depth + thick + rearBulge * profile(scale))
+        end
+
+        local frontCenter = add(width / 2, height / 2, depth - bulge)
+        local backCenter = add(width / 2, height / 2, depth + thick + rearBulge)
+
         local center, size = (minimum + maximum) / 2, maximum - minimum
-        -- Fixed normalized bounds avoid rebuilding mesh/collision assets.
+
+        -- Normalized bounds remain [-.5,.5] on every update. MeshPart.Size
+        -- therefore maps the same linked EditableMesh onto new window sizes
+        -- without recreating the MeshPart every frame.
         for i, point in ipairs(points) do
             local v = point - center
-            points[i] = Vector3.new(v.X / size.X, v.Y / size.Y, v.Z / size.Z)
+            points[i] = Vector3.new(
+                v.X / math.max(size.X, 0.000001),
+                v.Y / math.max(size.Y, 0.000001),
+                v.Z / math.max(size.Z, 0.000001)
+            )
         end
-        return points, ringIndices, frontCenter, backCenter, center, size
-    end
 
-    local function meshNormals(points, size)
-        local sums = {}
-        for i = 1, #points do sums[i] = Vector3.new(0, 0, 0) end
-        for _, tri in ipairs(triangles) do
-            local a, b, c = points[tri[1]], points[tri[2]], points[tri[3]]
-            local ab, ac = b - a, c - a
-            -- Sum triangle area normals in physical space. Doing this in the
-            -- normalized cube would bias normals toward its artificial axes.
-            ab = Vector3.new(ab.X * size.X, ab.Y * size.Y, ab.Z * size.Z)
-            ac = Vector3.new(ac.X * size.X, ac.Y * size.Y, ac.Z * size.Z)
-            local normal = ab:Cross(ac)
-            for _, index in ipairs(tri) do sums[index] = sums[index] + normal end
-        end
-        for i, normal in ipairs(sums) do
-            -- The renderer applies inverse-transpose Part.Size to normals.
-            -- Store the inverse mapping so its resulting world normal is the
-            -- physically correct area-weighted one, despite nonuniform scale.
-            normal = Vector3.new(normal.X * size.X, normal.Y * size.Y, normal.Z * size.Z)
-            if normal.Magnitude < 1e-12 then error("Degenerate optical surface normal.") end
-            sums[i] = normal.Unit
-        end
-        return sums
+        return points, ringIndices, frontCenter, backCenter, center, size
     end
 
     local function buildMesh(p)
         local points, ringIndices, frontCenter, backCenter, center, size = makeGeometry(p)
         mesh = AssetService:CreateEditableMesh()
         if not mesh then error("CreateEditableMesh returned nil (client editable-mesh memory budget exhausted).") end
-        local function triangle(a, b, c) triangles[#triangles + 1] = {a, b, c} end
-        for i = 1, perimeterCount do
-            local j = i % perimeterCount + 1
-            triangle(frontCenter, ringIndices[1][i], ringIndices[1][j])
-            triangle(backCenter, ringIndices[#ringIndices][j], ringIndices[#ringIndices][i])
-            for k = 1, #ringIndices - 1 do
-                local a, b, c, d = ringIndices[k][i], ringIndices[k + 1][i], ringIndices[k + 1][j], ringIndices[k][j]
-                triangle(a, b, c)
-                triangle(a, c, d)
-            end
-        end
-        local directions = meshNormals(points, size)
         for i, point in ipairs(points) do
             vertices[i] = mesh:AddVertex(point)
-            normals[i] = mesh:AddNormal(directions[i])
+            normals[i] = mesh:AddNormal()
         end
-        for _, tri in ipairs(triangles) do
-            local a, b, c = tri[1], tri[2], tri[3]
+        local function face(a, b, c)
             local id = mesh:AddTriangle(vertices[a], vertices[b], vertices[c])
             mesh:SetFaceNormals(id, {normals[a], normals[b], normals[c]})
+        end
+        rings = ringIndices
+        for i = 1, perimeterCount do
+            local j = i % perimeterCount + 1
+            face(frontCenter, rings[1][i], rings[1][j])
+            face(backCenter, rings[#rings][j], rings[#rings][i])
+            for k = 1, #rings - 1 do
+                local a, b, c, d = rings[k][i], rings[k + 1][i], rings[k + 1][j], rings[k][j]
+                face(a, b, c)
+                face(a, c, d)
+            end
         end
         part = AssetService:CreateMeshPartAsync(Content.fromObject(mesh), {
             CollisionFidelity = Enum.CollisionFidelity.Box,
             RenderFidelity = Enum.RenderFidelity.Precise,
         })
         if not part then error("CreateMeshPartAsync did not return a MeshPart.") end
-        part.Name = "XHanUI_RealLiquidGlass"
+        part.Name = "XHanUI_RealLiquidGlass_1"
         part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery = true, false, false, false
         part.CastShadow, part.DoubleSided = false, false
         part.Material, part.Color = Enum.Material.Glass, tint
         part.Transparency, part.Reflectance = transparency, reflectance
         part.Size = size
+
+        glassLayers = {part}
+
+        -- Reuse the same curved mesh in a few ultra-thin optical shells.
+        -- Each later shell is clearer so stacking strengthens displacement
+        -- without recreating the old grey/black overlay look.
+        for layerIndex = 2, refractionLayers do
+            local layer = part:Clone()
+            layer.Name = "XHanUI_RealLiquidGlass_" .. tostring(layerIndex)
+            layer.Transparency = math.clamp(
+                transparency + 0.10 + (layerIndex - 2) * 0.055,
+                0.20,
+                0.95
+            )
+            layer.Reflectance = reflectance * 0.55
+            layer.Parent = nil
+            glassLayers[#glassLayers + 1] = layer
+        end
+
         localCenter = center
         lastProjection = p
     end
 
     local function updateGeometry(p)
         local points, _, _, _, center, size = makeGeometry(p)
-        local directions = meshNormals(points, size)
         for i, point in ipairs(points) do
             mesh:SetPosition(vertices[i], point)
-            mesh:SetNormal(normals[i], directions[i])
         end
-        part.Size = size
+        for _, layer in ipairs(glassLayers) do
+            if layer then layer.Size = size end
+        end
         localCenter = center
         lastProjection = p
     end
@@ -18567,9 +18889,32 @@ return function(WindUI, Window, Options)
         local projection, why = cameraProjection(camera)
         if not projection then hide(); setState("Hidden", why); return end
         if different(projection, lastProjection) then updateGeometry(projection) end
-        part.CFrame = camera.CFrame * CFrame.new(localCenter)
-        part.Transparency = 1 - (1 - transparency) * projection[11]
-        if part.Parent ~= camera then part.Parent = camera end
+
+        for layerIndex, layer in ipairs(glassLayers) do
+            local offset = (layerIndex - 1) * layerGap
+            layer.CFrame = camera.CFrame * CFrame.new(
+                localCenter + Vector3.new(0, 0, -offset)
+            )
+
+            local baseTransparency
+            if layerIndex == 1 then
+                baseTransparency = transparency
+            else
+                baseTransparency = math.clamp(
+                    transparency + 0.10 + (layerIndex - 2) * 0.055,
+                    0.20,
+                    0.95
+                )
+            end
+
+            layer.Transparency =
+                1 - (1 - baseTransparency) * projection[11]
+
+            if layer.Parent ~= camera then
+                layer.Parent = camera
+            end
+        end
+
         setState("Ready")
     end
 
@@ -18578,9 +18923,20 @@ return function(WindUI, Window, Options)
         lastProjection = nil
         -- Move a visible pane immediately, before the old camera can be
         -- destroyed along with its descendants. Hidden panes stay unparented.
-        if part and part.Parent and not controller.Destroyed then
-            local ok, err = pcall(function() part.Parent = Workspace.CurrentCamera end)
-            if not ok then fail("Failed", "Camera replacement failed: " .. tostring(err)) end
+        if not controller.Destroyed then
+            local ok, err = pcall(function()
+                local camera = Workspace.CurrentCamera
+                if camera then
+                    for _, layer in ipairs(glassLayers) do
+                        if layer and layer.Parent then
+                            layer.Parent = camera
+                        end
+                    end
+                end
+            end)
+            if not ok then
+                fail("Failed", "Camera replacement failed: " .. tostring(err))
+            end
         end
     end)
     -- Bootstrap a unit-screen projection even while the opening animation has
@@ -18589,7 +18945,11 @@ return function(WindUI, Window, Options)
     local success, failure = pcall(function() buildMesh(initial) end)
     if not success then
         if controller.Destroyed then
-            if part then part:Destroy(); part = nil end
+            for _, layer in ipairs(glassLayers) do
+                pcall(function() layer:Destroy() end)
+            end
+            table.clear(glassLayers)
+            part = nil
             if mesh then mesh:Destroy(); mesh = nil end
             return controller
         end
@@ -18600,7 +18960,11 @@ return function(WindUI, Window, Options)
     end
     -- The API above can yield; the window may have been destroyed meanwhile.
     if controller.Destroyed or Window.Destroyed or root.Parent == nil then
-        if part then part:Destroy(); part = nil end
+        for _, layer in ipairs(glassLayers) do
+            pcall(function() layer:Destroy() end)
+        end
+        table.clear(glassLayers)
+        part = nil
         if mesh then mesh:Destroy(); mesh = nil end
         controller:Destroy()
         return controller
@@ -18617,6 +18981,99 @@ return function(WindUI, Window, Options)
 end
 
 end)();
+
+
+-- Standalone native RealGlass attachment helper for popup GuiObjects.
+-- This build intentionally has no ScreenCapture/EditableImage mobile fallback.
+function aa.AttachLiquidGlassToGui(selfOrGui,maybeGui,maybeOptions)
+    local gui,options
+    if typeof(selfOrGui)=="Instance" then
+        gui=selfOrGui
+        options=maybeGui
+    else
+        gui=maybeGui
+        options=maybeOptions
+    end
+
+    if not gui or not gui:IsA("GuiObject") then
+        return nil
+    end
+
+    options=type(options)=="table" and options or {}
+
+    local fakeWindow={
+        UIElements={Main=gui},
+        Destroyed=false,
+        Closed=false,
+        UICorner=tonumber(options.CornerRadius) or 16,
+    }
+
+    local controller=__XHanRealGlass(aa,fakeWindow,options)
+
+    if gui.Destroying then
+        gui.Destroying:Connect(function()
+            fakeWindow.Destroyed=true
+            if controller and type(controller.Destroy)=="function" then
+                pcall(function() controller:Destroy() end)
+            end
+        end)
+    end
+
+    return controller
+end
+
+
+-- Liquid-glass notifications.
+-- The native notification module still owns timing/animation; this wrapper
+-- only attaches/detaches a RealGlass pane to the actual notification card.
+local __XHanNotifyWithoutGlass=aa.Notify
+
+function aa.Notify(selfOrOptions,maybeOptions)
+    local options
+    if maybeOptions~=nil then
+        options=maybeOptions
+    else
+        options=selfOrOptions
+    end
+
+    local notification=__XHanNotifyWithoutGlass(
+        aa,
+        options
+    )
+
+    if notification
+        and notification.__XHanGlassFrame
+        and notification.__XHanGlassFrame.Parent then
+
+        local ok,controller=pcall(function()
+            return aa:AttachLiquidGlassToGui(
+                notification.__XHanGlassFrame,
+                {
+                    Enabled=true,
+                    CornerRadius=
+                        (aa.Window and aa.Window.UICorner)
+                        or 16,
+                    Transparency=0.72,
+                    Thickness=0.072,
+                    LensStrength=0.19,
+                    BackCurve=0.90,
+                    CurvePower=1.38,
+                    LensRings=9,
+                    RefractionLayers=2,
+                    LayerGap=0.008,
+                    Reflectance=0.045,
+                    Tint=Color3.fromRGB(247,251,255),
+                }
+            )
+        end)
+
+        if ok and controller then
+            notification.LiquidGlass=controller
+        end
+    end
+
+    return notification
+end
 
 local __XHanOriginalCreateWindow=aa.CreateWindow
 
@@ -18740,14 +19197,8 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
     end
 
     function window:GetLiquidGlassStatus()
-        if self.LiquidGlass then
-            local status=self.LiquidGlass:GetStatus()
-            status.Build="RealGlass-V2-CurvedLens"
-            return status
-        end
-        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,
-            Backend="EditableMesh/Glass",Build="RealGlass-V2-CurvedLens",RefractionVerified=false,
-            MobileRefractionSupported=false,ScreenGuiRefractionSupported=false}
+        if self.LiquidGlass then return self.LiquidGlass:GetStatus() end
+        return {State="Disabled",Status="Disabled",Enabled=false,Supported=false,Backend="EditableMesh/Glass"}
     end
 
     function window:SetLiquidGlassEnabled(enabled)
@@ -18761,19 +19212,6 @@ function aa.CreateWindow(selfOrConfig,maybeConfig)
         elseif self.LiquidGlass then
             self.LiquidGlass:SetEnabled(false)
             setLegacyGlassLayersHidden(false)
-        end
-        return self:GetLiquidGlassStatus()
-    end
-
-    function window:SetLiquidGlassOptics(values)
-        if type(values)~="table" then error("LiquidGlass optics must be a table",2) end
-        if self.Destroyed then return self:GetLiquidGlassStatus() end
-        if self.LiquidGlass then
-            self.LiquidGlass:SetOptics(values)
-        else
-            for _,key in ipairs({"Bulge","Thickness","Bevel","Transparency","Reflectance","Tint","Distance","CornerRadius"}) do
-                if values[key]~=nil then glassOptions[key]=values[key] end
-            end
         end
         return self:GetLiquidGlassStatus()
     end
@@ -18856,110 +19294,6 @@ function aa:GetShadowExpansion()
         return nil
     end
     return self.Window:GetShadowExpansion()
-end
-
-
--- Own only this library instance. Never search CoreGui/PlayerGui by generic names.
-do
-    local marker="XHanUI.RealGlass.Managed.v2"
-    local guiKeys={"ScreenGui","NotificationGui","DropdownGui","TooltipGui"}
-
-    local function isOwned(library, allowLegacy)
-        if type(library)~="table" or library.LibraryName~="XHanUI" then return false end
-        if library.__RealGlassLifecycle==marker then return true end
-        return allowLegacy and type(library.Window)=="table"
-            and type(library.Window.LiquidGlass)=="table"
-    end
-
-    local function dispose(library)
-        if library.__RealGlassDisposed then return end
-        library.__RealGlassDisposed=true
-        local window=library.Window
-        local main=type(window)=="table" and window.UIElements and window.UIElements.Main
-        -- Hide first; no animated/asynchronous Window:Destroy() can overlap a new UI.
-        for _,key in ipairs(guiKeys) do
-            local gui=library[key]
-            if gui then pcall(function() gui.Enabled=false end) end
-        end
-        if main then pcall(function() main.Visible=false end) end
-        if type(library.ToggleAcrylic)=="function" then
-            pcall(library.ToggleAcrylic,library,false)
-        end
-        if type(window)=="table" then
-            window.Closed=true
-            window.Destroyed=true
-            window.IsOpenButtonEnabled=false
-        end
-
-        local destroyed={}
-        local function destroy(object)
-            if not object or destroyed[object] then return end
-            destroyed[object]=true
-            pcall(function()
-                if type(object.Destroy)=="function" then object:Destroy() end
-            end)
-        end
-        if type(window)=="table" then
-            destroy(window.LiquidGlass)
-            destroy(window.DynamicIsland)
-            destroy(window.FeatureList)
-            if window.AcrylicPaint then
-                destroy(window.AcrylicPaint.Model)
-                destroy(window.AcrylicPaint.Frame)
-            end
-            destroy(window.OpenButtonMain)
-        end
-        destroy(library.DynamicIsland)
-        destroy(library.FeatureList)
-        destroy(main)
-        for _,key in ipairs(guiKeys) do destroy(library[key]) end
-
-        local creator=library.Creator
-        if type(creator)=="table" then
-            -- The legacy DisconnectAll mutates its array while iterating; drain
-            -- every exact registered connection before invoking that plain function.
-            if type(creator.Signals)=="table" then
-                for _,connection in pairs(creator.Signals) do
-                    pcall(function() connection:Disconnect() end)
-                end
-                table.clear(creator.Signals)
-            end
-            if type(creator.DisconnectAll)=="function" then
-                pcall(creator.DisconnectAll)
-            end
-        end
-        -- An old callback must never clear the handle of a newer loaded library.
-        if _G.__XHanRealGlassLibrary==library then
-            _G.__XHanRealGlassLibrary=nil
-        end
-    end
-
-    local function claim()
-        if aa.__RealGlassDisposed then
-            error("XHanUI: this library instance was replaced; use the newly loaded library.",2)
-        end
-        local previous=_G.__XHanRealGlassLibrary
-        if previous~=aa and isOwned(previous,false) then dispose(previous) end
-        -- V1 full scripts exported this exact library handle before the registry
-        -- existed. Standalone V1 loads without an exported handle are not guessed.
-        local legacy=_G.SyntaxNextUI
-        if legacy~=aa and legacy~=previous and isOwned(legacy,true) then dispose(legacy) end
-        _G.__XHanRealGlassLibrary=aa
-    end
-
-    aa.__RealGlassLifecycle=marker
-    function aa:DisposeRealGlassLibrary()
-        dispose(aa)
-    end
-
-    local createWindow=aa.CreateWindow
-    function aa.CreateWindow(selfOrConfig,maybeConfig)
-        local config=maybeConfig~=nil and maybeConfig or selfOrConfig
-        -- Let the library report an invalid config without retiring another UI.
-        if type(config)=="table" then claim() end
-        return createWindow(selfOrConfig,maybeConfig)
-    end
-    claim()
 end
 
 return aa
