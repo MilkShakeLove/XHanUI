@@ -1256,7 +1256,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
   xhan.root.Visible=true;xhan.paint:begin()
     local mode=display=="BloomFlow" and "BloomFlow" or "None";local bloom=mode=="BloomFlow";local colors=st["XHan Colors"] or "Starlight"
   local strength=(st["XHan Shadow Strength"] or 78)/100;local size=st["XHan Text size"] or 15
-    local rowH=math.max(st["XHan Row height"] or 22,size+4);if bloom then rowH=math.max(18,rowH-3) end
+     local rowH=bloom and math.max(size+2,(st["XHan Row height"] or 22)-3) or size+2
    local gap=0;local extra=0
   local allowed=st["XHan Categories"] or categoryOrder;local candidates={}
   for order,def in ipairs(options.Modules or {}) do
@@ -1304,7 +1304,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    for i,item in ipairs(candidates) do
     local offset=(item.width+8)*(1-item.progress)
     item.drawX=right-item.width*q+offset*q;item.drawY=top+item.y*q
-    item.drawW=item.width*q;item.drawH=rowH*q;item.edgeH=math.max(0,item.contribution*rowH*q)
+     item.drawW=item.width*q;item.drawH=rowH*q;item.edgeH=math.max(0,item.contribution*rowH*q)
     item.topColor=bloom and flowingColor(colors,0,flowPeriod,((i-1)/total)*.92) or nil
     item.bottomColor=bloom and flowingColor(colors,0,flowPeriod,(i/total)*.92) or nil
     item.color=bloom and flowingColor(colors,0,flowPeriod,((i-.5)/total)*.92) or flowingColor(colors,i,st["XHan Flow speed"] or 3)
@@ -1314,7 +1314,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     -- The uploaded XHanUI's BloomFlow has no row gap: one gradient field and
     -- a continuous outer staircase, with no horizontal lines inside the list.
     for _,item in ipairs(candidates) do
-     local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH
+      local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH+q
      if h>.5 and item.alpha>.001 then
       local fade=item.alpha
       if st["XHan Glow"]~=false then
@@ -1334,7 +1334,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
      p:gradient(x,y,w,h,first,last,.94*fade,0)
     end
     for i,item in ipairs(candidates) do
-     local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH
+      local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH+q
      local fade=item.alpha;local line=math.min(2*q,h)
      if h>.5 then
       edge(x,y,line,h,item.topColor,item.bottomColor,fade)
