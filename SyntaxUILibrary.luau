@@ -869,7 +869,8 @@ function UI.new(options)
   assert(type(m.id)=="string" and not state[m.id],"Unique module id required")
   local values={};local settingNames={}
   for _,s in ipairs(m.settings or {}) do assert(not settingNames[s.name],"Duplicate setting");settingNames[s.name]=true;values[s.name]=copy(s.default) end
-  state[m.id]={enabled=m.enabled==true,key="Unknown",settings=values}
+  state[m.id]={enabled=m.id=="ClickGUI" and visible or m.enabled==true,
+   key=m.id=="ClickGUI" and (m.key or "N") or (m.key or "Unknown"),settings=values}
   rows[m.id]={def=m,expanded=false,reveal=0,enabled=m.enabled and 1 or 0,hover=0,animations={}}
  end
  local function selectedTheme() local s=state.ClickGUI;if s and palettes[s.settings["Opai Color"]] then return s.settings["Opai Color"] end;return theme end
@@ -951,6 +952,7 @@ function UI.new(options)
  function api:GetState() return {version=3,theme=selectedTheme(),appearance=api:GetAppearance(),hudLayout=copy(hudPlacements),modules=copy(state)} end
  function api:SetEnabled(id,value)
   assert(state[id] and type(value)=="boolean","Invalid module")
+  if id=="ClickGUI" then self:SetVisible(value);return end
   if state[id].enabled==value then return end
   state[id].enabled=value;notify(id,"enabled",value)
   if postNotice and id~="HUD" then postNotice("module:"..id,"Module Toggled",rows[id].def.name.." has been ","toggle",value,.8) end
@@ -965,7 +967,9 @@ function UI.new(options)
   assert(type(value)=="boolean");visible=value;if value then hudEditing=false;hudDrag=nil end;drag=nil;sliding=nil;binding=nil;dropdown=nil;gesture=nil;touch=nil;editor:ReleaseFocus();jsonEditor:ReleaseFocus()
   appearanceOpen=false;appearanceSliding=nil
   if value then opened=os.clock() end
+  if state.ClickGUI and state.ClickGUI.enabled~=value then state.ClickGUI.enabled=value;notify("ClickGUI","enabled",value) end
  end
+ api.ClickGUIController=true
  function api:ApplyState(snapshot)
   if type(snapshot)~="table" or (snapshot.version~=1 and snapshot.version~=2 and snapshot.version~=3) or type(snapshot.modules)~="table" then return false,"Invalid configuration" end
    snapshot=copy(snapshot)
@@ -1014,6 +1018,7 @@ function UI.new(options)
   local notifications={}
   for id,incoming in pairs(snapshot.modules) do state[id].enabled=incoming.enabled;state[id].key=incoming.key or "Unknown";notifications[#notifications+1]={id,"enabled",incoming.enabled};for name,value in pairs(incoming.settings) do if state[id].settings[name]~=nil then state[id].settings[name]=copy(value);notifications[#notifications+1]={id,name,value} end end end
   if snapshot.hudLayout then hudPlacements=copy(snapshot.hudLayout) end
+  if snapshot.modules.ClickGUI then self:SetVisible(snapshot.modules.ClickGUI.enabled) end
   if snapshot.theme then self:SetTheme(snapshot.theme) end
    if state.HUD and state.HUD.settings["Island Shadow Strength"]~=nil then islandShadow=state.HUD.settings["Island Shadow Strength"] end
    if incomingAppearance then self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
@@ -1397,7 +1402,7 @@ function UI.new(options)
     local cx,cy=xx+249,yy+12;if row.nlExpanded then line(content,cx-3,cy-1.5,cx,cy+1.5,0x65717A,1.4);line(content,cx,cy+1.5,cx+3,cy-1.5,0x65717A,1.4) else line(content,cx-1.5,cy-3,cx+1.5,cy,0x65717A,1.4);line(content,cx+1.5,cy,cx-1.5,cy+3,0x65717A,1.4) end;altHit(rect(202+xx,84+yy,256,28),"nlHeader",row,cr)
     altHit(rect(202+xx+189,84+yy+3,48,18),"bind",row,cr)
     content:box(xx+6,yy+24,250,1,0x222425,1)
-    local entries={};if not row.def.hidden then entries[#entries+1]={name="Enabled",type="enabled"} end;for _,s in ipairs(settings) do entries[#entries+1]=s end
+    local entries={};if not row.def.hidden then entries[#entries+1]={name="Enabled",label=row.def.id=="ClickGUI" and "主 UI" or "Enabled",type="enabled"} end;for _,s in ipairs(settings) do entries[#entries+1]=s end
     for i,s in ipairs(entries) do local ry=yy+28+(i-1)*29;local rr=rect(202+xx,84+ry,256,29)
      if intersection(rr,sectionClip).h>0 then
       local value=s.type=="enabled" and st.enabled or st.settings[s.name];local bool=s.type=="toggle" or s.type=="enabled"
@@ -1614,7 +1619,10 @@ function UI.new(options)
   elseif a=="altLoad" then config.selected=d;local ok,err=api:ApplyState(config.values[d]);message(ok and "Loaded" or err);return
   elseif a=="altUpdate" then config.selected=d;config.values[d]=api:GetState();message("Saved");return
   elseif a=="altDelete" then config.values[d]=nil;if config.selected==d then config.selected=nil end;configNames();return
-  elseif a=="nlHeader" then d.nlExpanded=not d.nlExpanded;dropdown=nil;return
+  elseif a=="nlHeader" then
+   if d.def.id=="ClickGUI" and button==0 then api:SetVisible(not visible)
+   else d.nlExpanded=not d.nlExpanded;dropdown=nil end
+   return
   elseif a=="bind" then binding=d;dropdown=nil;return
   elseif a=="altDrag" and button==0 then drag={kind="alternate",dx=x-alt.x,dy=y-alt.y};return
   elseif a=="altScrollbar" and button==0 then drag={kind="altScrollbar"};alt.target=math.clamp(((y-alt.y)/alt.s-84)/516,0,1)*alt.max;return
@@ -2361,12 +2369,13 @@ local function drawArrayList(dt,view,factor,st,p)
   if kind==Enum.UserInputType.Keyboard then
    if Input:GetFocusedTextBox() then return end
    if binding then state[binding.def.id].key=(key==Enum.KeyCode.Escape or key==Enum.KeyCode.Backspace) and "Unknown" or key.Name;notify(binding.def.id,"key",state[binding.def.id].key);binding=nil;return end
+   if state.ClickGUI and state.ClickGUI.key~="Unknown" and key.Name==state.ClickGUI.key then api:SetVisible(not visible);return end
    if key==Enum.KeyCode.F7 then if visible then appearanceOpen=not appearanceOpen;dropdown=nil end;return end
    if key==Enum.KeyCode.F8 then api:SetDiagnostics(not diagnostic);return end
    if key==Enum.KeyCode.F and activeStyle~="Opai" and (Input:IsKeyDown(Enum.KeyCode.LeftControl) or Input:IsKeyDown(Enum.KeyCode.RightControl)) then searchBox:CaptureFocus();return end
    if key==Enum.KeyCode.RightShift then api:SetVisible(not visible);return end
    if key==Enum.KeyCode.Escape and visible then if appearanceOpen then appearanceOpen=false;appearanceSliding=nil;accentBox:ReleaseFocus() elseif dropdown then dropdown=nil elseif config.open then config.open=false else api:SetVisible(false) end;return end
-   if not processed then for id,st in pairs(state) do if st.key~="Unknown" and st.key==key.Name then api:SetEnabled(id,not st.enabled) end end end
+   if not processed then for id,st in pairs(state) do if id~="ClickGUI" and st.key~="Unknown" and st.key==key.Name then api:SetEnabled(id,not st.enabled) end end end
   end
  end)
  connect(Input.InputChanged,function(input)
