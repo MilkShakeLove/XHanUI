@@ -10,7 +10,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={}
+local UI={ArrayLayoutVersion="2026-10-11.1"}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -799,11 +799,14 @@ function UI.new(options)
    local stroke=o:FindFirstChild("Stroke");if stroke then stroke.Enabled=false end
    return o
   end
-  function p:text(s,x,centerY,size,w,c,plain,align)
+  function p:text(s,x,centerY,size,w,c,plain,align,rowParent)
    if w<=0 then return end
    self.ti+=1;local o=self.texts[self.ti]
    if not o then o=new("TextLabel",self.parent,{BackgroundTransparency=1,TextTruncate=Enum.TextTruncate.AtEnd,TextYAlignment=Enum.TextYAlignment.Center});self.texts[self.ti]=o end
     local scale=self.drawScale
+    -- A pooled label may have belonged to a different ArrayList row last frame.
+    local textParent=rowParent or self.parent
+    if o.Parent~=textParent then o.Parent=textParent end
       o.Visible=true;o.RichText=false;o.Text=self.independent and tostring(s) or localize(tostring(s));o.TextScaled=false;o.TextWrapped=false;o.TextTruncate=Enum.TextTruncate.AtEnd;o.TextYAlignment=Enum.TextYAlignment.Center;o.AutomaticSize=Enum.AutomaticSize.None;o.Position=UDim2.fromOffset((x+(self.offsetX or 0))*scale,(centerY-size+(self.offsetY or 0))*scale);o.Size=UDim2.fromOffset(w*scale,size*2*scale);o.TextSize=self.fixedText and math.max(1,math.round(size*scale)) or size*scale;o.Font=self.fontOverride or opaiFont(plain);o.TextColor3=rgb(c);o.TextTransparency=1-(self.independent and 1 or opacity)*self.alpha;o.TextXAlignment=align or Enum.TextXAlignment.Left;self.zi+=1;o.ZIndex=self.zi
    return o
   end
@@ -869,8 +872,7 @@ function UI.new(options)
   assert(type(m.id)=="string" and not state[m.id],"Unique module id required")
   local values={};local settingNames={}
   for _,s in ipairs(m.settings or {}) do assert(not settingNames[s.name],"Duplicate setting");settingNames[s.name]=true;values[s.name]=copy(s.default) end
-  state[m.id]={enabled=m.id=="ClickGUI" and visible or m.enabled==true,
-   key=m.id=="ClickGUI" and (m.key or "N") or (m.key or "Unknown"),settings=values}
+  state[m.id]={enabled=m.enabled==true,key="Unknown",settings=values}
   rows[m.id]={def=m,expanded=false,reveal=0,enabled=m.enabled and 1 or 0,hover=0,animations={}}
  end
  local function selectedTheme() local s=state.ClickGUI;if s and palettes[s.settings["Opai Color"]] then return s.settings["Opai Color"] end;return theme end
@@ -952,7 +954,6 @@ function UI.new(options)
  function api:GetState() return {version=3,theme=selectedTheme(),appearance=api:GetAppearance(),hudLayout=copy(hudPlacements),modules=copy(state)} end
  function api:SetEnabled(id,value)
   assert(state[id] and type(value)=="boolean","Invalid module")
-  if id=="ClickGUI" then self:SetVisible(value);return end
   if state[id].enabled==value then return end
   state[id].enabled=value;notify(id,"enabled",value)
   if postNotice and id~="HUD" then postNotice("module:"..id,"Module Toggled",rows[id].def.name.." has been ","toggle",value,.8) end
@@ -967,9 +968,7 @@ function UI.new(options)
   assert(type(value)=="boolean");visible=value;if value then hudEditing=false;hudDrag=nil end;drag=nil;sliding=nil;binding=nil;dropdown=nil;gesture=nil;touch=nil;editor:ReleaseFocus();jsonEditor:ReleaseFocus()
   appearanceOpen=false;appearanceSliding=nil
   if value then opened=os.clock() end
-  if state.ClickGUI and state.ClickGUI.enabled~=value then state.ClickGUI.enabled=value;notify("ClickGUI","enabled",value) end
  end
- api.ClickGUIController=true
  function api:ApplyState(snapshot)
   if type(snapshot)~="table" or (snapshot.version~=1 and snapshot.version~=2 and snapshot.version~=3) or type(snapshot.modules)~="table" then return false,"Invalid configuration" end
    snapshot=copy(snapshot)
@@ -1018,7 +1017,6 @@ function UI.new(options)
   local notifications={}
   for id,incoming in pairs(snapshot.modules) do state[id].enabled=incoming.enabled;state[id].key=incoming.key or "Unknown";notifications[#notifications+1]={id,"enabled",incoming.enabled};for name,value in pairs(incoming.settings) do if state[id].settings[name]~=nil then state[id].settings[name]=copy(value);notifications[#notifications+1]={id,name,value} end end end
   if snapshot.hudLayout then hudPlacements=copy(snapshot.hudLayout) end
-  if snapshot.modules.ClickGUI then self:SetVisible(snapshot.modules.ClickGUI.enabled) end
   if snapshot.theme then self:SetTheme(snapshot.theme) end
    if state.HUD and state.HUD.settings["Island Shadow Strength"]~=nil then islandShadow=state.HUD.settings["Island Shadow Strength"] end
    if incomingAppearance then self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
@@ -1402,7 +1400,7 @@ function UI.new(options)
     local cx,cy=xx+249,yy+12;if row.nlExpanded then line(content,cx-3,cy-1.5,cx,cy+1.5,0x65717A,1.4);line(content,cx,cy+1.5,cx+3,cy-1.5,0x65717A,1.4) else line(content,cx-1.5,cy-3,cx+1.5,cy,0x65717A,1.4);line(content,cx+1.5,cy,cx-1.5,cy+3,0x65717A,1.4) end;altHit(rect(202+xx,84+yy,256,28),"nlHeader",row,cr)
     altHit(rect(202+xx+189,84+yy+3,48,18),"bind",row,cr)
     content:box(xx+6,yy+24,250,1,0x222425,1)
-    local entries={};if not row.def.hidden then entries[#entries+1]={name="Enabled",label=row.def.id=="ClickGUI" and "主 UI" or "Enabled",type="enabled"} end;for _,s in ipairs(settings) do entries[#entries+1]=s end
+    local entries={};if not row.def.hidden then entries[#entries+1]={name="Enabled",type="enabled"} end;for _,s in ipairs(settings) do entries[#entries+1]=s end
     for i,s in ipairs(entries) do local ry=yy+28+(i-1)*29;local rr=rect(202+xx,84+ry,256,29)
      if intersection(rr,sectionClip).h>0 then
       local value=s.type=="enabled" and st.enabled or st.settings[s.name];local bool=s.type=="toggle" or s.type=="enabled"
@@ -1619,10 +1617,7 @@ function UI.new(options)
   elseif a=="altLoad" then config.selected=d;local ok,err=api:ApplyState(config.values[d]);message(ok and "Loaded" or err);return
   elseif a=="altUpdate" then config.selected=d;config.values[d]=api:GetState();message("Saved");return
   elseif a=="altDelete" then config.values[d]=nil;if config.selected==d then config.selected=nil end;configNames();return
-  elseif a=="nlHeader" then
-   if d.def.id=="ClickGUI" and button==0 then api:SetVisible(not visible)
-   else d.nlExpanded=not d.nlExpanded;dropdown=nil end
-   return
+  elseif a=="nlHeader" then d.nlExpanded=not d.nlExpanded;dropdown=nil;return
   elseif a=="bind" then binding=d;dropdown=nil;return
   elseif a=="altDrag" and button==0 then drag={kind="alternate",dx=x-alt.x,dy=y-alt.y};return
   elseif a=="altScrollbar" and button==0 then drag={kind="altScrollbar"};alt.target=math.clamp(((y-alt.y)/alt.s-84)/516,0,1)*alt.max;return
@@ -1843,8 +1838,9 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
  function api:SetModuleSuffix(id,value) assert(rows[id],"Unknown module");assert(value==nil or type(value)=="string");suffixOverrides[id]=value end
  local function arraySpring(s,target,dt,rate,immediate)
   if target~=s.target then if immediate then s.velocity=rate*(target-s.value) end;s.target=target end
-   local offset=s.value-s.target;local linear=s.velocity+rate*offset;local decay=math.exp(-rate*dt)
+  local offset=s.value-s.target;local linear=s.velocity+rate*offset;local decay=math.exp(-rate*math.max(0,dt))
   s.value=s.target+(offset+linear*dt)*decay;s.velocity=(s.velocity-rate*linear*dt)*decay
+  if math.abs(s.value-target)<.001 and math.abs(s.velocity)<.05 then s.value=target;s.velocity=0 end
   return math.clamp(s.value,0,1)
  end
  local arrayTextCache={};local arrayTextCount=0
@@ -1870,6 +1866,30 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
 
    -- XHan's original None presentation, with Opai spring motion.
  local xhan={buttons={},entries={},widths={},queue={},working=false,widthCount=0}
+ -- Opacity, clipping and occupied height share one presence value. An invisible
+ -- exiting row must not keep a slower, independent spacer in the stack.
+ function xhan.updatePresence(item,target,dt)
+  item.enabled=target
+  if not animations then item.motion=spring(target and 1 or 0) end
+  item.progress=arraySpring(item.motion,target and 1 or 0,dt,25,true)
+  item.alpha=item.progress;item.contribution=item.progress
+  return target or item.progress>0
+ end
+ function xhan.pixel(value) return math.floor(value+.5) end
+ -- Round shared boundaries, never each row's Y and height independently.
+ -- This keeps adjacent frames, backgrounds and click targets touching even
+ -- at fractional HUD scales, while zero-pixel animation rows draw nothing.
+ function xhan.stackRows(items,rowHeight,scale,top)
+  local origin=xhan.pixel(top);local boundary=origin;local occupied=0;local visibleRows={}
+  for _,item in ipairs(items) do
+   occupied+=item.contribution*rowHeight*scale
+   local nextBoundary=xhan.pixel(top+occupied)
+   item.drawY=boundary;item.drawH=nextBoundary-boundary
+   if item.drawH>0 then visibleRows[#visibleRows+1]=item end
+   boundary=nextBoundary
+  end
+  return visibleRows,boundary-origin
+ end
  xhan.root=new("Frame",hudRoot,{Name="StarlightArrayList",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=7000,Visible=false,Active=false})
  xhan.paint=pool(xhan.root,true)
  xhan.controls=new("Frame",xhan.root,{Name="Rows",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=5000})
@@ -1907,15 +1927,9 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
   for order,def in ipairs(options.Modules or {}) do
    local id=def.id;local row=rows[id];local target=state[id].enabled and not def.hidden and table.find(allowed,def.category)~=nil
    local item=xhan.entries[id]
-    if target and not item then item={id=id,enabled=false,motion=spring(0),occupied=spring(0),changedAt=-100};xhan.entries[id]=item end
+    if target and not item then item={id=id,enabled=false,motion=spring(0)};xhan.entries[id]=item end
    if item then
-     local now=os.clock()
-     if item.enabled~=target then item.enabled=target;item.changedAt=now end
-     if not animations then item.motion=spring(target and 1 or 0);item.occupied=spring(target and 1 or 0) end
-     item.progress=arraySpring(item.motion,target and 1 or 0,dt,25,false)
-     item.contribution=arraySpring(item.occupied,(target or now-item.changedAt<.065) and 1 or 0,dt,12.7,true)
-     item.alpha=item.progress
-     if target or item.progress>.001 or item.contribution>.001 then
+     if xhan.updatePresence(item,target,dt) then
       item.name=def.name or displayName(id);item.suffix=st["XHan Show suffix"]~=false and moduleSuffix(row) or "";item.mode=item.suffix~="" and " "..item.suffix or ""
        item.nameWidth=xhanMeasure(item.name,size);item.modeWidth=xhanMeasure(item.mode,size);item.width=math.ceil(item.nameWidth+item.modeWidth+(bloom and 12 or 13)+extra);item.order=order
       candidates[#candidates+1]=item
@@ -1923,12 +1937,14 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    end
   end
   table.sort(candidates,function(a,b)
-   if math.abs(a.width-b.width)>.5 then return a.width>b.width end
-   if math.abs(a.nameWidth-b.nameWidth)>.5 then return a.nameWidth>b.nameWidth end
+   -- Exact ordering is transitive; epsilon comparisons can disagree when
+   -- asynchronous font measurements reorder several nearly equal widths.
+   if a.width~=b.width then return a.width>b.width end
+   if a.nameWidth~=b.nameWidth then return a.nameWidth>b.nameWidth end
    if a.name:lower()~=b.name:lower() then return a.name:lower()<b.name:lower() end;return a.order<b.order
   end)
    local occupied=0
-   for _,item in ipairs(candidates) do item.y=occupied;occupied+=item.contribution*(rowH+gap) end
+   for _,item in ipairs(candidates) do occupied+=item.contribution*rowH end
     local widest=#candidates>0 and candidates[1].width or 0;local listH=math.max(0,occupied-gap)
   -- Reference defaults are in pixels; Samsara HUDScale=2 maps to the original 15/22px typography.
   local q=factor/2*(hudPlacements.ArrayList and hudPlacements.ArrayList.scale or 1)
@@ -1936,14 +1952,17 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    q=math.min(q,(view.X-36)/math.max(1,widest),(view.Y-32)/fullHeight)
   local at=hudPlacements.ArrayList;local right=at and at.x+widest*q or view.X-18*q;local top=at and at.y or 28*q
   right=math.clamp(right,widest*q+2,math.max(widest*q+2,view.X-2));top=math.clamp(top,2,math.max(2,view.Y-listH*q-2))
-   arrayMetrics={mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,width=widest*q,height=listH*q,rows={}}
-  if #candidates>0 then hudBounds.ArrayList=rect(right-widest*q,top,widest*q,listH*q) end
+   local pixelHeight
+   candidates,pixelHeight=xhan.stackRows(candidates,rowH,q,top)
+   top=xhan.pixel(top)
+   arrayMetrics={mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,width=widest*q,height=pixelHeight,rows={}}
+  if #candidates>0 then hudBounds.ArrayList=rect(right-widest*q,top,widest*q,pixelHeight) end
   local p=xhan.paint
   for _,item in pairs(xhan.entries) do if item.clip then item.clip.Visible=false end end
   local textClip
   local function text(value,x,y,w,color,alpha)
    if value=="" then return end
-   local label=p:text(value,x,y,size*q,w*q+1,color,false,Enum.TextXAlignment.Right)
+   local label=p:text(value,x,y,size*q,w*q+1,color,false,Enum.TextXAlignment.Right,textClip)
    if label then
     if textClip then label.Parent=textClip;label.Position=UDim2.fromOffset(x-textClip.Position.X.Offset,y-size*q-textClip.Position.Y.Offset) end
     if xhan.font then label.FontFace=xhan.font end;label.TextTransparency=1-alpha
@@ -1953,8 +1972,8 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     local flowPeriod=math.max(.5,st["XHan Flow speed"] or 3)
    for i,item in ipairs(candidates) do
     local offset=(item.width+8)*(1-item.progress)
-    item.drawX=right-item.width*q+offset*q;item.drawY=top+item.y*q
-     item.drawW=item.width*q;item.drawH=math.max(0,item.contribution*rowH*q);item.edgeH=item.drawH
+    item.drawW=math.max(1,xhan.pixel(item.width*q))
+    item.drawX=xhan.pixel(right+offset*q)-item.drawW;item.edgeH=item.drawH
     item.topColor=bloom and flowingColor(colors,0,flowPeriod,((i-1)/total)*.92) or nil
     item.bottomColor=bloom and flowingColor(colors,0,flowPeriod,(i/total)*.92) or nil
     item.color=bloom and flowingColor(colors,0,flowPeriod,((i-.5)/total)*.92) or flowingColor(colors,i,st["XHan Flow speed"] or 3)
@@ -2043,63 +2062,67 @@ local function drawArrayList(dt,view,factor,st,p)
   local font=opai and Enum.Font.GothamBold or Enum.Font.GothamMedium;local size=opai and 9.08 or 8;local candidates={}
   for id,row in pairs(rows) do
    local item=arrayEntries[id]
-   if not item then item={id=id,motion=spring(0),occupied=spring(0),enabled=false,changedAt=-100};arrayEntries[id]=item end
-   local label=displayName(id);local suffix=showSuffix and moduleSuffix(row) or ""
+   if not item then item={id=id,motion=spring(0),enabled=false};arrayEntries[id]=item end
+   local label=row.def.name or displayName(id);local suffix=showSuffix and moduleSuffix(row) or ""
    if lower then label=label:lower();suffix=suffix:lower() end
    item.name=label;item.suffix=suffix;item.font=font;item.nameWidth=arrayMeasure(label,size,font);item.gap=suffix~="" and arrayMeasure(" ",size,font) or 0
    item.text=label..(suffix~="" and " "..suffix or "");item.width=opai and (3+item.nameWidth+item.gap+arrayMeasure(suffix,size,font)+2+1) or arrayMeasure(item.text,size,font)
    item.target=state[id].enabled and not row.def.hidden and table.find(allowed,row.def.category)~=nil;candidates[#candidates+1]=item
   end
   table.sort(candidates,function(a,b)if a.width==b.width then return a.id<b.id end;return a.width>b.width end)
-  local occupied=0;local visible={};local now=os.clock()
+  local occupied=0;local visible={}
   for _,item in ipairs(candidates) do
-   if item.enabled~=item.target then item.enabled=item.target;item.changedAt=now end
-   if not animations then item.motion=spring(item.enabled and 1 or 0);item.occupied=spring(item.enabled and 1 or 0) end
-   item.progress=arraySpring(item.motion,item.enabled and 1 or 0,dt,25,false)
-   item.contribution=arraySpring(item.occupied,(item.enabled or now-item.changedAt<.065) and 1 or 0,dt,12.7,true)
-   item.y=occupied
-   if item.enabled or item.progress>.001 or item.contribution>.001 then visible[#visible+1]=item;occupied+=item.contribution*12 end
+   if xhan.updatePresence(item,item.target,dt) then
+    visible[#visible+1]=item;occupied+=item.contribution*12
+   end
   end
   for _,item in pairs(arrayEntries) do if item.clip then item.clip.Visible=false end end
-  local function rowText(item,...)
-   local label=widgets:text(...)
-   if label then label.Parent=item.clip;label.Position=UDim2.fromOffset(label.Position.X.Offset-item.clip.Position.X.Offset,label.Position.Y.Offset-item.clip.Position.Y.Offset) end
+  local function rowText(item,value,x,y,size,w,color,plain,align)
+   local label=widgets:text(value,x,y,size,w,color,plain,align,item.clip)
+   if label then
+    label.Parent=item.clip;label.Position=UDim2.fromOffset(label.Position.X.Offset-item.clip.Position.X.Offset,label.Position.Y.Offset-item.clip.Position.Y.Offset)
+    label.TextTransparency=1-(1-label.TextTransparency)*item.alpha
+   end
    return label
   end
   local scale=factor*(hudPlacements.ArrayList and hudPlacements.ArrayList.scale or 1)
   local widest=#visible>0 and visible[1].width or 0;local at=hudPlacements.ArrayList
+  scale=math.min(scale,(view.X-4)/math.max(1,widest+8),(view.Y-4)/math.max(1,#visible*12))
   local right=at and at.x+widest*scale or (view.X-(opai and .5*scale or 0));local top=at and at.y or 0
   right=math.clamp(right,widest*scale+1,math.max(widest*scale+1,view.X));top=math.clamp(top,0,math.max(0,view.Y-occupied*scale))
-  arrayMetrics={mode=opai and "Opai" or "Default",rows={},width=widest*scale,height=occupied*scale}
-  if #visible>0 then hudBounds.ArrayList=rect(math.max(0,right-widest*scale),top,widest*scale,math.max(12,occupied)*scale) end
+  local pixelHeight
+  visible,pixelHeight=xhan.stackRows(visible,12,scale,top)
+  top=xhan.pixel(top)
+  arrayMetrics={mode=opai and "Opai" or "Default",rows={},width=widest*scale,height=pixelHeight}
+  if #visible>0 then hudBounds.ArrayList=rect(math.max(0,right-widest*scale),top,widest*scale,pixelHeight) end
   local background=st[opai and "Opai Background" or "Background"]~=false
   for i,item in ipairs(visible) do
-    item.x=right-item.width*scale+(item.width+8)*(1-item.progress)*scale;item.py=top+item.y*scale
-    item.slotHeight=item.contribution*12*scale
+    item.x=right-item.width*scale+(item.width+8)*(1-item.progress)*scale
+    item.py=item.drawY;item.slotHeight=item.drawH
     if not item.clip then item.clip=new("Frame",widgetRoot,{Name=item.id.."ArraySlot",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=100}) end
     item.clip.Visible=true;item.clip.Position=UDim2.fromOffset(item.x-7*scale,item.py);item.clip.Size=UDim2.fromOffset((item.width+8)*scale,item.slotHeight)
    item.radius=math.min(5,math.max(0,item.width-(visible[i+1] and visible[i+1].width or 0)))
-   arrayMetrics.rows[i]={id=item.id,name=item.name,suffix=item.suffix,x=item.x,y=item.py,width=item.width*scale,progress=item.progress,contribution=item.contribution,radius=item.radius}
+   arrayMetrics.rows[i]={id=item.id,name=item.name,suffix=item.suffix,x=item.x,y=item.py,width=item.width*scale,height=item.slotHeight,alpha=item.alpha,enabled=item.enabled,progress=item.progress,contribution=item.contribution,radius=item.radius}
   end
   if opai then
    if st["Opai Shadow"]~=false then
-    for _,item in ipairs(visible) do for layer=3,1,-1 do local spread=layer*1.7*scale;widgets:box(item.x-spread,item.py-spread,item.width*scale+spread*2,item.slotHeight+spread*2,0x000000,.028,math.min(5,item.radius)*scale+spread) end end
+    for _,item in ipairs(visible) do for layer=3,1,-1 do local spread=layer*1.7*scale;widgets:box(item.x-spread,item.py-spread,item.width*scale+spread*2,item.slotHeight+spread*2,0x000000,.028*item.alpha,math.min(5,item.radius)*scale+spread) end end
    end
-   if background then for _,item in ipairs(visible) do bottomLeftShape(item.x,item.py,item.width*scale,item.slotHeight,item.radius*scale,0x101010,.8) end end
+   if background then for _,item in ipairs(visible) do bottomLeftShape(item.x,item.py,item.width*scale,item.slotHeight,item.radius*scale,0x101010,.8*item.alpha) end end
    for _,item in ipairs(visible) do
-    local label=rowText(item,item.name,item.x+3*scale,item.py+6*scale,9.08*scale,item.nameWidth*scale+1,0xFFFFFF);if label then label.Font=font end
-    if item.suffix~="" then local label=rowText(item,item.suffix,item.x+(3+item.nameWidth+item.gap)*scale,item.py+6*scale,9.08*scale,math.max(1,(item.width-6-item.nameWidth-item.gap)*scale+1),p.accent);if label then label.Font=font end end
+    local label=rowText(item,item.name,item.x+3*scale,item.py+item.slotHeight/2,9.08*scale,item.nameWidth*scale+1,0xFFFFFF);if label then label.Font=font end
+    if item.suffix~="" then local label=rowText(item,item.suffix,item.x+(3+item.nameWidth+item.gap)*scale,item.py+item.slotHeight/2,9.08*scale,math.max(1,(item.width-6-item.nameWidth-item.gap)*scale+1),p.accent);if label then label.Font=font end end
    end
-   if st["Opai Right line"]~=false then for _,item in ipairs(visible) do widgets:box(item.x+(item.width-1)*scale,item.py,scale,item.slotHeight,p.accent,1,0) end end
+   if st["Opai Right line"]~=false then for _,item in ipairs(visible) do widgets:box(item.x+(item.width-1)*scale,item.py,scale,item.slotHeight,p.accent,item.alpha,0) end end
   else
    local bar=st["Bar mode"] or "Left"
    for i,item in ipairs(visible) do
     local color=clientColor((i-1)*20);local x,y=item.x,item.py;local w=item.width*scale
-    if background then widgets:box(x-6.5*scale,y,w+6.5*scale,item.slotHeight,0x090909,.5,0) end
-    if bar~="None" then local bx=bar=="Left" and x-4.5*scale or x+w-2.5*scale;widgets:box(bx+.5*scale,y+2.5*scale,scale,math.max(0,math.min(8*scale,item.slotHeight-2.5*scale)),0x000000,.55,scale);widgets:box(bx,y+2*scale,scale,math.max(0,math.min(8*scale,item.slotHeight-2*scale)),color,1,scale) end
+    if background then widgets:box(x-6.5*scale,y,w+6.5*scale,item.slotHeight,0x090909,.5*item.alpha,0) end
+    if bar~="None" then local bx=bar=="Left" and x-4.5*scale or x+w-2.5*scale;widgets:box(bx+.5*scale,y+2.5*scale,scale,math.max(0,math.min(8*scale,item.slotHeight-2.5*scale)),0x000000,.55*item.alpha,scale);widgets:box(bx,y+2*scale,scale,math.max(0,math.min(8*scale,item.slotHeight-2*scale)),color,item.alpha,scale) end
     local offset=bar=="Left" and 2 or bar=="None" and 3.5 or 4.25
-    rowText(item,item.text,x-offset*scale+.5*scale,y+6.5*scale+.5*scale,8*scale,w+1,0x000000)
-    rowText(item,item.text,x-offset*scale,y+6.5*scale,8*scale,w+1,color)
+    rowText(item,item.text,x-offset*scale+.5*scale,y+item.slotHeight/2+.5*scale,8*scale,w+1,0x000000)
+    rowText(item,item.text,x-offset*scale,y+item.slotHeight/2,8*scale,w+1,color)
    end
   end
  end
@@ -2369,13 +2392,12 @@ local function drawArrayList(dt,view,factor,st,p)
   if kind==Enum.UserInputType.Keyboard then
    if Input:GetFocusedTextBox() then return end
    if binding then state[binding.def.id].key=(key==Enum.KeyCode.Escape or key==Enum.KeyCode.Backspace) and "Unknown" or key.Name;notify(binding.def.id,"key",state[binding.def.id].key);binding=nil;return end
-   if state.ClickGUI and state.ClickGUI.key~="Unknown" and key.Name==state.ClickGUI.key then api:SetVisible(not visible);return end
    if key==Enum.KeyCode.F7 then if visible then appearanceOpen=not appearanceOpen;dropdown=nil end;return end
    if key==Enum.KeyCode.F8 then api:SetDiagnostics(not diagnostic);return end
    if key==Enum.KeyCode.F and activeStyle~="Opai" and (Input:IsKeyDown(Enum.KeyCode.LeftControl) or Input:IsKeyDown(Enum.KeyCode.RightControl)) then searchBox:CaptureFocus();return end
    if key==Enum.KeyCode.RightShift then api:SetVisible(not visible);return end
    if key==Enum.KeyCode.Escape and visible then if appearanceOpen then appearanceOpen=false;appearanceSliding=nil;accentBox:ReleaseFocus() elseif dropdown then dropdown=nil elseif config.open then config.open=false else api:SetVisible(false) end;return end
-   if not processed then for id,st in pairs(state) do if id~="ClickGUI" and st.key~="Unknown" and st.key==key.Name then api:SetEnabled(id,not st.enabled) end end end
+   if not processed then for id,st in pairs(state) do if st.key~="Unknown" and st.key==key.Name then api:SetEnabled(id,not st.enabled) end end end
   end
  end)
  connect(Input.InputChanged,function(input)
