@@ -115,6 +115,619 @@ local function destroyRegionalBlur(pane)
   pane.mesh=nil;pane.camera=nil
  pane.active=false
 end
+local function createSyntaxTargetHUD(parent)
+    local TweenService = game:GetService("TweenService")
+    local host = new("Frame", parent, {Name="EditableTargetHUD", BackgroundTransparency=1,
+        Size=UDim2.fromOffset(292,76), Visible=false, ZIndex=40})
+    local layoutScale = new("UIScale", host, {Scale=1})
+local TargetHud = Instance.new("Frame")
+TargetHud.Name = "TargetHud"
+TargetHud.AnchorPoint = Vector2.new(0.5, 0.5)
+TargetHud.Position = UDim2.fromScale(0.5, 0.5)
+TargetHud.Size = UDim2.fromOffset(292, 76)
+TargetHud.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TargetHud.BackgroundTransparency = 1
+TargetHud.BorderSizePixel = 0
+TargetHud.ClipsDescendants = false
+TargetHud.Visible = false
+TargetHud.ZIndex = 50
+TargetHud.Parent = host
+
+local TargetHudCorner = Instance.new("UICorner")
+TargetHudCorner.CornerRadius = UDim.new(0, 18)
+TargetHudCorner.Parent = TargetHud
+
+local TargetHudStroke = Instance.new("UIStroke")
+TargetHudStroke.Color = Color3.fromRGB(255, 255, 255)
+TargetHudStroke.Transparency = 1
+TargetHudStroke.Thickness = 1
+TargetHudStroke.Parent = TargetHud
+
+local TargetHudGradient = Instance.new("UIGradient")
+TargetHudGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(55, 56, 62)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 25, 29)),
+})
+TargetHudGradient.Rotation = 8
+TargetHudGradient.Transparency = NumberSequence.new(1)
+TargetHudGradient.Parent = TargetHud
+
+-- Transparent TargetHUD body: only a soft shadow remains behind the content.
+local TargetHudShadow = Instance.new("ImageLabel")
+TargetHudShadow.Name = "Shadow"
+TargetHudShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+TargetHudShadow.Position = UDim2.fromScale(0.5, 0.5)
+TargetHudShadow.Size = UDim2.new(1, 54, 1, 48)
+TargetHudShadow.BackgroundTransparency = 1
+TargetHudShadow.Image = "rbxassetid://104482361987216"
+TargetHudShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+TargetHudShadow.ImageTransparency = 0.42
+TargetHudShadow.ScaleType = Enum.ScaleType.Stretch
+TargetHudShadow.ZIndex = 49
+TargetHudShadow.Parent = TargetHud
+
+local TargetHudScale = Instance.new("UIScale")
+TargetHudScale.Scale = 0.94
+TargetHudScale.Parent = TargetHud
+
+local TargetHudDamageFlash = Instance.new("Frame")
+TargetHudDamageFlash.Name = "DamageFlash"
+TargetHudDamageFlash.Size = UDim2.fromScale(1, 1)
+TargetHudDamageFlash.BackgroundColor3 = Color3.fromRGB(255, 70, 85)
+TargetHudDamageFlash.BackgroundTransparency = 1
+TargetHudDamageFlash.BorderSizePixel = 0
+TargetHudDamageFlash.ZIndex = 51
+TargetHudDamageFlash.Parent = TargetHud
+
+local TargetHudDamageCorner = Instance.new("UICorner")
+TargetHudDamageCorner.CornerRadius = UDim.new(0, 18)
+TargetHudDamageCorner.Parent = TargetHudDamageFlash
+
+local TargetAvatarHolder = Instance.new("Frame")
+TargetAvatarHolder.Name = "AvatarHolder"
+TargetAvatarHolder.Position = UDim2.fromOffset(10, 10)
+TargetAvatarHolder.Size = UDim2.fromOffset(56, 56)
+TargetAvatarHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TargetAvatarHolder.BackgroundTransparency = 0.86
+TargetAvatarHolder.BorderSizePixel = 0
+TargetAvatarHolder.ZIndex = 52
+TargetAvatarHolder.ClipsDescendants = true
+TargetAvatarHolder.Parent = TargetHud
+
+local TargetAvatarCorner = Instance.new("UICorner")
+TargetAvatarCorner.CornerRadius = UDim.new(0, 14)
+TargetAvatarCorner.Parent = TargetAvatarHolder
+
+local TargetAvatar = Instance.new("ImageLabel")
+TargetAvatar.Name = "Avatar"
+TargetAvatar.Size = UDim2.fromScale(1, 1)
+TargetAvatar.BackgroundTransparency = 1
+TargetAvatar.ScaleType = Enum.ScaleType.Crop
+TargetAvatar.Image = ""
+TargetAvatar.ZIndex = 53
+TargetAvatar.Parent = TargetAvatarHolder
+
+local TargetAvatarInitial = Instance.new("TextLabel")
+TargetAvatarInitial.Name = "Initial"
+TargetAvatarInitial.Size = UDim2.fromScale(1, 1)
+TargetAvatarInitial.BackgroundTransparency = 1
+TargetAvatarInitial.Text = "?"
+TargetAvatarInitial.TextColor3 = Color3.fromRGB(245, 245, 248)
+TargetAvatarInitial.TextSize = 24
+TargetAvatarInitial.Font = Enum.Font.GothamBold
+TargetAvatarInitial.ZIndex = 52
+TargetAvatarInitial.Parent = TargetAvatarHolder
+
+local TargetName = Instance.new("TextLabel")
+TargetName.Name = "TargetName"
+TargetName.Position = UDim2.fromOffset(76, 11)
+TargetName.Size = UDim2.new(1, -88, 0, 24)
+TargetName.BackgroundTransparency = 1
+TargetName.Text = "Name: --"
+TargetName.TextColor3 = Color3.fromRGB(245, 245, 248)
+TargetName.TextTransparency = 0.02
+TargetName.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+TargetName.TextStrokeTransparency = 0.48
+TargetName.TextSize = 14
+TargetName.Font = Enum.Font.GothamMedium
+TargetName.TextXAlignment = Enum.TextXAlignment.Left
+TargetName.TextTruncate = Enum.TextTruncate.AtEnd
+TargetName.ZIndex = 52
+TargetName.Parent = TargetHud
+
+-- Colored glow follows the CURRENT health width.
+local TargetHealthGlowHolder = Instance.new("Frame")
+TargetHealthGlowHolder.Name = "HealthGlowHolder"
+TargetHealthGlowHolder.Position = UDim2.fromOffset(76, 43)
+TargetHealthGlowHolder.Size = UDim2.new(1, -126, 0, 11)
+TargetHealthGlowHolder.BackgroundTransparency = 1
+TargetHealthGlowHolder.BorderSizePixel = 0
+TargetHealthGlowHolder.ClipsDescendants = false
+TargetHealthGlowHolder.ZIndex = 50
+TargetHealthGlowHolder.Parent = TargetHud
+
+local TargetHealthGlowOuter = Instance.new("ImageLabel")
+TargetHealthGlowOuter.Name = "OuterGlow"
+TargetHealthGlowOuter.AnchorPoint = Vector2.new(0.5, 0.5)
+TargetHealthGlowOuter.Position = UDim2.fromScale(0.5, 0.5)
+TargetHealthGlowOuter.Size = UDim2.new(1, 26, 1, 24)
+TargetHealthGlowOuter.BackgroundTransparency = 1
+TargetHealthGlowOuter.Image = "rbxassetid://104490578391522"
+TargetHealthGlowOuter.ImageColor3 = Color3.fromRGB(255, 255, 255)
+TargetHealthGlowOuter.ImageTransparency = 0.34
+TargetHealthGlowOuter.ScaleType = Enum.ScaleType.Stretch
+TargetHealthGlowOuter.ZIndex = 50
+TargetHealthGlowOuter.Parent = TargetHealthGlowHolder
+
+local TargetHealthGlowOuterGradient = Instance.new("UIGradient")
+TargetHealthGlowOuterGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 239, 169)),
+    ColorSequenceKeypoint.new(0.52, Color3.fromRGB(199, 247, 199)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 229, 255)),
+})
+TargetHealthGlowOuterGradient.Parent = TargetHealthGlowOuter
+
+local TargetHealthGlowInner = Instance.new("ImageLabel")
+TargetHealthGlowInner.Name = "InnerGlow"
+TargetHealthGlowInner.AnchorPoint = Vector2.new(0.5, 0.5)
+TargetHealthGlowInner.Position = UDim2.fromScale(0.5, 0.5)
+TargetHealthGlowInner.Size = UDim2.new(1, 16, 1, 14)
+TargetHealthGlowInner.BackgroundTransparency = 1
+TargetHealthGlowInner.Image = "rbxassetid://102472648910048"
+TargetHealthGlowInner.ImageColor3 = Color3.fromRGB(255, 255, 255)
+TargetHealthGlowInner.ImageTransparency = 0.16
+TargetHealthGlowInner.ScaleType = Enum.ScaleType.Stretch
+TargetHealthGlowInner.ZIndex = 51
+TargetHealthGlowInner.Parent = TargetHealthGlowHolder
+
+local TargetHealthGlowInnerGradient = Instance.new("UIGradient")
+TargetHealthGlowInnerGradient.Color = TargetHealthGlowOuterGradient.Color
+TargetHealthGlowInnerGradient.Parent = TargetHealthGlowInner
+
+local TargetHealthTrack = Instance.new("Frame")
+TargetHealthTrack.Name = "HealthTrack"
+TargetHealthTrack.Position = UDim2.fromOffset(76, 43)
+TargetHealthTrack.Size = UDim2.new(1, -126, 0, 11)
+TargetHealthTrack.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TargetHealthTrack.BackgroundTransparency = 0.90
+TargetHealthTrack.BorderSizePixel = 0
+TargetHealthTrack.ClipsDescendants = true
+TargetHealthTrack.ZIndex = 52
+TargetHealthTrack.Parent = TargetHud
+
+local TargetHealthTrackCorner = Instance.new("UICorner")
+TargetHealthTrackCorner.CornerRadius = UDim.new(1, 0)
+TargetHealthTrackCorner.Parent = TargetHealthTrack
+
+local TargetHealthLag = Instance.new("Frame")
+TargetHealthLag.Name = "HealthLag"
+TargetHealthLag.Size = UDim2.fromScale(1, 1)
+TargetHealthLag.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TargetHealthLag.BackgroundTransparency = 0.35
+TargetHealthLag.BorderSizePixel = 0
+TargetHealthLag.ZIndex = 53
+TargetHealthLag.Parent = TargetHealthTrack
+
+local TargetHealthLagCorner = Instance.new("UICorner")
+TargetHealthLagCorner.CornerRadius = UDim.new(1, 0)
+TargetHealthLagCorner.Parent = TargetHealthLag
+
+local TargetHealthFill = Instance.new("Frame")
+TargetHealthFill.Name = "HealthFill"
+TargetHealthFill.Size = UDim2.fromScale(1, 1)
+TargetHealthFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TargetHealthFill.BorderSizePixel = 0
+TargetHealthFill.ZIndex = 54
+TargetHealthFill.Parent = TargetHealthTrack
+
+local TargetHealthFillCorner = Instance.new("UICorner")
+TargetHealthFillCorner.CornerRadius = UDim.new(1, 0)
+TargetHealthFillCorner.Parent = TargetHealthFill
+
+local TargetHealthGradient = Instance.new("UIGradient")
+TargetHealthGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 240, 170)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 229, 255)),
+})
+TargetHealthGradient.Parent = TargetHealthFill
+
+local TargetHealthText = Instance.new("TextLabel")
+TargetHealthText.Name = "HealthText"
+TargetHealthText.AnchorPoint = Vector2.new(1, 0.5)
+TargetHealthText.Position = UDim2.new(1, -10, 0, 48)
+TargetHealthText.Size = UDim2.fromOffset(34, 22)
+TargetHealthText.BackgroundTransparency = 1
+TargetHealthText.Text = "--"
+TargetHealthText.TextColor3 = Color3.fromRGB(235, 238, 242)
+TargetHealthText.TextTransparency = 0.04
+TargetHealthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+TargetHealthText.TextStrokeTransparency = 0.50
+TargetHealthText.TextSize = 13
+TargetHealthText.Font = Enum.Font.GothamMedium
+TargetHealthText.TextXAlignment = Enum.TextXAlignment.Right
+TargetHealthText.ZIndex = 52
+TargetHealthText.Parent = TargetHud
+
+local TargetHudShown = false
+local TargetHudKey = nil
+local TargetHudLastHealth = nil
+local TargetHudLastRatio = 1
+local TargetHudPreviewUntil = 0
+local TargetHudPreviewKey = "__TARGETHUD_PREVIEW_V32__"
+local TargetHudBasePosition = TargetHud.Position
+local TargetHudAnimationSerial = 0
+local TargetHudScaleTween = nil
+local TargetHudFrameTween = nil
+
+local function CancelTargetHudAnimation()
+    if TargetHudScaleTween then
+        pcall(function()
+            TargetHudScaleTween:Cancel()
+        end)
+        TargetHudScaleTween = nil
+    end
+
+    if TargetHudFrameTween then
+        pcall(function()
+            TargetHudFrameTween:Cancel()
+        end)
+        TargetHudFrameTween = nil
+    end
+end
+
+local function TargetHudOffsetPosition(offsetY)
+    return UDim2.new(
+        TargetHudBasePosition.X.Scale,
+        TargetHudBasePosition.X.Offset,
+        TargetHudBasePosition.Y.Scale,
+        TargetHudBasePosition.Y.Offset + offsetY
+    )
+end
+
+local function SetTargetHudVisible(state, instant)
+    state = state == true
+
+    if not instant then
+        if state and TargetHudShown and TargetHud.Visible then
+            return
+        end
+
+        -- TargetHudShown becomes false as soon as the exit tween starts.
+        -- Ignore repeated RenderStepped hide requests until that tween ends.
+        if not state and not TargetHudShown then
+            return
+        end
+    end
+
+    TargetHudAnimationSerial += 1
+    local serial = TargetHudAnimationSerial
+
+    if instant then
+        CancelTargetHudAnimation()
+        TargetHudShown = state
+        TargetHud.Visible = state
+        TargetHud.Position = TargetHudBasePosition
+        TargetHud.Rotation = 0
+        TargetHudScale.Scale = state and 1 or 0.82
+        return
+    end
+
+    if state then
+        TargetHudShown = true
+        CancelTargetHudAnimation()
+
+        TargetHud.Visible = true
+        TargetHud.Position = TargetHudOffsetPosition(18)
+        TargetHud.Rotation = -1.5
+        TargetHudScale.Scale = 0.78
+
+        TargetHudScaleTween = TweenService:Create(
+            TargetHudScale,
+            TweenInfo.new(
+                0.24,
+                Enum.EasingStyle.Back,
+                Enum.EasingDirection.Out
+            ),
+            {Scale = 1}
+        )
+
+        TargetHudFrameTween = TweenService:Create(
+            TargetHud,
+            TweenInfo.new(
+                0.20,
+                Enum.EasingStyle.Quart,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Position = TargetHudBasePosition,
+                Rotation = 0,
+            }
+        )
+
+        TargetHudScaleTween:Play()
+        TargetHudFrameTween:Play()
+        return
+    end
+
+    TargetHudShown = false
+    CancelTargetHudAnimation()
+
+    TargetHudScaleTween = TweenService:Create(
+        TargetHudScale,
+        TweenInfo.new(
+            0.14,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.In
+        ),
+        {Scale = 0.82}
+    )
+
+    TargetHudFrameTween = TweenService:Create(
+        TargetHud,
+        TweenInfo.new(
+            0.14,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.In
+        ),
+        {
+            Position = TargetHudOffsetPosition(14),
+            Rotation = 1.2,
+        }
+    )
+
+    local hideTween = TargetHudFrameTween
+    TargetHudScaleTween:Play()
+    hideTween:Play()
+
+    task.spawn(function()
+        pcall(function()
+            hideTween.Completed:Wait()
+        end)
+
+        if serial == TargetHudAnimationSerial
+            and not TargetHudShown
+            and TargetHud
+            and TargetHud.Parent then
+
+            TargetHud.Visible = false
+            TargetHud.Position = TargetHudBasePosition
+            TargetHud.Rotation = 0
+            TargetHudScale.Scale = 0.78
+        end
+    end)
+end
+local function SetHealthGradient(ratio)
+    local sequence
+
+    if ratio <= 0.25 then
+        sequence = ColorSequence.new({
+            ColorSequenceKeypoint.new(
+                0,
+                Color3.fromRGB(255, 74, 109)
+            ),
+            ColorSequenceKeypoint.new(
+                0.5,
+                Color3.fromRGB(255, 113, 155)
+            ),
+            ColorSequenceKeypoint.new(
+                1,
+                Color3.fromRGB(255, 190, 208)
+            ),
+        })
+    elseif ratio <= 0.60 then
+        sequence = ColorSequence.new({
+            ColorSequenceKeypoint.new(
+                0,
+                Color3.fromRGB(255, 126, 187)
+            ),
+            ColorSequenceKeypoint.new(
+                0.52,
+                Color3.fromRGB(255, 196, 122)
+            ),
+            ColorSequenceKeypoint.new(
+                1,
+                Color3.fromRGB(255, 239, 151)
+            ),
+        })
+    else
+        sequence = ColorSequence.new({
+            ColorSequenceKeypoint.new(
+                0,
+                Color3.fromRGB(255, 221, 112)
+            ),
+            ColorSequenceKeypoint.new(
+                0.34,
+                Color3.fromRGB(137, 255, 173)
+            ),
+            ColorSequenceKeypoint.new(
+                0.68,
+                Color3.fromRGB(105, 226, 255)
+            ),
+            ColorSequenceKeypoint.new(
+                1,
+                Color3.fromRGB(180, 142, 255)
+            ),
+        })
+    end
+
+    TargetHealthGradient.Color = sequence
+    TargetHealthGlowOuterGradient.Color = sequence
+    TargetHealthGlowInnerGradient.Color = sequence
+end
+local function ShowTargetHudPreview()
+    if TargetHudKey ~= TargetHudPreviewKey then
+        TargetHudKey = TargetHudPreviewKey
+        TargetHudLastHealth = nil
+        TargetHudLastRatio = 1
+
+        TargetName.Text = "TargetHUD READY"
+        TargetAvatar.Image = ""
+        TargetAvatar.Visible = false
+        TargetAvatarInitial.Visible = true
+        TargetAvatarInitial.Text = "✓"
+        TargetHealthText.Text = "--"
+        TargetHealthFill.Size = UDim2.fromScale(1, 1)
+        TargetHealthLag.Size = UDim2.fromScale(1, 1)
+        TargetHealthGlowHolder.Size = UDim2.new(1, -126, 0, 11)
+        SetHealthGradient(1)
+    end
+
+    SetTargetHudVisible(true, false)
+end
+
+
+    local controller = {Host=host, LayoutScale=layoutScale, Frame=TargetHud, Current=nil}
+    function controller:Update(info)
+        if not info then SetTargetHudVisible(false);return end
+    local targetChanged =
+        TargetHudKey ~= info.Key
+
+    if targetChanged then
+        TargetHudKey = info.Key
+        TargetHudLastHealth = nil
+        TargetHudLastRatio = 1
+
+        TargetName.Text =
+            "Name: " .. tostring(info.Name or "--")
+
+        if info.Avatar then
+            TargetAvatar.Image = info.Avatar
+            TargetAvatar.Visible = true
+            TargetAvatarInitial.Visible = false
+        else
+            TargetAvatar.Image = ""
+            TargetAvatar.Visible = false
+            TargetAvatarInitial.Visible = true
+            TargetAvatarInitial.Text =
+                tostring(info.Initial or "?")
+        end
+
+    else
+        TargetName.Text =
+            "Name: " .. tostring(info.Name or "--")
+    end
+
+    local ratio = 1
+    local healthText = "--"
+
+    if info.Health ~= nil
+        and info.MaxHealth ~= nil then
+
+        ratio = math.clamp(
+            info.Health / math.max(info.MaxHealth, 1),
+            0,
+            1
+        )
+
+        healthText =
+            tostring(
+                math.max(
+                    0,
+                    math.floor(info.Health + 0.5)
+                )
+            )
+    end
+
+    TargetHealthText.Text = healthText
+
+    local ratioChanged =
+        targetChanged
+        or math.abs(ratio - TargetHudLastRatio) > 0.001
+
+    -- Do not allocate three new tweens every RenderStepped when health is
+    -- unchanged. This matters a lot in vehicle mode where target scanning is
+    -- already more expensive than player/NPC mode.
+    if ratioChanged then
+        SetHealthGradient(ratio)
+
+        local fillGoal =
+            UDim2.new(ratio, 0, 1, 0)
+
+        local glowGoal =
+            UDim2.new(
+                ratio,
+                -126 * ratio,
+                0,
+                11
+            )
+
+        TweenService:Create(
+            TargetHealthGlowHolder,
+            TweenInfo.new(
+                0.14,
+                Enum.EasingStyle.Quart,
+                Enum.EasingDirection.Out
+            ),
+            {Size = glowGoal}
+        ):Play()
+
+        TweenService:Create(
+            TargetHealthFill,
+            TweenInfo.new(
+                0.12,
+                Enum.EasingStyle.Quart,
+                Enum.EasingDirection.Out
+            ),
+            {Size = fillGoal}
+        ):Play()
+
+        TweenService:Create(
+            TargetHealthLag,
+            TweenInfo.new(
+                0.32,
+                Enum.EasingStyle.Quart,
+                Enum.EasingDirection.Out
+            ),
+            {Size = fillGoal}
+        ):Play()
+    end
+
+    if TargetHudLastHealth ~= nil
+        and info.Health ~= nil
+        and info.Health < TargetHudLastHealth - 0.01 then
+
+        TargetHudDamageFlash.BackgroundTransparency = 0.82
+
+        TweenService:Create(
+            TargetHudDamageFlash,
+            TweenInfo.new(
+                0.24,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {BackgroundTransparency = 1}
+        ):Play()
+
+        TargetHudScale.Scale = 1.025
+
+        TweenService:Create(
+            TargetHudScale,
+            TweenInfo.new(
+                0.18,
+                Enum.EasingStyle.Back,
+                Enum.EasingDirection.Out
+            ),
+            {Scale = 1}
+        ):Play()
+    end
+
+    if info.Health ~= nil then
+        TargetHudLastHealth = info.Health
+    end
+
+    TargetHudLastRatio = ratio
+    SetTargetHudVisible(true, false)
+end
+
+    function controller:Preview() ShowTargetHudPreview() end
+    function controller:Inspect()
+        return {Visible=host.Visible and TargetHud.Visible, HudParent=TargetHud.Parent,
+            HudAbsolutePosition=TargetHud.AbsolutePosition, HudAbsoluteSize=TargetHud.AbsoluteSize,
+            HudText=TargetName.Text}
+    end
+    return controller
+end
+
 function UI.new(options)
  options=options or {}
  for _,name in ipairs({"Scale","HUDScale"}) do local value=options[name];assert(value==nil or (type(value)=="number" and value==value and value>=.5 and value<=4),name.." must be between 0.5 and 4") end
@@ -335,7 +948,7 @@ function UI.new(options)
    return count==#v and (s.allowEmpty~=false or #v>0)
   end return false
  end
- function api:GetState() return {version=3,theme=selectedTheme(),appearance=api:GetAppearance(),modules=copy(state)} end
+ function api:GetState() return {version=3,theme=selectedTheme(),appearance=api:GetAppearance(),hudLayout=copy(hudPlacements),modules=copy(state)} end
  function api:SetEnabled(id,value)
   assert(state[id] and type(value)=="boolean","Invalid module")
   if state[id].enabled==value then return end
@@ -390,8 +1003,17 @@ function UI.new(options)
    if incomingAppearance.language~=nil and incomingAppearance.language~="English" and incomingAppearance.language~="中文" then return false,"Invalid language" end
     if incomingAppearance.accent~=nil and incomingAppearance.accent~=false and not parseAccent(incomingAppearance.accent) then return false,"Invalid accent" end
   end
+  if snapshot.hudLayout~=nil then
+   if type(snapshot.hudLayout)~="table" then return false,"Invalid HUD layout" end
+   for name,at in pairs(snapshot.hudLayout) do
+    if (name~="ArrayList" and name~="TargetHUD") or type(at)~="table" then return false,"Invalid HUD panel" end
+    for _,axis in ipairs({"x","y"}) do local v=at[axis];if type(v)~="number" or v~=v or math.abs(v)==math.huge then return false,"Invalid HUD position" end end
+    local s=at.scale or 1;if type(s)~="number" or s~=s or s<.5 or s>2 then return false,"Invalid HUD scale" end
+   end
+  end
   local notifications={}
   for id,incoming in pairs(snapshot.modules) do state[id].enabled=incoming.enabled;state[id].key=incoming.key or "Unknown";notifications[#notifications+1]={id,"enabled",incoming.enabled};for name,value in pairs(incoming.settings) do if state[id].settings[name]~=nil then state[id].settings[name]=copy(value);notifications[#notifications+1]={id,name,value} end end end
+  if snapshot.hudLayout then hudPlacements=copy(snapshot.hudLayout) end
   if snapshot.theme then self:SetTheme(snapshot.theme) end
    if state.HUD and state.HUD.settings["Island Shadow Strength"]~=nil then islandShadow=state.HUD.settings["Island Shadow Strength"] end
    if incomingAppearance then self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
@@ -729,14 +1351,14 @@ function UI.new(options)
     p:gradient(0,0,184,620,0x090A0A,0x0D0E0C,frost and .52 or .82,4);p:box(180,0,580,620,0x080808,frost and .48 or 1,4)
     if frost then p:gradient(182,1,576,63,0x2A3B4A,0x121A22,.17,3);p:stroke(0,0,760,620,0x51585C,.3,4,1) end
    p:box(180,0,1,620,0x242525,1);p:box(180,64,580,1,0x1C1D1D,1)
-  p:text("SYNTAX",18,35,24,160,0xF1FAFD)
+  p:text("SYNTAX",18,35,24,160,0x3A85E2)
   for i,name in ipairs({"Combat","Player","Visuals","Miscellaneous"}) do p:text(name,20,({79,183,287,355})[i],10.5,145,0x646B6D) end
   alt.selection=ease(alt.selection,navY[alt.nav],dt,30);p:box(10,alt.selection,160,29,0x3D3D3B,1,3)
   for i,name in ipairs(navNames) do categoryIcon(p,i,21,navY[i]+7.5,14,accentColor(0x3A85E2));p:text(name,47,navY[i]+14.5,12.5,115,i==alt.nav and 0xEDF3F5 or 0xBDC3C7);altHit(rect(10,navY[i],160,29),"altNav",i) end
    p:box(0,558,180,1,0x30322F,1);p:box(13,572,34,34,0x20323F,1,17)
    local avatarId=Players.LocalPlayer.UserId
    if avatarId and avatarId>0 then p:image("rbxthumb://type=AvatarHeadShot&id="..avatarId.."&w=150&h=150",13,572,34,34,17) end
-   p:text(options.Username or Players.LocalPlayer.DisplayName or "Player",57,581,12,113,0xEDF3F5);p:text("Syntax",57,597,10.5,113,accentColor(0x3A85E2))
+   p:text(options.Username or Players.LocalPlayer.DisplayName or "Player",57,581,12,113,0xEDF3F5);p:text("Syntax",57,597,10.5,113,0x3A85E2)
   styleField(p,rect(202,19,330,27),"",nil,nil);styleField(p,rect(544,19,70,27),"Save","altSave");styleField(p,rect(626,19,112,27),config.selected or "Preset","altConfigs")
   searchBox.Visible=true;searchBox.PlaceholderText="Press CTRL+F to search within GUI";searchBox.TextSize=12*alt.s;searchBox.TextColor3=rgb(0xBDC3C7);searchBox.PlaceholderColor3=rgb(0x697277);searchBox.Position=UDim2.fromOffset(alt.x+232*alt.s,alt.y+21*alt.s);searchBox.Size=UDim2.fromOffset(291*alt.s,23*alt.s)
   categoryIcon(p,1,211,26,11,0x677077)
@@ -763,10 +1385,10 @@ function UI.new(options)
    local ends={0,0}
    for _,row in ipairs(members) do
     local st=state[row.def.id];local settings={};for _,s in ipairs(row.def.settings or {}) do if condition(s.when,st.settings) then settings[#settings+1]=s end end
-    if row.nlExpanded==nil then row.nlExpanded=true;row.nlReveal=1 end
+    if row.nlExpanded==nil then row.nlExpanded=false;row.nlReveal=0 end
     row.nlReveal=ease(row.nlReveal,row.nlExpanded and 1 or 0,dt,30)
     local height=28+(29*(#settings+(row.def.hidden and 0 or 1)))*row.nlReveal
-    local col=alt.packing[row.def.id] or (ends[1]<=ends[2] and 1 or 2);alt.packing[row.def.id]=col;local xx=(col-1)*280;local yy=ends[col]-alt.scroll;ends[col]+=height+18
+    local col=alt.packing[row.def.id] or (ends[1]<=ends[2] and 1 or 2);alt.packing[row.def.id]=col;local xx=(col-1)*280;local yy=ends[col]-alt.scroll;ends[col]+=height+4
     local sectionClip=intersection(cr,rect(202+xx,84+yy,256,height))
       if not row.nlFrame then row.nlFrame=new("Frame",altBody,{Name=row.def.id.."Section",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=50});row.nlPool=pool(row.nlFrame);row.nlPool.fontOverride=opaiFont(false) end
     row.nlFrame.Visible=true;row.nlFrame.Position=UDim2.fromOffset(xx,yy);row.nlFrame.Size=UDim2.fromOffset(256,height)
@@ -1059,7 +1681,7 @@ function UI.new(options)
  local widgetRoot=new("Frame",hudRoot,{Name="Widgets",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=10})
  local widgets=pool(widgetRoot,true)
  local hudControls=new("Frame",hudRoot,{Name="HUDControls",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=5000})
-  local hudHint=new("TextButton",hudControls,{Name="Done",Text="HUD Editor · drag panels · Right Shift / click here to finish",Size=UDim2.fromOffset(430,32),Position=UDim2.new(.5,-215,1,-44),BackgroundColor3=rgb(0x1C1F29),TextColor3=rgb(0xE4E1E6),Font=opaiFont(false),TextSize=14,Visible=false,AutoButtonColor=false,ZIndex=100})
+  local hudHint=new("TextButton",hudControls,{Name="Done",Text="HUD Editor · drag / scroll to resize · click here to finish",Size=UDim2.fromOffset(430,32),Position=UDim2.new(.5,-215,1,-44),BackgroundColor3=rgb(0x1C1F29),TextColor3=rgb(0xE4E1E6),Font=opaiFont(false),TextSize=14,Visible=false,AutoButtonColor=false,ZIndex=100})
  connect(hudHint.Activated,function() api:SetVisible(true) end)
  function api:EditHUD() api:SetVisible(false);hudEditing=true;if state.HUD then state.HUD.enabled=true end end
  function api:GetHUDLayout() return copy(hudPlacements) end
@@ -1074,6 +1696,12 @@ function UI.new(options)
   x=math.clamp(at and at.x or x,2,math.max(2,view.X-w-2));y=math.clamp(at and at.y or y,2,math.max(2,view.Y-h-2))
   hudBounds[name]=rect(x,y,w,h);return x,y
  end
+ local targetHUD=createSyntaxTargetHUD(hudRoot)
+ function api:SetTargetHUD(info)
+  assert(info==nil or type(info)=="table","TargetHUD data must be a table or nil")
+  targetHUD.Current=info and copy(info)
+ end
+ function api:GetTargetHUDState() return targetHUD:Inspect() end
   local hudControlPriority={ArrayList=10,TargetHUD=40}
  local function updateHUDControls()
   hudHint.Visible=hudEditing
@@ -1194,6 +1822,15 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
  local arrayEntries={}
  local arrayMode
  local arrayMetrics={}
+ local function releaseArrayClip(item)
+  if not item.clip then return end
+  for _,child in ipairs(item.clip:GetChildren()) do child.Parent=item.clip.Parent;child.Visible=false end
+  item.clip:Destroy();item.clip=nil
+ end
+ local function clearArrayEntries(entries)
+  for _,item in pairs(entries) do releaseArrayClip(item) end
+  table.clear(entries)
+ end
  local suffixOverrides={}
  function api:SetModuleSuffix(id,value) assert(rows[id],"Unknown module");assert(value==nil or type(value)=="string");suffixOverrides[id]=value end
  local function arraySpring(s,target,dt,rate,immediate)
@@ -1274,7 +1911,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
       item.name=def.name or displayName(id);item.suffix=st["XHan Show suffix"]~=false and moduleSuffix(row) or "";item.mode=item.suffix~="" and " "..item.suffix or ""
        item.nameWidth=xhanMeasure(item.name,size);item.modeWidth=xhanMeasure(item.mode,size);item.width=math.ceil(item.nameWidth+item.modeWidth+(bloom and 12 or 13)+extra);item.order=order
       candidates[#candidates+1]=item
-     elseif not target then xhan.entries[id]=nil end
+     elseif not target then releaseArrayClip(item);xhan.entries[id]=nil end
    end
   end
   table.sort(candidates,function(a,b)
@@ -1294,17 +1931,22 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    arrayMetrics={mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,width=widest*q,height=listH*q,rows={}}
   if #candidates>0 then hudBounds.ArrayList=rect(right-widest*q,top,widest*q,listH*q) end
   local p=xhan.paint
+  for _,item in pairs(xhan.entries) do if item.clip then item.clip.Visible=false end end
+  local textClip
   local function text(value,x,y,w,color,alpha)
    if value=="" then return end
    local label=p:text(value,x,y,size*q,w*q+1,color,false,Enum.TextXAlignment.Right)
-   if label then if xhan.font then label.FontFace=xhan.font end;label.TextTransparency=1-alpha end
+   if label then
+    if textClip then label.Parent=textClip;label.Position=UDim2.fromOffset(x-textClip.Position.X.Offset,y-size*q-textClip.Position.Y.Offset) end
+    if xhan.font then label.FontFace=xhan.font end;label.TextTransparency=1-alpha
+   end
   end
    local total=math.max(1,#candidates)
     local flowPeriod=math.max(.5,st["XHan Flow speed"] or 3)
    for i,item in ipairs(candidates) do
     local offset=(item.width+8)*(1-item.progress)
     item.drawX=right-item.width*q+offset*q;item.drawY=top+item.y*q
-     item.drawW=item.width*q;item.drawH=rowH*q;item.edgeH=math.max(0,item.contribution*rowH*q)
+     item.drawW=item.width*q;item.drawH=math.max(0,item.contribution*rowH*q);item.edgeH=item.drawH
     item.topColor=bloom and flowingColor(colors,0,flowPeriod,((i-1)/total)*.92) or nil
     item.bottomColor=bloom and flowingColor(colors,0,flowPeriod,(i/total)*.92) or nil
     item.color=bloom and flowingColor(colors,0,flowPeriod,((i-.5)/total)*.92) or flowingColor(colors,i,st["XHan Flow speed"] or 3)
@@ -1314,7 +1956,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     -- The uploaded XHanUI's BloomFlow has no row gap: one gradient field and
     -- a continuous outer staircase, with no horizontal lines inside the list.
     for _,item in ipairs(candidates) do
-      local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH+q
+      local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH
      if h>.5 and item.alpha>.001 then
       local fade=item.alpha
       if st["XHan Glow"]~=false then
@@ -1334,7 +1976,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
      p:gradient(x,y,w,h,first,last,.94*fade,0)
     end
     for i,item in ipairs(candidates) do
-      local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH+q
+      local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH
      local fade=item.alpha;local line=math.min(2*q,h)
      if h>.5 then
       edge(x,y,line,h,item.topColor,item.bottomColor,fade)
@@ -1355,6 +1997,9 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    for i,item in ipairs(candidates) do
     local x,y,w,h=item.drawX,item.drawY,item.drawW,item.drawH
     local color,fade=item.color,item.alpha
+    if not item.clip then item.clip=new("Frame",xhan.root,{Name=item.id.."TextSlot",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=3000}) end
+    item.clip.Visible=true;item.clip.Position=UDim2.fromOffset(x-2*q,y);item.clip.Size=UDim2.fromOffset(w+4*q,h)
+    textClip=item.clip
     if not bloom and st["XHan Glow"]~=false then
      local alpha=1-math.clamp(.94-.78*strength,.12,.94);p:glow(x-18*q,y-5*q,w+36*q,h+10*q,color,alpha*fade)
     end
@@ -1381,8 +2026,8 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
  end
 local function drawArrayList(dt,view,factor,st,p)
    local mode=st["ArrayList mode"] or "XHan";local opai=mode=="Opai";xhan.root.Visible=false
-  if not widgetEnabled("ArrayList") then arrayEntries={};xhan.entries={};arrayMode=nil;arrayMetrics={};return end
-  if arrayMode~=mode then arrayEntries={};xhan.entries={};arrayMode=mode end
+  if not widgetEnabled("ArrayList") then clearArrayEntries(arrayEntries);clearArrayEntries(xhan.entries);arrayMode=nil;arrayMetrics={};return end
+  if arrayMode~=mode then clearArrayEntries(arrayEntries);clearArrayEntries(xhan.entries);arrayMode=mode end
     if mode=="XHan" or mode=="BloomFlow" then drawXHan(dt,view,factor,st,mode);return end
     local lower=st[opai and "Opai Lowercase" or "Lowercase"]
   local showSuffix=st[opai and "Opai Show suffix" or "Show suffix"]
@@ -1391,7 +2036,7 @@ local function drawArrayList(dt,view,factor,st,p)
   for id,row in pairs(rows) do
    local item=arrayEntries[id]
    if not item then item={id=id,motion=spring(0),occupied=spring(0),enabled=false,changedAt=-100};arrayEntries[id]=item end
-   local label=opai and displayName(id) or id;local suffix=showSuffix and moduleSuffix(row) or ""
+   local label=displayName(id);local suffix=showSuffix and moduleSuffix(row) or ""
    if lower then label=label:lower();suffix=suffix:lower() end
    item.name=label;item.suffix=suffix;item.font=font;item.nameWidth=arrayMeasure(label,size,font);item.gap=suffix~="" and arrayMeasure(" ",size,font) or 0
    item.text=label..(suffix~="" and " "..suffix or "");item.width=opai and (3+item.nameWidth+item.gap+arrayMeasure(suffix,size,font)+2+1) or arrayMeasure(item.text,size,font)
@@ -1407,6 +2052,12 @@ local function drawArrayList(dt,view,factor,st,p)
    item.y=occupied
    if item.enabled or item.progress>.001 or item.contribution>.001 then visible[#visible+1]=item;occupied+=item.contribution*12 end
   end
+  for _,item in pairs(arrayEntries) do if item.clip then item.clip.Visible=false end end
+  local function rowText(item,...)
+   local label=widgets:text(...)
+   if label then label.Parent=item.clip;label.Position=UDim2.fromOffset(label.Position.X.Offset-item.clip.Position.X.Offset,label.Position.Y.Offset-item.clip.Position.Y.Offset) end
+   return label
+  end
   local scale=factor*(hudPlacements.ArrayList and hudPlacements.ArrayList.scale or 1)
   local widest=#visible>0 and visible[1].width or 0;local at=hudPlacements.ArrayList
   local right=at and at.x+widest*scale or (view.X-(opai and .5*scale or 0));local top=at and at.y or 0
@@ -1416,28 +2067,31 @@ local function drawArrayList(dt,view,factor,st,p)
   local background=st[opai and "Opai Background" or "Background"]~=false
   for i,item in ipairs(visible) do
     item.x=right-item.width*scale+(item.width+8)*(1-item.progress)*scale;item.py=top+item.y*scale
+    item.slotHeight=item.contribution*12*scale
+    if not item.clip then item.clip=new("Frame",widgetRoot,{Name=item.id.."ArraySlot",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=100}) end
+    item.clip.Visible=true;item.clip.Position=UDim2.fromOffset(item.x-7*scale,item.py);item.clip.Size=UDim2.fromOffset((item.width+8)*scale,item.slotHeight)
    item.radius=math.min(5,math.max(0,item.width-(visible[i+1] and visible[i+1].width or 0)))
    arrayMetrics.rows[i]={id=item.id,name=item.name,suffix=item.suffix,x=item.x,y=item.py,width=item.width*scale,progress=item.progress,contribution=item.contribution,radius=item.radius}
   end
   if opai then
    if st["Opai Shadow"]~=false then
-    for _,item in ipairs(visible) do for layer=3,1,-1 do local spread=layer*1.7*scale;widgets:box(item.x-spread,item.py-spread,item.width*scale+spread*2,12*scale+spread*2,0x000000,.028,math.min(5,item.radius)*scale+spread) end end
+    for _,item in ipairs(visible) do for layer=3,1,-1 do local spread=layer*1.7*scale;widgets:box(item.x-spread,item.py-spread,item.width*scale+spread*2,item.slotHeight+spread*2,0x000000,.028,math.min(5,item.radius)*scale+spread) end end
    end
-   if background then for _,item in ipairs(visible) do bottomLeftShape(item.x,item.py,item.width*scale,12*scale,item.radius*scale,0x101010,.8) end end
+   if background then for _,item in ipairs(visible) do bottomLeftShape(item.x,item.py,item.width*scale,item.slotHeight,item.radius*scale,0x101010,.8) end end
    for _,item in ipairs(visible) do
-    local label=widgets:text(item.name,item.x+3*scale,item.py+6*scale,9.08*scale,item.nameWidth*scale+1,0xFFFFFF);if label then label.Font=font end
-    if item.suffix~="" then local label=widgets:text(item.suffix,item.x+(3+item.nameWidth+item.gap)*scale,item.py+6*scale,9.08*scale,math.max(1,(item.width-6-item.nameWidth-item.gap)*scale+1),p.accent);if label then label.Font=font end end
+    local label=rowText(item,item.name,item.x+3*scale,item.py+6*scale,9.08*scale,item.nameWidth*scale+1,0xFFFFFF);if label then label.Font=font end
+    if item.suffix~="" then local label=rowText(item,item.suffix,item.x+(3+item.nameWidth+item.gap)*scale,item.py+6*scale,9.08*scale,math.max(1,(item.width-6-item.nameWidth-item.gap)*scale+1),p.accent);if label then label.Font=font end end
    end
-   if st["Opai Right line"]~=false then for _,item in ipairs(visible) do widgets:box(item.x+(item.width-1)*scale,item.py,scale,12*scale,p.accent,1,0) end end
+   if st["Opai Right line"]~=false then for _,item in ipairs(visible) do widgets:box(item.x+(item.width-1)*scale,item.py,scale,item.slotHeight,p.accent,1,0) end end
   else
    local bar=st["Bar mode"] or "Left"
    for i,item in ipairs(visible) do
     local color=clientColor((i-1)*20);local x,y=item.x,item.py;local w=item.width*scale
-    if background then widgets:box(x-6.5*scale,y,w+6.5*scale,12*scale,0x090909,.5,0) end
-    if bar~="None" then local bx=bar=="Left" and x-4.5*scale or x+w-2.5*scale;widgets:box(bx+.5*scale,y+2.5*scale,scale,8*scale,0x000000,.55,scale);widgets:box(bx,y+2*scale,scale,8*scale,color,1,scale) end
+    if background then widgets:box(x-6.5*scale,y,w+6.5*scale,item.slotHeight,0x090909,.5,0) end
+    if bar~="None" then local bx=bar=="Left" and x-4.5*scale or x+w-2.5*scale;widgets:box(bx+.5*scale,y+2.5*scale,scale,math.max(0,math.min(8*scale,item.slotHeight-2.5*scale)),0x000000,.55,scale);widgets:box(bx,y+2*scale,scale,math.max(0,math.min(8*scale,item.slotHeight-2*scale)),color,1,scale) end
     local offset=bar=="Left" and 2 or bar=="None" and 3.5 or 4.25
-    widgets:text(item.text,x-offset*scale+.5*scale,y+6.5*scale+.5*scale,8*scale,w+1,0x000000)
-    widgets:text(item.text,x-offset*scale,y+6.5*scale,8*scale,w+1,color)
+    rowText(item,item.text,x-offset*scale+.5*scale,y+6.5*scale+.5*scale,8*scale,w+1,0x000000)
+    rowText(item,item.text,x-offset*scale,y+6.5*scale,8*scale,w+1,color)
    end
   end
  end
@@ -1449,49 +2103,24 @@ local function drawArrayList(dt,view,factor,st,p)
   local function text(t,x,y,size,w,color) widgets:text(t,x,y,size,w,color or p.text) end
   drawArrayList(dt,view,factor,st,p)
 
-  local target=islandState.target
-  if not target and (visible or hudEditing) then local humanoid=Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid");if humanoid then target={name=Players.LocalPlayer.DisplayName or Players.LocalPlayer.Name or "Player",health=humanoid.Health,maxHealth=humanoid.MaxHealth,userId=Players.LocalPlayer.UserId} end end
-
-  if target and widgetEnabled("TargetHUD") then
-   local factor=factor*(hudPlacements.TargetHUD and hudPlacements.TargetHUD.scale or 1)
-   local health=math.clamp(tonumber(target.health) or 0,0,math.max(1,tonumber(target.maxHealth) or 100));local maximum=math.max(1,tonumber(target.maxHealth) or 100)
-   local key=tostring(target.userId or target.name);local sample=islandState.healthSample
-   if not sample or sample.key~=key then sample={key=key,goal=health,maximum=maximum,fill=health,trail=health,fillFrom=health,trailFrom=health,at=os.clock(),damage=false};islandState.healthSample=sample end
-   local elapsed=(os.clock()-sample.at)*1000
-   sample.fill=sample.goal+(sample.fillFrom-sample.goal)*math.exp(-elapsed/65)
-   sample.trail=sample.damage and math.max(sample.fill,sample.goal+(sample.trailFrom-sample.goal)*math.exp(-math.max(0,elapsed-100)/220)) or sample.fill
-   if sample.goal~=health or sample.maximum~=maximum then sample.fillFrom=sample.fill;sample.trailFrom=math.max(sample.fill,sample.trail);sample.damage=health<sample.fill;sample.goal=health;sample.maximum=maximum;sample.at=os.clock() end
-    -- One XHanUI-inspired target card replaces the old Classic and Opai modes.
-    local name=tostring(target.name or "Target")
-    local logicalWidth=math.clamp(60+arrayMeasure(name,9.5,Enum.Font.GothamMedium),142,240)
-    factor=math.min(factor,(view.X-8)/logicalWidth,(view.Y-8)/52)
-    local w,h=logicalWidth*factor,52*factor
-    local x,y=placeWidget("TargetHUD",view.X/2+8*factor,view.Y/2+4*factor,w,h)
-    local accent=flowingColor("Starlight",1,3.3)
-    local accent2=flowingColor("Starlight",2,3.3)
-    for layer=3,1,-1 do local spread=layer*2*factor;widgets:box(x-spread,y-spread,w+2*spread,h+2*spread,0x000000,.035,9*factor+spread) end
-    widgets:glow(x-7*factor,y-6*factor,w+14*factor,h+12*factor,accent,.11)
-    widgets:gradient(x,y,w,h,0x151C25,0x090D12,.96,9*factor)
-    widgets:stroke(x,y,w,h,0x303A47,.75,9*factor,factor)
-    widgets:gradient(x+7*factor,y+3*factor,w-14*factor,1.5*factor,accent,accent2,.85,.75*factor)
-    widgets:box(x+8*factor,y+9*factor,34*factor,34*factor,0x111820,.95,7*factor)
-    widgets:stroke(x+8*factor,y+9*factor,34*factor,34*factor,accent,.5,7*factor,.75*factor)
-    hudIcon(widgets,"USER",x+17*factor,y+17*factor,16*factor,accent)
-    local userId=tonumber(target.userId)
-    if userId and userId>0 then
-     widgets:image("rbxthumb://type=AvatarHeadShot&id="..math.floor(userId).."&w=150&h=150",x+8*factor,y+9*factor,34*factor,34*factor,7*factor)
-    end
-    text("TARGET",x+49*factor,y+10*factor,5.5*factor,w-60*factor,0x929EAC)
-    text(name,x+48*factor,y+21*factor,9.5*factor,w-59*factor,0xF2F5F8)
-    local rounded=math.round(sample.fill*10)/10
-    local current=rounded%1==0 and tostring(math.round(rounded)) or string.format("%.1f",rounded)
-    local healthText=current.." / "..tostring(math.round(maximum)).." HP"
-    text(healthText,x+49*factor,y+32*factor,7*factor,w-60*factor,0xB7C0CB)
-    local bx,by,bw=x+49*factor,y+40*factor,w-60*factor
-    widgets:box(bx,by,bw,5*factor,0x283340,.9,2.5*factor)
-    widgets:box(bx,by,bw*math.clamp(sample.trail/maximum,0,1),5*factor,0xE9A8BC,.55,2.5*factor)
-    widgets:gradient(bx,by,bw*math.clamp(sample.fill/maximum,0,1),5*factor,accent,accent2,1,2.5*factor)
+  local target=targetHUD.Current
+  if not target and islandState.target then
+   local t=islandState.target
+   target={Key=t.userId or t.name,Name=t.name,Health=t.health,MaxHealth=t.maxHealth,
+    Avatar=t.userId and ("rbxthumb://type=AvatarHeadShot&id="..t.userId.."&w=150&h=150") or nil,Initial=t.initial or "?"}
   end
+  local preview=not target and (visible or hudEditing)
+  local shown=(target~=nil or preview or targetHUD.Frame.Visible) and (widgetEnabled("TargetHUD") or hudEditing)
+  targetHUD.Host.Visible=shown
+  if shown then
+   local scale=math.min(hudScale/2*(hudPlacements.TargetHUD and hudPlacements.TargetHUD.scale or 1),
+    (view.X-4)/292,(view.Y-4)/76)
+   local w,h=292*scale,76*scale
+   local x,y=placeWidget("TargetHUD",view.X*.5-w*.5,view.Y*.30-h*.5,w,h)
+   targetHUD.Host.Position=UDim2.fromOffset(x,y);targetHUD.LayoutScale.Scale=scale
+   if preview then targetHUD:Preview() else targetHUD:Update(target) end
+  else targetHUD:Update(nil) end
+
   widgets:finish();updateHUDControls()
  end
  local function renderHUD(dt,frameDelta)
@@ -1744,6 +2373,13 @@ local function drawArrayList(dt,view,factor,st,p)
   if hudEditing and hudDrag and (input==hudDrag.input or input.UserInputType==Enum.UserInputType.MouseMovement) then
    local d=hudDrag;local old=hudPlacements[d.name];api:SetHUDLayout(d.name,d.x+input.Position.X-d.startX,d.y+input.Position.Y-d.startY,old and old.scale or 1);return
   end
+  if hudEditing and input.UserInputType==Enum.UserInputType.MouseWheel then
+   local point=Input:GetMouseLocation()
+   for name,bounds in pairs(hudBounds) do if inside(bounds,point.X,point.Y) then
+    local at=hudPlacements[name];api:SetHUDLayout(name,bounds.x,bounds.y,math.clamp((at and at.scale or 1)+input.Position.Z*.1,.5,2));break
+   end end
+   return
+  end
   if not visible then return end
   if input.UserInputType==Enum.UserInputType.MouseMovement or input==touch then local x,y=pointerPoint(input)
    if input==touch and gesture then
@@ -1804,4 +2440,5 @@ end
 return UI
 
 end)()
+_G.SyntaxUILibrary=UI
 return UI
