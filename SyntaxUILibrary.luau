@@ -10,7 +10,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1"}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",DefaultScale=1.05}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -743,14 +743,14 @@ function UI.new(options)
  local changed=new("BindableEvent",gui,{Name="Changed"})
   local api={Gui=gui,Changed=changed.Event,renderStepName="SyntaxUIRender"..Http:GenerateGUID(false)}
  local root=new("Frame",gui,{Name="Canvas",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=10})
- local scaling=new("UIScale",root,{Scale=2})
+ local scaling=new("UIScale",root,{Scale=UI.DefaultScale})
  local catcher=new("TextButton",gui,{Name="InputSurface",Text="",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),AutoButtonColor=false,Modal=true,ZIndex=1})
  root.ZIndex=2
  local blur=new("BlurEffect",Lighting,{Name="SamsaraOpaiV2Blur",Size=0})
  local conns,pools,columns,rows,state,hits={},{},{},{},{},{}
  local theme="Lavender"
  local visible,dead,opacity,opened=true,false,0,os.clock()
- local k,zoom,width,height,mx,my,offsetX,offsetY=2,1,960,540,-100,-100,0,0
+ local k,zoom,width,height,mx,my,offsetX,offsetY=UI.DefaultScale,1,960,540,-100,-100,0,0
  local horizontal=0
  local drag,sliding,binding,dropdown=nil,nil,nil,nil
  local touch=nil
@@ -764,7 +764,6 @@ function UI.new(options)
   local hudScale=options.HUDScale or options.Scale or 2
   local islandShadow=math.clamp(options.IslandShadow or 50,0,100)
   local appearanceT=0
-  local aaHoverT=0
  assert(themeEffect=="Source" or themeEffect=="FlowingGlow","Invalid theme effect")
  assert(type(animationSpeed)=="number" and animationSpeed>=.5 and animationSpeed<=3,"Invalid animation speed")
  assert(type(glowStrength)=="number" and glowStrength>=0 and glowStrength<=1,"Invalid glow strength")
@@ -1102,7 +1101,7 @@ function UI.new(options)
  end
  local function fit()
   local view=gui.AbsoluteSize
-  k=options.Scale or (view.X<700 and 1.5 or 2)
+  k=options.Scale or UI.DefaultScale
   width,height=view.X/k,view.Y/k
   if width<=0 or height<=0 then return end
   local margin=math.min(30,width*.0382)
@@ -1261,6 +1260,52 @@ function UI.new(options)
   appearancePaint.fontOverride=opaiFont(false)
   local accentBox=new("TextBox",overlay,{Name="AccentHex",Text="",PlaceholderText="#RRGGBB",ClearTextOnFocus=false,BackgroundTransparency=1,Font=opaiFont(false),TextSize=10,TextColor3=rgb(0xE4E1E6),TextXAlignment=Enum.TextXAlignment.Left,Visible=false,ZIndex=3000})
  local appearanceError=""
+ -- These native controls are direct ScreenGui children, outside Canvas UIScale.
+ -- Both buttons use the same hover, press and activation handling.
+ function front:setupFixedToolbar()
+  self.toolbar={buttons={},root=new("Frame",gui,{Name="FixedToolbar",BackgroundTransparency=1,Size=UDim2.fromOffset(59,26.7),Visible=false,Active=false,ZIndex=1500})}
+  local function addButton(label,action,x,textSize)
+   local button=new("TextButton",self.toolbar.root,{Name=action,Text=label,Position=UDim2.fromOffset(x,0),Size=UDim2.fromOffset(26.7,26.7),Font=opaiFont(false),TextSize=textSize,TextScaled=false,TextWrapped=false,AutoButtonColor=false,Selectable=true,Active=true,ZIndex=1})
+   local entry={button=button,x=x,action=action,hovered=false,t=0,pressed=nil}
+   entry.corner=new("UICorner",button,{CornerRadius=UDim.new(0,5)})
+   self.toolbar.buttons[#self.toolbar.buttons+1]=entry
+   connect(button.MouseEnter,function() entry.hovered=true end)
+   connect(button.MouseLeave,function() entry.hovered=false end)
+   connect(button.InputBegan,function(input)
+    if visible and (input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch) then entry.pressed=input end
+   end)
+   connect(Input.InputEnded,function(input) if entry.pressed==input then entry.pressed=nil end end)
+   connect(Input.WindowFocusReleased,function() entry.pressed=nil;entry.hovered=false end)
+   connect(button.Activated,function()
+    if dead or not visible then return end
+    if action=="appearanceOpen" then api:OpenAppearance()
+    else api:SetLanguage(language=="English" and "中文" or "English") end
+   end)
+  end
+  addButton("中","languageToggle",0,9)
+  addButton("Aa","appearanceOpen",32.3,10)
+ end
+ function front:drawFixedToolbar(frameDelta)
+  local bar=self.toolbar;bar.root.Visible=root.Visible
+  -- Leave room for the fixed mobile S shortcut as well.
+  local mobileSpace=Input.TouchEnabled and 40 or 0
+  bar.root.Position=UDim2.new(1,-99.3-mobileSpace,1,-34.7)
+  local pal=currentPalette()
+  for _,entry in ipairs(bar.buttons) do
+   if not visible then entry.pressed=nil;entry.hovered=false end
+   local active=entry.hovered or entry.pressed~=nil or (entry.action=="appearanceOpen" and appearanceOpen)
+   entry.t=animations and ease(entry.t,active and 1 or 0,math.min(frameDelta,.1),12) or (active and 1 or 0)
+   local expand=entry.t*1.2
+   entry.button.Position=UDim2.fromOffset(entry.x-expand,-expand)
+   entry.button.Size=UDim2.fromOffset(26.7+expand*2,26.7+expand*2)
+   entry.corner.CornerRadius=UDim.new(0,5+expand)
+   entry.button.BackgroundColor3=rgb(pal.field):Lerp(rgb(pal.selected),entry.t)
+   entry.button.BackgroundTransparency=1-opacity;entry.button.TextTransparency=1-opacity
+   entry.button.TextColor3=rgb(pal.accent);entry.button.Active=visible
+   if entry.action=="languageToggle" then entry.button.Text=language=="English" and "中" or "EN" end
+  end
+ end
+ front:setupFixedToolbar()
  connect(accentBox.FocusLost,function()
   if not appearanceOpen then return end
   local color=parseAccent(accentBox.Text)
@@ -2350,6 +2395,7 @@ local function drawArrayList(dt,view,factor,st,p)
    if animations then visualTime+=motionDelta;flowTime+=math.min(frameDelta,.1) end
   dt=animations and motionDelta or 10
   opacity=animations and ease(opacity,visible and 1 or 0,dt,30) or (visible and 1 or 0);catcher.Visible=visible;root.Visible=opacity>.005
+  front:drawFixedToolbar(frameDelta)
    local localBlur=state.ClickGUI and state.ClickGUI.settings["Local Blur"]~=false
    blur.Size=(options.Blur==false or localBlur) and 0 or 10*opacity
   local nextStyle=selectedStyle()
@@ -2374,12 +2420,6 @@ local function drawArrayList(dt,view,factor,st,p)
    local x,y=width-34.7,height-34.7;front:box(x,y,26.7,26.7,currentPalette().accent,1,5)
    line(front,x+7,y+18,x+18,y+7,0x101014,5);line(front,x+6,y+22.8,x+22,y+22.8,0x101014,1.6);hit(rect(x,y,26.7,26.7),"hudEditRMB")
   end
-   local ax,ay=width-67,height-34.7;local aaHover=inside(rect(ax,ay,26.7,26.7),mx,my)
-   aaHoverT=animations and ease(aaHoverT,(aaHover or appearanceOpen) and 1 or 0,math.min(frameDelta,.1),12) or ((aaHover or appearanceOpen) and 1 or 0)
-   local aaExpand=aaHoverT*1.2;local aaBox=front:box(ax-aaExpand,ay-aaExpand,26.7+aaExpand*2,26.7+aaExpand*2,currentPalette().field,1,5+aaExpand)
-   aaBox.BackgroundColor3=rgb(currentPalette().field):Lerp(rgb(currentPalette().selected),aaHoverT)
-   front:text("Aa",ax,ay+13,10,26.7,currentPalette().accent,false,Enum.TextXAlignment.Center);hit(rect(ax,ay,26.7,26.7),"appearanceOpen")
-   local lx=width-99.3;front:box(lx,ay,26.7,26.7,currentPalette().field,1,5);front:text(language=="English" and "中" or "EN",lx,ay+13,9,26.7,currentPalette().accent,false,Enum.TextXAlignment.Center);hit(rect(lx,ay,26.7,26.7),"languageToggle")
    drawAppearance(frameDelta)
   main:finish();front:finish();syncNativeHits()
   if gesture and not gesture.used and not gesture.moved and os.clock()-gesture.start>.45 then
