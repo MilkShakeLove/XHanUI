@@ -1,5 +1,2256 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
+-- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
+local JackalRenderer=(function()
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+-- Jackal UI Roblox port, based on supplied JackalClient 1.1.9 UI sources.
+-- Native client UI. No HTTP, loadstring, Windows APIs, or external assets required.
+local Players=game:GetService("Players")
+local Input=game:GetService("UserInputService")
+local Run=game:GetService("RunService")
+local Tween=game:GetService("TweenService")
+local Http=game:GetService("HttpService")
+local GuiService=game:GetService("GuiService")
+local TextService=game:GetService("TextService")
+local Stats=game:GetService("Stats")
+local Lighting=game:GetService("Lighting")
+local SoundService=game:GetService("SoundService")
+local UI={Version="2.1.1",SourceVersion="1.1.9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.1",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local Window={};Window.__index=Window
+local Group={};Group.__index=Group
+local T={Window=0x151515,Header=0x1C1C1C,HeaderTop=0x191919,Divider=0x111111,Group=0x1C1C1C,Border=0x222222,Field=0x161616,Hover=0x191919,Selected=0x222222,Popup=0x1C1C1C,Title=0xEDEDED,Label=0xE4E4E4,LabelHover=0xF4F4F4,Muted=0x95909F,Icon=0x9C91A6,IconHover=0xD2D2D2,FieldText=0xD3CCD9,FieldTextHover=0xD8D8D8,Accent=0x34A5F8,AccentDim=0x315675,Privileged=0xF5A35D}
+local function color(hex) return Color3.fromRGB(math.floor(hex/65536)%256,math.floor(hex/256)%256,hex%256) end
+local function clone(v) if type(v)~="table" then return v end;local t={} for k,x in pairs(v) do t[k]=clone(x) end;return t end
+local function finite(v) return type(v)=="number" and v==v and math.abs(v)<math.huge end
+local function create(class,parent,props)
+ local o=Instance.new(class)
+ if o:IsA("GuiObject") then o.BorderSizePixel=0;o.AutoLocalize=false end
+ for k,v in pairs(props or {}) do o[k]=v end
+ if o:IsA("TextLabel") or o:IsA("TextButton") or o:IsA("TextBox") then
+  -- Text stays in the native glyph renderer, never in a CanvasGroup texture.
+  o.TextScaled=false;o.TextStrokeTransparency=1
+  o.TextSize=math.max(14,math.round(o.TextSize))
+  if o.Font==Enum.Font.Gotham then o.Font=Enum.Font.BuilderSans elseif o.Font==Enum.Font.GothamBold then o.Font=Enum.Font.BuilderSansBold end
+ end
+ o.Parent=parent;return o
+end
+local function corner(o,r) return create("UICorner",o,{CornerRadius=UDim.new(0,r or 3)}) end
+local function stroke(o,hex,width) return create("UIStroke",o,{Color=color(hex),Thickness=width or .7,ApplyStrokeMode=Enum.ApplyStrokeMode.Border}) end
+local function text(parent,value,x,y,w,h,size,hex,bold,align)
+ return create("TextLabel",parent,{BackgroundTransparency=1,Position=UDim2.fromOffset(x,y),Size=UDim2.fromOffset(w,h),Text=tostring(value),Font=bold and Enum.Font.GothamBold or Enum.Font.Gotham,TextSize=math.max(14,math.round(size or 14)),TextColor3=color(hex or T.Label),TextXAlignment=align or Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Center,TextTruncate=Enum.TextTruncate.AtEnd,TextWrapped=false})
+end
+local function field(parent,x,y,w,h)
+ local b=create("TextButton",parent,{Text="",AutoButtonColor=false,BackgroundColor3=color(T.Field),Position=UDim2.fromOffset(x,y),Size=UDim2.fromOffset(w,h),Active=true});corner(b,2.5);return b
+end
+local function icon(parent,name,size,hex)
+ local root=create("Frame",parent,{Name="Icon_"..name,BackgroundTransparency=1,Size=UDim2.fromOffset(size,size),Active=false})
+ local parts={};local tone=color(hex or T.Muted)
+ local function line(x1,y1,x2,y2)
+  local dx,dy=x2-x1,y2-y1
+  local part=create("Frame",root,{BackgroundColor3=tone,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale((x1+x2)/48,(y1+y2)/48),Size=UDim2.new(math.sqrt(dx*dx+dy*dy)/24,0,0,math.max(1.2,size*.075)),Rotation=math.deg(math.atan2(dy,dx))})
+  corner(part,2);parts[#parts+1]={part,"BackgroundColor3","BackgroundTransparency"}
+ end
+ local function ring(x,y,w,h,r)
+  local part=create("Frame",root,{BackgroundTransparency=1,Position=UDim2.fromScale(x/24,y/24),Size=UDim2.fromScale(w/24,h/24)})
+  corner(part,(r or math.min(w,h)/2)*size/24)
+  local edge=create("UIStroke",part,{Color=tone,Thickness=math.max(1.2,size*.075),ApplyStrokeMode=Enum.ApplyStrokeMode.Border})
+  parts[#parts+1]={edge,"Color","Transparency"}
+ end
+ if name=="down" or name=="up" then local a=name=="down" and 9 or 15;local b=name=="down" and 15 or 9;line(5,a,12,b);line(12,b,19,a)
+ elseif name=="check" then line(4,12,9,17);line(9,17,20,6)
+ elseif name=="close" then line(5,5,19,19);line(19,5,5,19)
+ elseif name=="plus" then line(12,4,12,20);line(4,12,20,12)
+ elseif name=="search" then ring(3,3,12,12);line(14,14,21,21)
+ elseif name=="key" then ring(3,3,9,9);line(11,11,21,21);line(17,17,20,14);line(19,19,22,16)
+ elseif name=="info" then ring(3,3,18,18);line(12,10,12,17);line(12,6,12,7)
+ elseif name=="eye" or name=="eyeOff" or name=="render" then
+  line(2,12,7,6);line(7,6,17,6);line(17,6,22,12);line(22,12,17,18);line(17,18,7,18);line(7,18,2,12);ring(9,9,6,6)
+  if name=="eyeOff" then line(3,3,21,21) end
+ elseif name=="folder" then line(3,7,9,7);line(9,7,11,10);line(11,10,21,10);line(21,10,21,20);line(21,20,3,20);line(3,20,3,7)
+ elseif name=="player" then ring(8,3,8,8);line(5,21,5,17);line(5,17,9,14);line(9,14,15,14);line(15,14,19,17);line(19,17,19,21)
+ elseif name=="world" then ring(3,3,18,18);ring(8,3,8,18);line(3,12,21,12)
+ elseif name=="copy" then ring(8,8,13,13,2);line(3,16,3,3);line(3,3,16,3)
+ elseif name=="paste" then ring(5,5,15,17,2);ring(9,2,7,5,1);line(9,12,16,12);line(9,16,16,16)
+ elseif name=="save" then ring(3,3,18,18,2);ring(7,13,10,8,1);line(7,3,7,8);line(7,8,16,8);line(16,8,16,3)
+ elseif name=="combat" then line(4,20,20,4);line(12,4,20,4);line(20,4,20,12);line(3,14,10,21);line(4,16,8,20)
+ elseif name=="movement" then line(4,16,9,9);line(9,9,15,15);line(15,15,21,6);line(16,6,21,6);line(21,6,21,11)
+ elseif name=="reset" then line(5,8,10,3);line(10,3,18,5);line(18,5,21,12);line(21,12,18,19);line(18,19,10,21);line(10,21,4,17);line(5,3,5,9);line(5,9,11,9)
+ else
+  ring(7,7,10,10,3)
+  for i=0,7 do local a=i*math.pi/4;line(12+8*math.cos(a),12+8*math.sin(a),12+10*math.cos(a),12+10*math.sin(a)) end
+ end
+ return {Root=root,SetColor=function(_,v) local c=color(v);for _,part in ipairs(parts) do part[1][part[2]]=c end end,SetOpacity=function(_,alpha) for _,part in ipairs(parts) do part[1][part[3]]=1-alpha end end}
+end
+local Scope={};Scope.__index=Scope
+function Scope.new(parent)
+ local s=setmetatable({connections={},children={},disposals={},parent=parent,alive=true},Scope)
+ if parent then parent.children[s]=true end;return s
+end
+function Scope:On(signal,callback) local c=signal:Connect(callback);self.connections[#self.connections+1]=c;return c end
+function Scope:Clean()
+ if not self.alive then return end;self.alive=false
+ for child in pairs(self.children) do child:Clean() end;table.clear(self.children)
+ for _,c in ipairs(self.connections) do c:Disconnect() end;table.clear(self.connections)
+ for _,fn in ipairs(self.disposals) do pcall(fn) end;table.clear(self.disposals)
+ if self.root then self.root:Destroy();self.root=nil end
+ if self.parent then self.parent.children[self]=nil end
+end
+local function decimals(step) for n=0,6 do if math.abs(step*10^n-math.round(step*10^n))<1e-6 then return n end end;return 6 end
+local function formatNumber(v,step)
+ if (step or 1)>=1 then return string.format("%.0f",v) end
+ return (string.format("%."..decimals(step or .01).."f",v):gsub("0+$",""):gsub("%.$",""))
+end
+local function measured(value,size,bold)
+ return TextService:GetTextSize(tostring(value),math.max(14,math.round(size)),bold and Enum.Font.BuilderSansBold or Enum.Font.BuilderSans,Vector2.new(10000,100)).X
+end
+local function softShadow(parent,radius,spread,opacity)
+ for i=spread,1,-1 do
+  local shadow=create("Frame",parent,{Name="SoftShadow",BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=1-.075*((opacity or .7)/.7)*(1-i/(spread+1)),Position=UDim2.fromOffset(-i,-i),Size=UDim2.new(1,i*2,1,i*2),ZIndex=0})
+  corner(shadow,radius+i)
+ end
+end
+local function snap(v,min,max,step)
+ if not finite(v) then return nil end
+ step=step or 1;if step>0 then v=min+math.round((v-min)/step)*step end
+ return math.clamp(math.round(v*1e6)/1e6,min,max)
+end
+local function colorValue(v)
+ if typeof(v)=="Color3" then return {Hex="#"..v:ToHex():upper(),Alpha=1} end
+ if type(v)=="string" then v={Hex=v,Alpha=1} end
+ if type(v)~="table" then return nil end
+ local hex=tostring(v.Hex or ""):gsub("#",""):upper()
+ if #hex~=6 or not hex:match("^%x+$") or not finite(v.Alpha or 1) then return nil end
+ if v.Rainbow~=nil and type(v.Rainbow)~="boolean" then return nil end
+ return {Hex="#"..hex,Alpha=math.clamp(v.Alpha or 1,0,1),Rainbow=v.Rainbow==true}
+end
+local function kindOf(def) return string.lower(def.type or def.Type or "toggle") end
+local function nameOf(def) return tostring(def.name or def.Name or def.id or def.Id or "Setting") end
+local function shortText(value,length)
+ local count=utf8.len(value);if not count then return "?" end
+ return count>length and value:sub(1,utf8.offset(value,length+1)-1) or value
+end
+local function normalized(def,v)
+ local kind=kindOf(def)
+ if kind=="toggle" or kind=="checkbox" then if type(v)=="boolean" then return v end;return nil
+ elseif kind=="slider" or kind=="range" or kind=="number" or kind=="progress" then
+  local min,max,step=def.min or def.Min or 0,def.max or def.Max or 100,def.step or def.Step or 1
+  if not finite(min) or not finite(max) or max<min or not finite(step) or step<=0 then return nil end
+  if kind=="range" then
+   if type(v)~="table" then return nil end
+   local lo,hi=snap(v[1],min,max,step),snap(v[2],min,max,step)
+   if not lo or not hi then return nil end;return {math.min(lo,hi),math.max(lo,hi)}
+  end
+  return snap(v,min,max,step)
+ elseif kind=="select" or kind=="dropdown" then
+  if table.find(def.options or def.Options or {},v) then return v end;return nil
+ elseif kind=="multi" then
+  if type(v)~="table" then return nil end
+  local result={};local options=def.options or def.Options or {}
+  for _,option in ipairs(options) do if table.find(v,option) then result[#result+1]=option end end;return result
+ elseif kind=="color" then return colorValue(v)
+ elseif kind=="key" or kind=="keybind" then
+  if typeof(v)=="EnumItem" then v=v.Name end
+  if type(v)~="string" then return nil end
+  if v=="None" or v=="Unknown" then return "None" end
+  if v:find("+",1,true) then
+   if v:sub(1,1)=="+" or v:sub(-1)=="+" or v:find("++",1,true) then return nil end
+   local parts={};for part in v:gmatch("[^+]+") do parts[#parts+1]=part end
+   local modifiers={LeftControl=true,RightControl=true,LeftShift=true,RightShift=true,LeftAlt=true,RightAlt=true,LeftMeta=true,RightMeta=true}
+   local used={}
+   for i,part in ipairs(parts) do local ok,item=pcall(function() return Enum.KeyCode[part] end);if not ok or not item or used[part] or i<#parts and not modifiers[part] then return nil end;used[part]=true end
+   return table.concat(parts,"+")
+  end
+  local ok,key=pcall(function() return Enum.KeyCode[v] end);if ok and key then return v end;return nil
+ elseif kind=="text" or kind=="textarea" or kind=="readout" then
+  if type(v)~="string" then return nil end
+  local length=utf8.len(v);if not length then return nil end
+  local limit=def.maxLength or (kind=="textarea" and 4096 or 256)
+  if length>limit then return v:sub(1,utf8.offset(v,limit+1)-1) end;return v
+ elseif kind=="slots" then
+  if type(v)~="table" then return nil end
+  local allowed=def.options or def.Options or {"None","Sword","Tool","Blocks","Food","Utility"};local result={}
+  for i=1,10 do local role=v[i] or "None";if not table.find(allowed,role) then return nil end;result[i]=role end;return result
+ elseif kind=="json" then
+  if type(v)~="table" then return nil end
+  local ok,result=pcall(Http.JSONEncode,Http,v);if ok and #result<=(def.maxBytes or 32768) then return clone(v) end;return nil
+ elseif kind=="list" then
+  if type(v)~="table" or #v>(def.maxItems or 100) then return nil end
+  local out={};for _,item in ipairs(v) do if type(item)~="string" or not utf8.len(item) then return nil end;out[#out+1]=shortText(item,def.itemMaxLength or 256) end;return out
+ elseif kind=="gear" or kind=="section" or kind=="button" or kind=="label" or kind=="separator" or kind=="paragraph" then return true end
+ return nil
+end
+local function matches(condition,values)
+ if condition==nil then return true end
+ if type(condition)=="function" then local ok,result=pcall(condition,clone(values));return ok and result==true end
+ if type(condition)~="table" then return condition==true end
+ local key=condition.name or condition.Setting;local v=values[key];local expected=condition.value
+ if expected==nil then expected=condition.Equals end
+ if condition.op=="and" then return matches(condition.a,values) and matches(condition.b,values) end
+ if condition.op=="or" then return matches(condition.a,values) or matches(condition.b,values) end
+ if condition.op=="not" then return not matches(condition.a,values) end
+ if condition.op=="contains" then return type(v)=="table" and table.find(v,expected)~=nil end
+ return v==expected
+end
+function Window:_on(signal,callback,scope)
+ local owner=scope or self._scope
+ return owner:On(signal,function(...) if owner.alive then return callback(...) end end)
+end
+function Window:_motion(owner,callback,scope)
+ self._motions[owner]=callback
+ local s=scope or self._scope;s.disposals[#s.disposals+1]=function() self._motions[owner]=nil end
+end
+function Window:_checkbox(button,scope)
+ corner(button,2)
+ local tick=icon(button,"check",10,0xF6F6F6);tick.Root.AnchorPoint=Vector2.new(.5,.5);tick.Root.Position=UDim2.fromScale(.5,.5)
+ local scale=create("UIScale",tick.Root,{Scale=.7});local amount,target=0,0;local initialized=false;tick.Root.Visible=false
+ self:_motion(tick.Root,function(dt)
+  if amount==target then return end
+  amount+= (target-amount)*(1-math.exp(-dt*22));if math.abs(target-amount)<.001 then amount=target end
+  tick.Root.Visible=amount>.001;scale.Scale=.7+.3*amount;tick:SetOpacity(amount)
+ end,scope)
+ return function(value)
+  target=value and 1 or 0
+  if not initialized then initialized=true;amount=target;scale.Scale=.7+.3*amount;tick.Root.Visible=value;tick:SetOpacity(amount) end
+ end,tick
+end
+function Window:_fieldHover(control,caption,scope)
+ local hovered=false;local opened=false
+ local function refresh()
+  self:_animate(control,{BackgroundColor3=color((hovered or opened) and T.Hover or T.Field)})
+  if caption then self:_animate(caption,{TextColor3=color((hovered or opened) and T.FieldTextHover or T.FieldText)}) end
+ end
+ control:SetAttribute("PopupOpen",false)
+ self:_on(control.MouseEnter,function() hovered=true;refresh() end,scope)
+ self:_on(control.MouseLeave,function() hovered=false;refresh() end,scope)
+ self:_on(control:GetAttributeChangedSignal("PopupOpen"),function() opened=control:GetAttribute("PopupOpen")==true;refresh() end,scope)
+end
+function Window:_animate(o,props,duration)
+ if self._dead or not o.Parent then return end
+ self._channels=self._channels or setmetatable({},{__mode="k"})
+ local channels=self._channels[o]
+ if not channels then
+  channels={};self._channels[o]=channels
+  self._tweens[o]={Cancel=function() for _,tw in pairs(channels) do tw:Cancel() end;table.clear(channels) end}
+ end
+ local result
+ for key,value in pairs(props) do
+  if channels[key] then channels[key]:Cancel() end
+  local tw=Tween:Create(o,TweenInfo.new(self.ReducedMotion and 0 or duration or .18,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{[key]=value})
+  channels[key]=tw;tw.Completed:Once(function() if channels[key]==tw then channels[key]=nil end end);tw:Play();result=tw
+ end
+ return result
+end
+function Window:_stopTween(object)
+ local tween=self._tweens[object];self._tweens[object]=nil;if tween then tween:Cancel() end
+ if self._channels then self._channels[object]=nil end
+end
+function Window:_button(parent,label,x,y,w,h,callback,scope)
+ local b=field(parent,x,y,w,h);b.Text=label;b.Font=Enum.Font.BuilderSans;b.TextSize=14;b.TextColor3=color(T.Label);b.TextTruncate=Enum.TextTruncate.AtEnd
+ self:_on(b.MouseEnter,function() self:_animate(b,{BackgroundColor3=color(T.Hover)}) end,scope)
+ self:_on(b.MouseLeave,function() self:_animate(b,{BackgroundColor3=color(T.Field)}) end,scope)
+ self:_pressFeedback(b,scope)
+ self:_on(b.Activated,function() if not self._dead and self.Visible then callback() end end,scope)
+ if scope then scope.disposals[#scope.disposals+1]=function() if b.Parent then b:Destroy() end end end
+ return b
+end
+function Window:_iconButton(parent,name,x,y,w,h,callback,scope)
+ local b=create("TextButton",parent,{Name=name,Text="",AutoButtonColor=false,BackgroundTransparency=1,Position=UDim2.fromOffset(x,y),Size=UDim2.fromOffset(w,h),Active=true})
+ local iconSize=math.min(20,math.max(14,math.min(w,h)-10));local image=icon(b,name,iconSize,T.Icon);image.Root.Position=UDim2.new(.5,-iconSize/2,.5,-iconSize/2)
+ self:_on(b.MouseEnter,function() image:SetColor(T.IconHover) end,scope);self:_on(b.MouseLeave,function() image:SetColor(b:GetAttribute("PopupOpen") and self:_accentHex() or T.Icon) end,scope)
+ self:_on(b:GetAttributeChangedSignal("PopupOpen"),function() image:SetColor(b:GetAttribute("PopupOpen") and self:_accentHex() or T.Icon) end,scope)
+ self:_on(b.Activated,function() if self.Visible and not self._dead then callback() end end,scope)
+ return b,image
+end
+function Window:_listen(group,key,fn,scope)
+ group._listeners[key]=group._listeners[key] or {};group._listeners[key][fn]=true
+ scope.disposals[#scope.disposals+1]=function() if group._listeners[key] then group._listeners[key][fn]=nil end end
+end
+function Window:_notify(group,key,value)
+ for fn in pairs(group._listeners[key] or {}) do fn(clone(value)) end
+ if self._componentChanged then self:_componentChanged(group,key,value) end
+ self._changed:Fire(group.Id,key,clone(value))
+ local def=group._definitions[key]
+ local callback=key=="enabled" and group.Definition.OnToggle or def and (def.callback or def.Callback)
+ if callback then task.spawn(function() local ok,err=pcall(callback,clone(value),group);if not ok then warn("[JackalUI] callback: "..tostring(err)) end end) end
+ if self.Options.OnChanged then task.spawn(self.Options.OnChanged,group.Id,key,clone(value),self) end
+ if self._batch then self._needsLayout=true else self:_layout() end
+ if self._preview then self:_refreshPreview() end
+end
+function Group:SetEnabled(value)
+ assert(type(value)=="boolean","Enabled must be boolean")
+ if self.Enabled~=value then self.Enabled=value;self.Window:_notify(self,"enabled",value) end;return self
+end
+function Group:Set(name,value)
+ local def=assert(self._definitions[name],"Unknown setting: "..tostring(name))
+ local result=normalized(def,value);assert(result~=nil,"Invalid value for "..name)
+ if Http:JSONEncode(self.Values[name])~=Http:JSONEncode(result) then self.Values[name]=clone(result);self.Window:_notify(self,name,result) end;return self
+end
+function Group:Get(name) return clone(self.Values[name]) end
+function Group:AddSetting(def)
+ self.Window:_registerSettings(self,{def});self.Definition.settings=self.Definition.settings or {};table.insert(self.Definition.settings,def)
+ self.Defaults[nameOf(def)]=clone(self.Values[nameOf(def)])
+ self.Window:_invalidate();return self
+end
+function Group:Reset()
+ for key,value in pairs(self.Defaults) do self:Set(key,clone(value)) end
+ return self
+end
+function Group:GetState() return {enabled=self.Enabled,key=self.Key,hidden=self.Hidden,settings=clone(self.Values)} end
+function Window:SetEnabled(id,value) return assert(self._byId[id],"Unknown module"):SetEnabled(value) end
+function Window:SetSetting(id,name,value) return assert(self._byId[id],"Unknown module"):Set(name,value) end
+function Window:GetSetting(id,name) return assert(self._byId[id],"Unknown module"):Get(name) end
+function Window:_registerSettings(group,defs,prefix)
+ for _,def in ipairs(defs) do
+  local key=(prefix or "")..nameOf(def);assert(not group._definitions[key],"Duplicate setting: "..key)
+  group._definitions[key]=def;local kind=kindOf(def)
+  local initial=def.default;if initial==nil then initial=def.Default end
+  if initial==nil then
+   if kind=="range" then initial={def.min or 0,def.max or 100}
+   elseif kind=="slider" or kind=="number" or kind=="progress" then initial=def.min or 0
+   elseif kind=="select" or kind=="dropdown" then initial=(def.options or def.Options or {})[1]
+   elseif kind=="color" then initial="#34A5F8"
+   elseif kind=="key" or kind=="keybind" then initial="None"
+   elseif kind=="multi" or kind=="slots" or kind=="list" or kind=="json" then initial={}
+   elseif kind=="text" or kind=="textarea" or kind=="readout" then initial="" else initial=false end
+  end
+  local result=normalized(def,initial);assert(result~=nil,"Invalid definition/default: "..key);group.Values[key]=result
+  if kind=="gear" or kind=="section" then self:_registerSettings(group,def.settings or def.Settings or {},key.."/") end
+ end
+end
+
+function Window:_inputPoint(input)
+ local p=input.Position;return Vector2.new(p.X-self.Gui.AbsolutePosition.X,p.Y-self.Gui.AbsolutePosition.Y)
+end
+function Window:_startDrag(input,apply,scope)
+ if input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch then return end
+ self._drag={input=input,apply=apply,scope=scope};apply(self:_inputPoint(input))
+end
+function Window:_accentHex() return self.Layout=="Neverlose" and 0xD968A2 or self.Layout=="Imgui" and 0x4296FA or self.Accent or 0x34A5F8 end
+function Window:_activeScale() return self._scale or 1 end
+function Group:SetHidden(value)
+ assert(type(value)=="boolean","Hidden must be boolean")
+ if self.Hidden~=value then self.Hidden=value;self.Window:_notify(self,"hidden",value) end;return self
+end
+function Group:SetKey(value)
+ local result=normalized({type="key"},value);assert(result,"Invalid binding")
+ if self.Key~=result then self.Key=result;self.Window:_notify(self,"key",result) end;return self
+end
+function Window:_rowBase(parent,scope,label)
+ local window=self
+ local row={Scope=scope,Height=32,Root=create("Frame",parent,{Name="SettingRow",BackgroundTransparency=1,Size=UDim2.fromOffset(240,32)})}
+ row.Label=text(row.Root,self:_tr(label),12,0,112,32,14,T.Label)
+ self:_on(row.Root.MouseEnter,function() self:Describe(label);self:_animate(row.Label,{TextColor3=color(T.LabelHover)}) end,scope)
+ self:_on(row.Root.MouseLeave,function() self:_animate(row.Label,{TextColor3=color(T.Label)}) end,scope)
+ function row:Place(width,y,shown)
+  self.Root.Position=UDim2.fromOffset(0,y);self.Root.Size=UDim2.fromOffset(width,self.Height);self.Root.Visible=shown
+  if self.Resize then self.Resize(width) end
+  self.Root.Size=UDim2.fromOffset(width,self.Height)
+ end
+ return row
+end
+
+-- All opacity transitions touch native object properties. No offscreen text surface.
+local FADE_PROPS={Frame={"BackgroundTransparency"},TextLabel={"BackgroundTransparency","TextTransparency","TextStrokeTransparency"},TextButton={"BackgroundTransparency","TextTransparency","TextStrokeTransparency"},TextBox={"BackgroundTransparency","TextTransparency","TextStrokeTransparency"},ImageLabel={"BackgroundTransparency","ImageTransparency"},ImageButton={"BackgroundTransparency","ImageTransparency"},ScrollingFrame={"BackgroundTransparency","ScrollBarImageTransparency"},UIStroke={"Transparency"}}
+function Window:_cancelTransition(root,restore)
+ local state=self._transitions and self._transitions[root]
+ if not state then return end
+ self._transitions[root]=nil
+ if restore then
+  for object,props in pairs(state.values) do if object.Parent then for key,value in pairs(props) do object[key]=value end end end
+  if root.Parent then root.Position=state.position end
+  if state.scaleObject and state.scaleObject.Parent then state.scaleObject.Scale=state.baseScale end
+ end
+end
+function Window:_transition(root,from,to,duration,scope,done,motion)
+ if self._dead or not root.Parent then return end
+ local overlaps={}
+ for other,state in pairs(self._transitions) do
+  if other~=root and (other:IsDescendantOf(root) or root:IsDescendantOf(other)) then overlaps[#overlaps+1]={other,state} end
+ end
+ for _,entry in ipairs(overlaps) do self:_cancelTransition(entry[1],true);if entry[2].done then entry[2].done() end end
+ local previous=self._transitions[root];local amount=previous and previous.amount or from
+ self:_cancelTransition(root,true)
+ local state={root=root,scope=scope,amount=amount,from=amount,to=to,time=0,duration=self.ReducedMotion and 0 or duration,values={},position=root.Position,done=done,motion=motion or {}}
+ if motion and motion.Zoom and root==self.Main then state.scaleObject=self.ScaleObject;state.baseScale=self._scale end
+ self._transitions[root]=state
+ self._transitionOwners=self._transitionOwners or setmetatable({},{__mode="k"})
+ if scope and self._transitionOwners[root]~=scope then self._transitionOwners[root]=scope;scope.disposals[#scope.disposals+1]=function() self:_cancelTransition(root,true);self._transitionOwners[root]=nil end end
+end
+function Window:_tickTransitions(dt)
+ for root,state in pairs(self._transitions) do
+  if not root.Parent or not state.scope.alive then self:_cancelTransition(root,false)
+  else
+   state.time+=dt
+   local delay=state.motion.Delay or 0
+   local t=state.duration==0 and 1 or math.clamp((state.time-delay)/state.duration,0,1)
+   local eased=1-(1-t)^3
+   state.amount=state.from+(state.to-state.from)*eased
+   if not state.captured then
+    self:_snapText(root,self:_activeScale())
+    state.captured=true
+    local nodes={}
+    local function collect(object)
+     if object:IsA("GuiObject") and not object.Visible then return end
+     nodes[#nodes+1]=object;for _,child in ipairs(object:GetChildren()) do collect(child) end
+    end
+    collect(root)
+    for _,object in ipairs(nodes) do
+     local keys=FADE_PROPS[object.ClassName]
+     if keys then
+      local values={};for _,key in ipairs(keys) do local value=object[key];if value and value<1 then values[key]=value end end
+      if next(values) then state.values[object]=values end
+     end
+    end
+   end
+   for object,values in pairs(state.values) do if object.Parent then for key,value in pairs(values) do object[key]=1-(1-value)*state.amount end end end
+   local offset=1-state.amount
+   root.Position=state.position+UDim2.fromOffset((state.motion.X or 0)*offset,(state.motion.Y or 0)*offset)
+   if state.scaleObject and state.scaleObject.Parent then
+    local zoom=1-(1-state.motion.Zoom)*(1-state.amount)
+    state.scaleObject.Scale=state.baseScale*zoom
+    root.Position=state.position+UDim2.fromOffset(self._width*state.baseScale*(1-zoom)/2,self._height*state.baseScale*(1-zoom)/2)
+   end
+   if t>=1 then
+    self._transitions[root]=nil
+    for object,props in pairs(state.values) do if object.Parent then for key,value in pairs(props) do object[key]=value end end end
+    if root.Parent then root.Position=state.position end
+    if state.scaleObject and state.scaleObject.Parent then state.scaleObject.Scale=state.baseScale end
+    if state.done then state.done() end
+   end
+  end
+ end
+end
+function Window:_pressFeedback(button,scope)
+ local border=stroke(button,self:_accentHex(),1);border.Transparency=1
+ self:_on(button.InputBegan,function(input)
+  if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then self:_animate(border,{Transparency=.2},.07) end
+ end,scope)
+ self:_on(button.InputEnded,function(input)
+  if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then self:_animate(border,{Transparency=1},.2) end
+ end,scope)
+end
+function Window:SetReducedMotion(value)
+ self.ReducedMotion=value==true
+ for root,state in pairs(self._transitions) do state.duration=0 end
+ return self
+end
+
+function Window:_snapText(root,scale)
+ self._textMetrics=self._textMetrics or setmetatable({},{__mode="k"})
+ for _,o in ipairs(root:GetDescendants()) do
+  if o:IsA("TextLabel") or o:IsA("TextButton") or o:IsA("TextBox") then
+   local metric=self._textMetrics[o]
+   if not metric or math.abs(o.TextSize-metric.last)>.001 then metric={base=o.TextSize};self._textMetrics[o]=metric end
+   metric.last=math.round(metric.base*scale)/scale;o.TextSize=metric.last
+   if self.Options.FontFace and o.Font~=Enum.Font.Code and o.Font~=Enum.Font.Arcade then o.FontFace=self.Options.FontFace end
+  end
+ end
+end
+
+-- Generated from JackalClient 1.1.9 DefaultSettings/default_settings.h.
+local PRESETS={["Default"]={["Round Corners"]=false,["Outline"]=false,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Rainbow",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0,["Module Background Opacity (0~1)"]=1,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Slide (Top)",["Module Font Size"]=23,["Module Height"]=37,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="200;200;200",["Tab Theme Color"]="10;10;10",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=290,["Top Tab Text Color"]="253;249;0",["Tab Expand Arrow"]=true,["Tab Icons"]=true,["Tab Icon Color"]="White",["Tab Shadows"]=true,["Module Left Bar"]=false,["Module Keybind Display"]=true,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Dots",["Show Module Description"]=true,["Remove Spaces in Module Names"]=false},["Old"]={["Round Corners"]=true,["Outline"]=true,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Rainbow",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.8,["Module Background Opacity (0~1)"]=0.9,["Module Option Style"]="Old",["Menu Toggle Animation"]="Slide (Top)",["Module Font Size"]=28,["Module Height"]=33,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="200;200;200",["Tab Theme Color"]="40;40;50",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Auto",["Tab Width (Fixed)"]=290,["Top Tab Text Color"]="230;230;230",["Tab Expand Arrow"]=false,["Tab Icons"]=false,["Tab Icon Color"]="White",["Tab Shadows"]=true,["Module Left Bar"]=false,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Off",["Show Module Description"]=true,["Remove Spaces in Module Names"]=false,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="150;150;150",["Tab Width Addition (Auto)"]=50,["Tab Shadows Thickness"]=10.0,["Tab Shadows Opacity (0~1)"]=0.7},["Modern"]={["Round Corners"]=true,["Outline"]=true,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="White",["Module Background Color"]="Transparent",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=1.0,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Slide (Bottom)",["Module Font Size"]=23,["Module Height"]=37,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="200;200;200",["Tab Theme Color"]="10;10;10;10",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=290,["Top Tab Text Color"]="230;230;230",["Tab Expand Arrow"]=true,["Tab Icons"]=true,["Tab Icon Color"]="White",["Tab Shadows"]=true,["Module Left Bar"]=false,["Module Keybind Display"]=true,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Arrow",["Show Module Description"]=false,["Remove Spaces in Module Names"]=false,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="150;150;150",["Module Option Background Color"]="Transparent",["Module Option Background Darkness (0~1)"]=0.0,["Tab Shadows Thickness"]=20.0,["Tab Shadows Opacity (0~1)"]=0.7},["Vape"]={["Round Corners"]=false,["Outline"]=false,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Rainbow",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=1.0,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Fade",["Module Font Size"]=23,["Module Height"]=37,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="200;200;200",["Tab Theme Color"]="10;10;10",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=290,["Top Tab Text Color"]="230;230;230",["Tab Expand Arrow"]=true,["Tab Icons"]=true,["Tab Icon Color"]="White",["Tab Shadows"]=true,["Module Left Bar"]=false,["Module Keybind Display"]=true,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Dots",["Show Module Description"]=false,["Remove Spaces in Module Names"]=true,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="150;150;150",["Tab Shadows Thickness"]=20.0,["Tab Shadows Opacity (0~1)"]=0.7},["Opai"]={["Round Corners"]=true,["Outline"]=false,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Gold",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=1.0,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Enlarge II",["Module Font Size"]=23,["Module Height"]=50,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="20;20;20",["Tab Theme Color"]="10;10;10",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=320,["Top Tab Text Color"]="230;230;230",["Tab Expand Arrow"]=false,["Tab Icons"]=false,["Tab Icon Color"]="White",["Tab Shadows"]=true,["Module Left Bar"]=false,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Off",["Show Module Description"]=false,["Remove Spaces in Module Names"]=false,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="150;150;150",["Tab Shadows Thickness"]=30.0,["Tab Shadows Opacity (0~1)"]=0.8},["LiquidBounce"]={["Round Corners"]=false,["Outline"]=false,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Aqua",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=0.7,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Fade",["Module Font Size"]=27,["Module Height"]=32,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="200;200;200",["Tab Theme Color"]="58;71;94",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Center",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=270,["Top Tab Text Color"]="200;200;200",["Tab Expand Arrow"]=false,["Tab Icons"]=true,["Tab Icon Color"]="Blue",["Tab Shadows"]=false,["Module Left Bar"]=false,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Off",["Show Module Description"]=true,["Remove Spaces in Module Names"]=true,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="150;150;150"},["LiquidBounce NextGen"]={["Round Corners"]=false,["Outline"]=false,["Module Name Alignment"]="Center",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Black",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=1.0,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Fade",["Module Font Size"]=21,["Module Height"]=39,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="89;118;247",["Tab Theme Color"]="32;34;37;190",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=280,["Top Tab Text Color"]="aqua",["Tab Expand Arrow"]=true,["Tab Icons"]=true,["Tab Icon Color"]="White",["Tab Shadows"]=true,["Module Left Bar"]=false,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Arrow",["Show Module Description"]=true,["Remove Spaces in Module Names"]=false,["Font"]="GoogleSans.ttf",["Requirement Icon"]="Off",["Module Text Color (Unavailable)"]="150;150;150",["Tab Shadows Thickness"]=20.0,["Tab Shadows Opacity (0~1)"]=0.6},["Raven"]={["Round Corners"]=true,["Outline"]=true,["Module Name Alignment"]="Center",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Lower Case",["Module Background Color (Enabled)"]="Black",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=0.6,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Fade",["Module Font Size"]=15,["Module Height"]=40,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="89;118;247",["Tab Theme Color"]="32;34;37;210",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=270,["Top Tab Text Color"]="180;180;180",["Tab Expand Arrow"]=true,["Tab Icons"]=false,["Tab Icon Color"]="White",["Tab Shadows"]=false,["Module Left Bar"]=false,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Off",["Show Module Description"]=true,["Remove Spaces in Module Names"]=true,["Font"]="Minecraft AE Pixel.ttf",["Module Text Color (Unavailable)"]="150;150;150"},["Meteor"]={["Round Corners"]=false,["Outline"]=false,["Module Name Alignment"]="Center",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Gray",["Module Background Color"]="Black",["Module Background Blackness (0~1)"]=0.0,["Module Background Opacity (0~1)"]=1.0,["Module Option Style"]="Old",["Menu Toggle Animation"]="Fade",["Module Font Size"]=25,["Module Height"]=30,["Module Text Color"]="200;200;200",["Module Text Color (Enabled)"]="200;200;200",["Tab Theme Color"]="124;30;235",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Center",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=280,["Top Tab Text Color"]="180;180;180",["Tab Expand Arrow"]=true,["Tab Icons"]=false,["Tab Icon Color"]="White",["Tab Shadows"]=false,["Module Left Bar"]=true,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Off",["Show Module Description"]=true,["Remove Spaces in Module Names"]=false,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="150;150;150"},["Future"]={["Round Corners"]=false,["Outline"]=false,["Module Name Alignment"]="Left",["Module Name Case Style"]="Normal",["Tab Name Case Style"]="Normal",["Module Background Color (Enabled)"]="Red",["Module Background Color"]="Red",["Module Background Blackness (0~1)"]=0.9,["Module Background Opacity (0~1)"]=0.6,["Module Option Style"]="Integration",["Menu Toggle Animation"]="Slide (Top)",["Module Font Size"]=25,["Module Height"]=30,["Module Text Color"]="153;153;153",["Module Text Color (Enabled)"]="250;250;250",["Tab Theme Color"]="129;31;23",["Tab Theme Color Mode"]="Single",["Tab Name Alignment"]="Left",["Tab Width Mode"]="Fixed",["Tab Width (Fixed)"]=280,["Top Tab Text Color"]="180;180;180",["Tab Expand Arrow"]=false,["Tab Icons"]=false,["Tab Icon Color"]="White",["Tab Shadows"]=false,["Module Left Bar"]=true,["Module Keybind Display"]=false,["Module Keybind Color"]="Gray",["Module Option Open Button"]="Future",["Show Module Description"]=true,["Remove Spaces in Module Names"]=false,["Font"]="GoogleSans.ttf",["Module Text Color (Unavailable)"]="90;90;90"}}
+local PRESET_NAMES={"Default","Old","Modern","Vape","LiquidBounce","LiquidBounce NextGen","Raven","Meteor","Future","Opai"}
+local LAYOUT_NAMES={"Dropdown","Neverlose","Imgui"}
+local LAUNCHER_NAMES={"Default","Vape","Jackal","Neon","Matrix","Aurora","Random"}
+
+local ZH={["AntiCapture"]="反捕获",["AntiClose"]="反关闭",["AntiDebug"]="反调试",["AntiInject"]="反注入",["AntiIntercept"]="反拦截",["AntiMalware"]="反恶意软件",["AntiTaskkill"]="反进程杀手",["AntiMouseHook"]="反鼠标钩子",["AntiKeyHook"]="反键盘钩子",["AutoStart"]="开机自启",["AutoUAC"]="自动管理员",["AutoLogin"]="自动登录",["Admin"]="管理员",["System"]="系统",["UIAccess"]="界面特权",["SuperTopmost"]="超级置顶",["UACBypass"]="管理员绕过",["Taskmgr"]="任务管理器",["Cmd"]="命令提示符",["SuperCmd"]="超级CMD",["Gpedit"]="组策略",["Regedit"]="注册表",["Perfmon"]="资源监视器",["Calc"]="计算器",["Osk"]="屏幕键盘",["Mrt"]="恶意软件删除工具",["ClearPin"]="清除PIN",["CrackPassword"]="破解密码",["SetPassword"]="篡改密码",["Uninstaller"]="一键卸载",["Interceptor"]="拦截器",["Gatekeeper"]="看门人",["NoFirewall"]="关闭防火墙",["FreezeWinlogon"]="冻结 Winlogon",["MagnifyReplace"]="放大镜替换",["SethcBackdoor"]="粘滞键后门",["Privileges"]="特权",["Protection"]="自保护",["MachineLock"]="锁机",["LockUser"]="锁定用户",["Logoff"]="注销",["Shutdown"]="关机",["Reboot"]="重启",["MythwareKiller"]="极域杀手",["Crash"]="蓝屏",["ListTrays"]="列举托盘",["WindowManager"]="窗口管理器",["WindowTags"]="窗口标签",["WindowHighlight"]="窗口高亮",["WindowESP"]="窗口透视",["WindowKill"]="窗口击杀",["WindowFreeze"]="窗口冻结",["Tracers"]="追踪线",["OpacityChanger"]="透明度调节",["ConsoleESP"]="控制台透视",["Messenger"]="消息通信",["MsgBlocker"]="消息阻塞",["WindowMaster"]="窗口大师",["PrivateWindow"]="隐私窗口",["BandSetter"]="Z序段设置",["Topmost"]="窗口置顶",["TitleChanger"]="标题修改",["BetterAnimation"]="更好的动画",["AntiBrowser"]="反浏览器",["AntiPopups"]="反弹窗",["AntiTopmost"]="反置顶",["AutoTranslate"]="自动翻译",["AutoFocus"]="自动聚焦",["HoverFocus"]="悬停聚焦",["CloseEnhance"]="关闭增强",["DialogEscape"]="对话框关闭",["DialogPhysics"]="物理弹窗",["HideTaskbar"]="隐藏任务栏",["TargetHUD"]="目标显示",["ToastESP"]="通知透视",["TargetESP"]="目标透视",["KeywordESP"]="关键词透视",["UncrossAura"]="抗关闭光环",["FreezeAura"]="冻结光环",["AimAssist"]="自动瞄准",["TriggerBot"]="触发点击",["KillAuraLegit"]="合法杀戮光环",["KillAura"]="杀戮光环",["MaxAura"]="最大化光环",["MinAura"]="最小化光环",["Ruler"]="标尺",["AntiProcCreate"]="禁止创建进程",["Elevator"]="电梯",["ForceTerminator"]="暴力送终",["ListModules"]="枚举模块",["ListDrivers"]="枚举驱动",["ListServices"]="枚举服务",["ListTasks"]="枚举计划任务",["Injector"]="注入器",["RemoteRun"]="远程执行",["Speedhack"]="变速齿轮",["GenshinImpact"]="原神启动",["Tasklist"]="进程列表",["QuickRun"]="快捷运行",["Run"]="运行",["DebugESP"]="调试透视",["ProcessESP"]="进程透视",["CompileESP"]="编译透视",["ProcessKill"]="进程击杀",["ProcessKeep"]="进程保持",["ProcessFreeze"]="进程冻结",["FileManager"]="文件管理器",["ProcessManager"]="进程管理器",["Everything"]="Everything",["LongPath"]="长路径",["TopFiles"]="大文件",["PeParser"]="PE解析",["HexViewer"]="十六进制查看",["DiskMissing"]="磁盘丢失",["FileDelete"]="文件删除",["FileCreate"]="文件创建",["FileMonitor"]="文件监视",["FolderClear"]="目录清空",["TempClear"]="临时清空",["RubbishClean"]="垃圾清理",["RecyclerClear"]="回收站清空",["RootProgram"]="根目录程序",["PrivacySpy"]="隐私密探",["PrivacyDatabase"]="隐私数据库",["SelfBackup"]="自我备份",["SelfRestore"]="自我还原",["AutoRestore"]="自动还原",["RegManager"]="注册表管理",["RegMonitor"]="注册表监视",["SecureLogin"]="安全登录",["ListHijacks"]="劫持调查",["KillHijacks"]="清除劫持",["CrashKey"]="快捷蓝屏",["NoCmd"]="禁命令提示符",["NoPowerShell"]="禁PowerShell",["NoTaskmgr"]="禁任务管理器",["NoRegedit"]="禁注册表编辑器",["NoDesktopIcons"]="隐藏桌面图标",["NoDesktopMenu"]="隐藏桌面菜单",["NoTaskbarMenu"]="隐藏任务栏菜单",["NoStartMenuChange"]="禁开始菜单改变",["NoRun"]="禁运行框",["NoPowerOptions"]="隐藏电源选项",["NoLogOff"]="隐藏注销",["NoDwm"]="禁用DWM",["NoConsoleAltF4"]="禁控制台Alt+F4",["NoSetFolders"]="禁开始菜单目录",["NoFolderOptions"]="禁目录选项",["HideWindowsUpdate"]="隐藏系统更新",["UpdateDisabler"]="更新禁用器",["NoWinKeys"]="禁Win快捷键",["NoLockUser"]="禁Win+L",["RestrictRun"]="限制运行",["NoMSDos"]="禁MSDOS",["NoSmartScreen"]="禁SmartScreen",["NoRemovableDev"]="禁可移动设备",["NoUAC"]="禁UAC",["NoDefender"]="禁用实时保护",["NoHibernate"]="禁休眠",["NoFastStartup"]="禁快启",["NoRemoteDesktop"]="禁远程桌面",["Arraylist"]="模块列表",["Ambience"]="环境气氛",["AutoDanmaku"]="自动弹幕",["AutoTitle"]="自动标题",["AutoTotem"]="自动图腾",["HighContrast"]="高对比度",["BlackCapture"]="黑屏捕获",["BetterLyrics"]="更好的歌词",["MusicOverlay"]="音乐信息",["LyricsPhysics"]="物理歌词",["ScreenSaver"]="屏保程序",["CloseMonitor"]="关闭显示器",["Crosshair"]="准星线",["MouseTrails"]="鼠标轨迹",["Keystrokes"]="按键显示",["Keystrokes2"]="按键显示II",["LetterGraph"]="字母图",["ChatBar"]="聊天栏",["HudEditor"]="HUD编辑器",["NoAnimation"]="禁用动画",["NoScreenSaver"]="关闭屏保",["PerformanceHUD"]="性能显示",["DownloadHUD"]="下载显示",["SessionHUD"]="会话显示",["PPLESP"]="保护进程透视",["SecurityESP"]="安全透视",["ClipboardESP"]="剪贴板透视",["MCDisplay"]="MC显示",["MotionBlur"]="动态模糊",["Background"]="背景",["WarpUI"]="空间变形",["GUIBlur"]="界面模糊",["HUDBlur"]="HUD模糊",["CustomHUD"]="自定义显示",["Scoreboard"]="计分板",["ChatQueue"]="聊天队列",["Clock"]="时钟",["TimeDisplay"]="时间显示",["Island"]="灵动岛",["Karaoke"]="卡拉OK",["Title"]="标题显示",["FancyTexts"]="花式文字",["Actionbar"]="行为栏",["Totem"]="不死图腾",["Tint"]="染色",["Stuck"]="冻结",["Watermark"]="水印",["BlackoutSense"]="停电感知",["PowerSaving"]="节能",["WeakView"]="节电模式",["Bright"]="亮度修改",["Gamma"]="伽马覆写",["Spotlight"]="聚光灯",["Shaders"]="着色器",["Night"]="夜间",["TcpMonitor"]="TCP监视",["TcpKiller"]="TCP杀手",["OnlineTime"]="在线时间",["IPTracker"]="IP追踪",["IPAddress"]="IP地址",["IPHorror"]="IP恐惧",["PhoneArea"]="手机归属地",["WallCheck"]="墙壁检测",["WeatherInfo"]="天气信息",["QuakeWarning"]="地震预警",["Encryptor"]="加密器",["Memeizer"]="生草机",["BiliCookies"]="B站曲奇",["BiliChatter"]="B站弹幕",["BiliConsole"]="B站控制台",["BiliFans"]="B站粉丝",["BiliFeed"]="B站推荐",["BiliHot"]="B站热搜",["BiliNotifier"]="B站通知",["BiliComponents"]="B友成分",["BiliProfile"]="B友档案",["BiliSettings"]="B站设定",["WebSettings"]="网络设定",["AISettings"]="AI设定",["ApiHzSettings"]="翻译接口盒子设定",["Agent"]="AI代理",["Translator"]="翻译器",["BiliVideo"]="B站视频",["BiliVideoCover"]="B站视频封面",["BiliVideoHelper"]="B站视频助手",["LiveStream"]="直播间",["Streamer"]="主播模式",["SystemProxy"]="系统代理",["QQBot"]="QQ机器人",["QQInspect"]="QQ窥探",["QQBindQuery"]="QQ查绑",["Flight"]="飞行",["IRC"]="聊天室",["IRCLegacy"]="旧版聊天室",["AntiWebpage"]="反网页",["AntiAFK"]="反挂机",["AntiRickroll"]="反诈骗",["AntiSpy"]="反间谍",["AntiMicrophone"]="反麦克风",["LiveChatter"]="直播弹幕",["AutoClicker"]="连点器",["AutoSpeak"]="自动讲述",["ColorPicker"]="取色器",["BridgeAssist"]="搭路辅助",["ChestStealer"]="箱子小偷",["ChatAsk"]="AI回答",["ChatTranslate"]="AI翻译",["ChatBilingual"]="AI双语",["ChatRestruct"]="AI重构",["AutoCopy"]="自动复制",["ClipboardTweaks"]="剪贴板功能",["MinecraftUtils"]="MC功能",["AutoText"]="自动文本",["AutoL"]="自动嘲讽",["MemeTrigger"]="梗触发",["MouseESP"]="鼠标透视",["MouseTeleport"]="鼠标传送",["MouseWatcher"]="鼠标监视",["MouseSwap"]="鼠标交换",["NoDoubleClick"]="禁止双击",["NoClipboard"]="禁止复制",["MouseDisabler"]="禁用鼠标",["BHop"]="兔子跳",["SnapTap"]="急停键",["ToggleKey"]="切换键",["Typewriter"]="打字机",["CapsGuard"]="大写守护",["Spammer"]="刷屏器",["KeyDisabler"]="禁用键盘",["KeyMapper"]="按键映射",["KeyLogger"]="键盘记录",["KeySound"]="按键音效",["KeyReaction"]="按键反应",["TypingEffects"]="打字效果",["TypingPractice"]="打字练习",["CaretBrowser"]="光标浏览",["MacroRecorder"]="宏录制",["MacroPlayer"]="宏播放",["NoBeep"]="禁止蜂鸣",["RestartExplorer"]="重启资源管理器",["QuickIME"]="快捷输入法",["DisableIME"]="关闭输入法",["NoIME"]="禁止输入法",["Panic"]="恐慌",["Musics"]="音乐",["Speaker"]="讲述人",["Volume"]="音量",["Mixer"]="混音器",["AudioIsolation"]="音频隔离",["CloudMusic"]="云音乐",["Mute"]="静音",["Active"]="活动",["AudioVisualizer"]="音频可视化",["ModuleEditor"]="模块编辑器",["GUIStyler"]="GUI风格",["ForceTopmost"]="强制置顶",["NotificationModule"]="通知",["Reminder"]="提醒",["Triggers"]="触发器",["NickGenerator"]="昵称生成",["IQBooster"]="智商提升",["TaskbarIcon"]="任务栏图标",["ScreenCapture"]="屏幕捕获",["AsciiArtConvert"]="字符画转换",["TimeManager"]="时间管理",["QuickCommand"]="快速命令",["Shell"]="命令行",["OpenUrl"]="打开链接",["Screenshot"]="截图工具",["Console"]="控制台",["Developer"]="开发者",["Hidden"]="隐藏至托盘",["Restart"]="重新启动",["Exit"]="退出",["Anti360Ad"]="反数字广告",["Anti360VT"]="反数字核晶",["ScaredUAC"]="恐惧UAC",["KillEveryone"]="全员击杀",["KillAV"]="击杀杀软",["KillHuorong"]="杀火绒",["CloseAV"]="关闭杀软",["Kill360"]="杀数字",["Kill360Test"]="杀数字测试",["Kill360Test2"]="杀数字测试II",["Kill360AdProc"]="杀数字广告进程",["KillMalware"]="击杀病毒",["FreezeExplorer"]="冻结资源管理器",["FreezeEveryone"]="全员冻结",["UnfreezeEveryone"]="全员解冻",["PPLButcher"]="解除进程保护",["TrustedInstaller"]="受信任安装者",["RemoteKillHR"]="远程杀火绒",["Masquerade"]="伪装",["NoNotification"]="关闭通知",["RuinAura"]="毁灭光环",["SelfDestruct"]="自我删除",["SelfUninstall"]="自我卸载",["HideProcess"]="隐藏进程",["Vape"]="电子烟",["Kernel1"]="内核1",["Sirius"]="天狼星",["Portal"]="传送门",["Combat"]="战斗",["Window"]="窗口",["Process"]="进程",["Registry"]="注册表",["File"]="文件",["Control"]="控制",["Render"]="渲染",["Web"]="网络",["Misc"]="杂项",["Driver"]="驱动",["Modules"]="模块",["Config"]="配置",["GUI"]="界面",["HUD"]="显示",["Sound"]="声音",["Search"]="搜索",["Profiles"]="配置文件",["Apps"]="应用",["About"]="关于",["Language"]="语言",["ClickGUI Layout"]="界面布局",["Style Preset"]="样式预设",["Global Scale"]="整体缩放",["Launcher Style"]="启动器风格",["Reset panel positions"]="重置面板位置",["Enabled"]="开启",["Reset"]="重置",["Save"]="保存",["Results"]="项结果",["Search modules and settings"]="搜索模块和设置",["No matching modules"]="没有匹配的模块",["No saved profiles"]="尚无配置文件",["Advanced"]="高级选项"}
+for key,value in pairs({["Dynamic Island"]="灵动岛",["Demo"]="示例",["Progress"]="进度",["Cancelled"]="已取消",["Completed"]="已完成",["Notification received"]="收到通知",["Disabled"]="关闭",["Cancel"]="取消"}) do ZH[key]=value end
+function Window:_tr(value) return self.Language=="中文" and (ZH[value] or ZH[value:gsub("%s","")] or value) or value end
+
+function Window:_beginBinding(group,key,button,scope)
+ local function set(value)
+  if key=="key" then group.Key=value;self:_notify(group,"key",value) else group:Set(key,value) end
+ end
+ if Input.TouchEnabled and not Input.KeyboardEnabled then
+  self:_listPopup(button,{"None","Q","E","R","F","G","V","B","N","RightShift"},nil,false,set);return
+ end
+ if self._binding then local same=self._binding.button==button;self._binding.cancel();self._binding=nil;if same then return end end
+ local original=button.Text;button.Text="...";button.TextColor3=color(self:_accentHex())
+ local originalBackground=button.BackgroundTransparency;local originalSize=button.Size;local originalPosition=button.Position
+ if button:IsA("TextButton") then button.BackgroundTransparency=0;local width=math.max(18,originalSize.X.Offset);button.Size=UDim2.fromOffset(width,originalSize.Y.Offset);button.Position=UDim2.fromOffset(originalPosition.X.Offset+originalSize.X.Offset-width,originalPosition.Y.Offset) end
+ local hiddenIcons={}
+ for _,child in ipairs(button:GetChildren()) do if child:IsA("Frame") and child.Name=="Icon_key" then hiddenIcons[#hiddenIcons+1]={child,child.Visible};child.Visible=false end end
+ self._binding={scope=scope,button=button,set=set,cancel=function()
+  if button.Parent then button.Text=original;button.TextColor3=color(T.FieldText);button.BackgroundTransparency=originalBackground;button.Size=originalSize;button.Position=originalPosition;for _,entry in ipairs(hiddenIcons) do if entry[1].Parent then entry[1].Visible=entry[2] end end end
+ end}
+ self:Notify("Press a key · Escape clears")
+end
+function Window:_wheelField(control,scope,step)
+ local locked
+ local function unlock() if locked and locked.Parent then locked.ScrollingEnabled=true end;locked=nil end
+ self:_on(control.MouseEnter,function()
+  if Input.MouseEnabled then locked=control:FindFirstAncestorWhichIsA("ScrollingFrame");if locked then locked.ScrollingEnabled=false end end
+ end,scope)
+ self:_on(control.MouseLeave,unlock,scope)
+ self:_on(control.InputChanged,function(input) if input.UserInputType==Enum.UserInputType.MouseWheel then step(input.Position.Z>0 and 1 or -1) end end,scope)
+ scope.disposals[#scope.disposals+1]=unlock
+end
+function Window:_makeRow(group,def,key,parent,scope)
+ local kind=kindOf(def)
+ if kind=="number" or kind=="textarea" or kind=="section" or kind=="separator" or kind=="paragraph" or kind=="list" or kind=="json" or kind=="readout" or kind=="progress" then return self:_richRow(group,def,key,parent,scope) end
+ local row=self:_rowBase(parent,scope,def.label or def.Label or nameOf(def));row.Key=key;row.Definition=def
+ row.Privileged=def.privileged==true or def.Privileged==true or (def.group~=nil and def.group~="User")
+ if row.Privileged then row.Label.TextColor3=color(T.Privileged) end
+ local fw,fh=112,26
+ if kind=="toggle" or kind=="checkbox" then fw=self.Layout=="Neverlose" and 34 or 20;fh=20 end
+ if kind=="color" then fw=72;fh=20 end
+ if kind=="gear" then fw=14;fh=16 end
+ if kind=="label" then fw=0 end
+ local control=field(row.Root,110,(32-fh)/2,fw,fh)
+ local caption=text(control,"",4,0,math.max(1,fw-8),fh,14,T.FieldText,false,Enum.TextXAlignment.Center)
+ caption.Active=false
+ row.Control=control;row.Caption=caption
+ control.Name="Field_"..key
+ self:_pressFeedback(control,scope)
+ row.Resize=function(width)
+  control.Position=UDim2.fromOffset(width-15-fw,(32-fh)/2)
+  row.Label.Size=UDim2.fromOffset(math.max(1,width-36-fw),32)
+ end
+ local function set(value) group:Set(key,value) end
+ local refresh
+ if kind=="toggle" or kind=="checkbox" then
+  corner(control,1.5);caption.Visible=false
+  
+  local mark
+  if self.Layout=="Neverlose" then
+   corner(control,10);mark=create("Frame",control,{Name="SwitchKnob",BackgroundColor3=color(T.Title),Size=UDim2.fromOffset(16,16),Position=UDim2.fromOffset(2,2)});corner(mark,8)
+   local tick=icon(mark,"check",11,self:_accentHex());tick.Root.Position=UDim2.fromOffset(2.5,2.5);row.Tick=tick
+  else
+   stroke(control,0x72707D,1);mark=icon(control,"check",15,0xFFFFFF).Root;mark.Name="CheckedSquare";mark.Position=UDim2.fromOffset(2.5,2.5)
+  end
+  local hit=create("TextButton",row.Root,{BackgroundTransparency=1,Text="",Size=UDim2.fromScale(1,1),AutoButtonColor=false,ZIndex=0})
+  refresh=function(value)
+   if self.Layout=="Neverlose" then self:_animate(control,{BackgroundColor3=color(value and self:_accentHex() or 0x46414E)});self:_animate(mark,{Position=UDim2.fromOffset(value and 16 or 2,2)},.22);row.Tick.Root.Visible=value
+   else self:_animate(control,{BackgroundColor3=color(value and self:_accentHex() or T.Field)});mark.Visible=value end
+  end
+  self:_on(control.Activated,function() set(not group.Values[key]) end,scope);self:_on(hit.Activated,function() set(not group.Values[key]) end,scope)
+ elseif kind=="slider" or kind=="range" then
+  local min,max,step=def.min or def.Min or 0,def.max or def.Max or 100,def.step or def.Step or 1
+  control.BackgroundTransparency=1
+  local track=create("Frame",control,{Name="Track",BackgroundColor3=color(0x48404B),Position=UDim2.fromOffset(0,19),Size=UDim2.fromOffset(fw,4)});corner(track,2.5)
+  local fill=create("Frame",track,{Name="Fill",BackgroundColor3=color(self:_accentHex()),Position=UDim2.fromOffset(0,0),Size=UDim2.fromOffset(0,4)});corner(fill,1.5);caption.ZIndex=3
+  row.Track=track;row.Fill=fill
+  caption.Position=UDim2.fromOffset(0,-3);caption.Size=UDim2.fromOffset(fw,20);caption.TextSize=14;caption.TextColor3=color(T.Title)
+  local handles={}
+  for i=1,kind=="range" and 2 or 1 do local handle=create("Frame",track,{Name="Handle"..i,BackgroundColor3=color(0xF5EDF5),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.new(0,0,.5,0),Size=UDim2.fromOffset(10,10),ZIndex=2});corner(handle,5);handles[i]=handle end
+  row.Handles=handles
+  local editor=create("TextBox",control,{BackgroundColor3=color(T.Field),Size=UDim2.fromScale(1,1),ClearTextOnFocus=false,Text="",Font=Enum.Font.Gotham,TextSize=14,TextColor3=color(T.Label),Visible=false,ZIndex=5})
+  corner(editor,2.5);stroke(editor,self:_accentHex(),.7)
+  refresh=function(value)
+   local a,b
+   if kind=="range" then a=(value[1]-min)/math.max(1e-9,max-min);b=(value[2]-min)/math.max(1e-9,max-min)
+    local function rangeNumber(n) return formatNumber(n,step) end
+    caption.Text=rangeNumber(value[1]).." - "..rangeNumber(value[2])
+   else a=0;b=(value-min)/math.max(1e-9,max-min);caption.Text=formatNumber(value,step) end
+   local start=fw*a;local finish=fw*b
+   local fillWidth=math.max(0,finish-start)
+   self:_animate(fill,{Position=UDim2.fromOffset(start,0),Size=UDim2.fromOffset(fillWidth,4)},self._drag and .03 or .12)
+   local cover=kind=="range" and math.min(fw*.5-start,finish-fw*.5) or finish-(fw-measured(caption.Text,12,false))*.5
+   caption.TextColor3=color(T.Title)
+   for i,handle in ipairs(handles) do self:_animate(handle,{Position=UDim2.new(kind=="range" and (i==1 and a or b) or b,0,.5,0)},self._drag and .03 or .16) end
+  end
+  local function edit()
+   self._drag=nil;caption.Visible=false;editor.Visible=true;editor.Text=caption.Text;editor:CaptureFocus();editor.CursorPosition=#editor.Text+1;editor.SelectionStart=1
+  end
+  self:_on(control.MouseButton2Click,edit,scope)
+  self:_on(control.TouchLongPress,function(_,state) if state==Enum.UserInputState.Begin then edit() end end,scope)
+  self:_on(editor.FocusLost,function()
+   local raw=editor.Text;editor.Visible=false;caption.Visible=true
+   self._editCancel=nil
+   if kind=="range" then
+    local a,b=raw:match("^%s*([%+%-]?[%d%.]+)%s*[:;%-]%s*([%+%-]?[%d%.]+)%s*$")
+    if tonumber(a) and tonumber(b) then set({tonumber(a),tonumber(b)}) else refresh(group.Values[key]) end
+   else local value=tonumber((raw:gsub(",",".")));if value then set(value) else refresh(group.Values[key]) end end
+  end,scope)
+  self:_on(editor.Focused,function() local original=editor.Text;self._editCancel=function() editor.Text=original end end,scope)
+  self:_on(control.InputBegan,function(input)
+   if editor.Visible then return end
+   local chosen
+   self:_startDrag(input,function(point)
+    local usedScale=control.AbsoluteSize.X/fw
+    local left=control.AbsolutePosition.X-self.Gui.AbsolutePosition.X+1.5*usedScale
+    local width=math.max(1,control.AbsoluteSize.X-3*usedScale)
+    local value=min+math.clamp((point.X-left)/width,0,1)*(max-min)
+    if kind=="range" then
+     local current=clone(group.Values[key]);chosen=chosen or (math.abs(value-current[1])<=math.abs(value-current[2]) and 1 or 2)
+     current[chosen]=chosen==1 and math.min(value,current[2]) or math.max(value,current[1]);set(current)
+    else set(value) end
+   end,scope)
+  end,scope)
+  self:_wheelField(control,scope,function(direction)
+   local value=group.Values[key]
+   if kind=="range" then set({value[1]+direction*step,value[2]+direction*step}) else set(value+direction*step) end
+  end)
+ elseif kind=="select" or kind=="dropdown" or kind=="multi" then
+  caption.Position=UDim2.fromOffset(7,0);caption.TextXAlignment=Enum.TextXAlignment.Left;caption.Size=UDim2.fromOffset(fw-24,fh)
+  local chevron=icon(control,"down",9.5,0xCACACA);chevron.Root.Position=UDim2.fromOffset(fw-13.75,(fh-9.5)/2)
+  local up=icon(control,"up",9.5,0xCACACA);up.Root.Position=chevron.Root.Position;up.Root.Visible=false
+  self:_fieldHover(control,caption,scope)
+  self:_on(control:GetAttributeChangedSignal("PopupOpen"),function() local open=control:GetAttribute("PopupOpen")==true;chevron.Root.Visible=not open;up.Root.Visible=open end,scope)
+  refresh=function(value) caption.Text=kind=="multi" and (#value==0 and self:_tr("None") or table.concat(value,", ")) or tostring(value) end
+  self:_on(control.Activated,function()
+   self:_listPopup(control,def.options or def.Options or {},group.Values[key],kind=="multi",set)
+  end,scope)
+ elseif kind=="text" then
+  caption.Visible=false
+  local box=create("TextBox",control,{BackgroundTransparency=1,Position=UDim2.fromOffset(6,0),Size=UDim2.fromOffset(fw-12,fh),ClearTextOnFocus=false,Text=group.Values[key],PlaceholderText="Empty",PlaceholderColor3=color(T.FieldText),TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Center,Font=Enum.Font.Gotham,TextSize=14,TextColor3=color(T.FieldText)})
+  local focusStroke=stroke(control,T.AccentDim,.5);focusStroke.Enabled=false;local original;local updating=false
+  refresh=function(value) if Input:GetFocusedTextBox()~=box then box.Text=value end end
+  self:_on(box.Focused,function()
+   original=group.Values[key];focusStroke.Enabled=true;box.TextXAlignment=Enum.TextXAlignment.Left;box.TextColor3=color(T.Label)
+   self._editCancel=function() updating=true;box.Text=original;set(original);updating=false end
+  end,scope)
+  self:_on(box:GetPropertyChangedSignal("Text"),function() if not updating and Input:GetFocusedTextBox()==box then set(box.Text) end end,scope)
+  self:_on(box.FocusLost,function() set(box.Text);self._editCancel=nil;focusStroke.Enabled=false;box.TextXAlignment=Enum.TextXAlignment.Center;box.TextColor3=color(T.FieldText) end,scope)
+ elseif kind=="color" then
+  caption.Visible=false
+  for y=0,1 do for x=0,1 do create("Frame",control,{BackgroundColor3=color((x+y)%2==0 and 0x3A3A3A or 0x5A5A5A),Position=UDim2.fromScale(x/2,y/2),Size=UDim2.fromScale(.5,.5)}) end end
+  local swatch=create("Frame",control,{Size=UDim2.fromScale(1,1),ZIndex=2});corner(swatch,1.5)
+  local outline=stroke(control,0xFFFFFF,.6);outline.Transparency=1
+  self:_fieldHover(control,nil,scope)
+  self:_on(control.MouseEnter,function() outline.Transparency=.6 end,scope)
+  self:_on(control.MouseLeave,function() outline.Transparency=control:GetAttribute("PopupOpen") and .6 or 1 end,scope)
+  self:_on(control:GetAttributeChangedSignal("PopupOpen"),function() outline.Transparency=control:GetAttribute("PopupOpen") and .6 or 1 end,scope)
+  refresh=function(value) swatch.BackgroundColor3=Color3.fromHex(value.Hex);swatch.BackgroundTransparency=1-value.Alpha end
+  self:_motion(swatch,function() if group.Values[key].Rainbow then swatch.BackgroundColor3=Color3.fromHSV(os.clock()*.12%1,1,1) end end,scope)
+  self:_on(control.Activated,function() self:_colorPopup(control,group,key) end,scope)
+ elseif kind=="gear" then
+  caption.Visible=false;control.BackgroundTransparency=1
+  local gear=icon(control,"gear",10.5,T.Muted);gear.Root.Position=UDim2.new(.5,-5.25,.5,-5.25)
+  local hit=create("TextButton",row.Root,{Name="GearRowHit",Text="",AutoButtonColor=false,BackgroundTransparency=1,Size=UDim2.new(1,-35,1,0)})
+  self:_on(hit.Activated,function() self:_gearPopup(control,group,key,def.settings or def.Settings or {}) end,scope)
+  local function gearHover(on) gear:SetColor(on and T.IconHover or T.Icon) end
+  self:_on(row.Root.MouseEnter,function() gearHover(true) end,scope);self:_on(row.Root.MouseLeave,function() gearHover(control:GetAttribute("PopupOpen")==true) end,scope)
+  self:_fieldHover(control,nil,scope);control.BackgroundTransparency=1
+  self:_on(control:GetAttributeChangedSignal("PopupOpen"),function() gearHover(control:GetAttribute("PopupOpen")==true) end,scope)
+  refresh=function() end
+  self:_on(control.Activated,function() self:_gearPopup(control,group,key,def.settings or def.Settings or {}) end,scope)
+ elseif kind=="slots" then
+  caption.Position=UDim2.fromOffset(7,0);caption.Size=UDim2.fromOffset(fw-24,fh);caption.TextXAlignment=Enum.TextXAlignment.Left
+  local down=icon(control,"down",9,0xCACACA);down.Root.Position=UDim2.fromOffset(fw-12.5,5)
+  local up=icon(control,"up",9,0xCACACA);up.Root.Position=down.Root.Position;up.Root.Visible=false
+  self:_fieldHover(control,caption,scope)
+  self:_on(control:GetAttributeChangedSignal("PopupOpen"),function() local open=control:GetAttribute("PopupOpen")==true;down.Root.Visible=not open;up.Root.Visible=open end,scope)
+  refresh=function(value) local n=0;for _,role in ipairs(value) do if role~="None" then n+=1 end end;caption.Text=n==0 and "None" or tostring(n)..(n==1 and " slot" or " slots") end
+  self:_on(control.Activated,function() self:_slotsPopup(control,group,key,def.options or def.Options or {"None","Sword","Tool","Blocks","Food","Utility"}) end,scope)
+ elseif kind=="key" or kind=="keybind" then
+  self:_fieldHover(control,caption,scope)
+  refresh=function(value) caption.Text=value=="None" and self:_tr("None") or value;fw=math.max(50,math.min(160,measured(caption.Text,14,false)+18));control.Size=UDim2.fromOffset(fw,fh);caption.Size=UDim2.fromOffset(fw-8,fh) end
+  self:_on(control.Activated,function() self:_beginBinding(group,key,caption,scope) end,scope)
+  self:_on(control.MouseButton2Click,function() if self._binding then self._binding.cancel();self._binding=nil end;set("None") end,scope)
+ elseif kind=="button" then
+  refresh=function() caption.Text=def.buttonText or "Run" end
+  self:_on(control.Activated,function()
+   local callback=def.callback or def.Callback;if callback then task.spawn(callback,group) end
+   self._changed:Fire(group.Id,key,true)
+  end,scope)
+ else control.Visible=false;refresh=function() end end
+ local paint=refresh
+ refresh=function(value)
+  paint(value)
+  local modified=group.Defaults and Http:JSONEncode(value)~=Http:JSONEncode(group.Defaults[key])
+  local highlight=not self.Models or not self.Models.Config or self.Models.Config.Values["Highlight modified options"]
+  row.Label.TextColor3=color(modified and highlight and 0xE4C28A or row.Privileged and T.Privileged or T.Label)
+ end
+ self:_on(row.Root.MouseEnter,function()
+  local defaults=group.Defaults and group.Defaults[key]
+  if defaults~=nil and self.Models.Config.Values["Display default values"] then self:Describe((def.label or nameOf(def)).." · Default: "..Http:JSONEncode(defaults)) end
+ end,scope)
+ self:_on(row.Root.MouseLeave,function() self:_stopTween(row.Label);refresh(group.Values[key]) end,scope)
+ row.Refresh=function() refresh(group.Values[key]) end
+ self:_listen(group,key,refresh,scope);row.Refresh();return row
+end
+
+-- Structured settings and editors, shared by all three layouts.
+function Window:_richRow(group,def,key,parent,scope)
+ local kind=kindOf(def);local row=self:_rowBase(parent,scope,def.label or nameOf(def));row.Definition=def;row.Key=key
+ if kind=="separator" then
+  row.Height=26;row.Label.TextSize=14;row.Label.TextColor3=color(self:_accentHex());row.Label.Font=Enum.Font.BuilderSansBold
+  local rule=create("Frame",row.Root,{Name="SectionRule",BackgroundColor3=color(0x574455),Size=UDim2.new(1,-24,0,1),Position=UDim2.fromOffset(12,25)})
+  row.Resize=function(width) row.Label.Size=UDim2.fromOffset(width-24,24) end
+ elseif kind=="paragraph" then
+  row.Height=def.height or 80;row.Label.Visible=false
+  local title=text(row.Root,self:_tr(def.label or nameOf(def)),12,0,200,26,15,T.Title,true)
+  local body=text(row.Root,def.text or def.description or "",12,28,200,row.Height-32,14,T.FieldText);body.TextWrapped=true;body.TextYAlignment=Enum.TextYAlignment.Top;body.TextTruncate=Enum.TextTruncate.None
+  row.Resize=function(width) title.Size=UDim2.fromOffset(width-24,26);body.Size=UDim2.fromOffset(width-24,row.Height-32) end
+ elseif kind=="section" then
+  row.Root.ClipsDescendants=true;row.Height=32
+  local header=create("TextButton",row.Root,{Name="SectionToggle",Text="",AutoButtonColor=false,BackgroundTransparency=1,Size=UDim2.new(1,0,0,32)})
+  local arrow=icon(header,"down",14,self:_accentHex());arrow.Root.Position=UDim2.fromOffset(11,9)
+  row.Label.Position=UDim2.fromOffset(34,0);row.Label.Font=Enum.Font.BuilderSansBold
+  local body=create("Frame",row.Root,{Name="SectionContent",BackgroundTransparency=1,Position=UDim2.fromOffset(10,32),Size=UDim2.fromOffset(220,100)})
+  create("Frame",body,{Name="SectionGuide",BackgroundColor3=color(0x76506D),Position=UDim2.fromOffset(3,0),Size=UDim2.new(0,1,1,-4)})
+  local children={};for _,child in ipairs(def.settings or def.Settings or {}) do children[#children+1]=self:_makeRow(group,child,key.."/"..nameOf(child),body,scope) end
+  local expanded=def.expanded~=false;row._fraction=expanded and 1 or 0;local target=row._fraction;row.Children=children
+  self:_motion(row.Root,function(dt)
+   if row._fraction~=target then row._fraction+=(target-row._fraction)*(1-math.exp(-dt*18));if math.abs(target-row._fraction)<.001 then row._fraction=target end;self._layoutDirty=true end
+  end,scope)
+  self:_on(header.Activated,function() expanded=not expanded;target=expanded and 1 or 0;self:_animate(arrow.Root,{Rotation=expanded and 0 or -90},.2);self._layoutDirty=true end,scope)
+  row.Resize=function(width)
+   row.Label.Size=UDim2.fromOffset(width-50,32)
+   local full=self:_placeRows(group,children,width-18,0);row.Height=32+full*row._fraction;body.Size=UDim2.fromOffset(width-18,full);row.Root.Size=UDim2.fromOffset(width,row.Height)
+  end
+ elseif kind=="number" then
+  local min,max,step=def.min or 0,def.max or 100,def.step or 1
+  local control=field(row.Root,0,3,132,26);control.Name="Field_"..key;row.Control=control
+  local box=create("TextBox",control,{Name="NumberInput",BackgroundTransparency=1,Position=UDim2.fromOffset(26,0),Size=UDim2.fromOffset(80,26),Text="",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=14,TextColor3=color(T.Title)})
+  local minus=self:_button(control,"−",0,0,26,26,function() group:Set(key,group.Values[key]-step) end,scope)
+  self:_button(control,"+",106,0,26,26,function() group:Set(key,group.Values[key]+step) end,scope)
+  local function refresh(v) if Input:GetFocusedTextBox()~=box then box.Text=formatNumber(v,step) end end
+  self:_on(box.Focused,function() local original=group.Values[key];self._editCancel=function() box.Text=tostring(original) end end,scope)
+  self:_on(box.FocusLost,function() self._editCancel=nil;local value=tonumber((box.Text:gsub(",",".")));if value then group:Set(key,value) end;refresh(group.Values[key]) end,scope)
+  self:_wheelField(control,scope,function(direction) group:Set(key,group.Values[key]+direction*step) end)
+  row.Resize=function(width) control.Position=UDim2.fromOffset(width-144,3);row.Label.Size=UDim2.fromOffset(math.max(1,width-166),32) end
+  self:_listen(group,key,refresh,scope);refresh(group.Values[key])
+ elseif kind=="textarea" then
+  row.Height=def.height or 128
+  local box=create("TextBox",row.Root,{Name="Field_"..key,BackgroundColor3=color(T.Field),Position=UDim2.fromOffset(12,32),Size=UDim2.fromOffset(200,row.Height-40),Text=group.Values[key],ClearTextOnFocus=false,MultiLine=true,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Top,Font=def.code and Enum.Font.Code or Enum.Font.BuilderSans,TextSize=14,TextColor3=color(T.Title),PlaceholderText=def.placeholder or "Type here…"});corner(box,4)
+  create("UIPadding",box,{PaddingLeft=UDim.new(0,8),PaddingRight=UDim.new(0,8),PaddingTop=UDim.new(0,6)})
+  local edge=stroke(box,0x544152,1);local original;local reverting=false;row.Control=box
+  self:_on(box.Focused,function() original=group.Values[key];self:_animate(edge,{Color=color(self:_accentHex())});self._editCancel=function() reverting=true;box.Text=original;group:Set(key,original);reverting=false end end,scope)
+  self:_on(box:GetPropertyChangedSignal("Text"),function() if not reverting and Input:GetFocusedTextBox()==box then group:Set(key,box.Text) end end,scope)
+  self:_on(box.FocusLost,function() self._editCancel=nil;group:Set(key,box.Text);self:_animate(edge,{Color=color(0x544152)}) end,scope)
+  self:_listen(group,key,function(v) if Input:GetFocusedTextBox()~=box then box.Text=v end end,scope)
+  row.Resize=function(width) row.Label.Size=UDim2.fromOffset(width-24,30);box.Size=UDim2.fromOffset(width-24,row.Height-40) end
+ elseif kind=="readout" then
+  local value=text(row.Root,"",0,0,120,32,14,def.color or self:_accentHex(),false,Enum.TextXAlignment.Right)
+  self:_listen(group,key,function(v) value.Text=v end,scope);value.Text=group.Values[key]
+  row.Resize=function(width) row.Label.Size=UDim2.fromOffset(math.max(1,width-160),32);value.Position=UDim2.fromOffset(width-152,0);value.Size=UDim2.fromOffset(140,32) end
+ elseif kind=="progress" then
+  row.Height=52
+  local value=text(row.Root,"",0,0,100,28,14,T.Title,false,Enum.TextXAlignment.Right)
+  local rail=create("Frame",row.Root,{Name="ProgressRail",BackgroundColor3=color(0x4E404F),Position=UDim2.fromOffset(12,35),Size=UDim2.fromOffset(200,5)});corner(rail,3)
+  local fill=create("Frame",rail,{Name="ProgressFill",BackgroundColor3=color(self:_accentHex()),Size=UDim2.fromScale(0,1)});corner(fill,3)
+  local function refresh(v) local fraction=(v-(def.min or 0))/math.max(1e-9,(def.max or 100)-(def.min or 0));value.Text=formatNumber(v,def.step or 1)..(def.suffix or "%");self:_animate(fill,{Size=UDim2.fromScale(fraction,1)},.25) end
+  self:_listen(group,key,refresh,scope);refresh(group.Values[key])
+  row.Resize=function(width) row.Label.Size=UDim2.fromOffset(math.max(1,width-130),28);value.Position=UDim2.fromOffset(width-112,0);rail.Size=UDim2.fromOffset(width-24,5) end
+ elseif kind=="json" then
+  local control=self:_button(row.Root,"{ … }",0,3,112,26,function()
+   self:_textDialog(self:_tr(nameOf(def)),Http:JSONEncode(group.Values[key]),function(raw)
+    local ok,value=pcall(Http.JSONDecode,Http,raw);if not ok then return false,"Invalid JSON" end
+    local result=normalized(def,value);if not result then return false,"Expected object or array" end
+    group:Set(key,result);return true
+   end)
+  end,scope);control.Name="Field_"..key;row.Control=control
+  row.Resize=function(width) control.Position=UDim2.fromOffset(width-124,3);row.Label.Size=UDim2.fromOffset(math.max(1,width-150),32) end
+ elseif kind=="list" then
+  local control=self:_button(row.Root,"",0,3,112,26,function() end,scope);control.Name="Field_"..key;row.Control=control
+  local function refresh(v) control.Text=tostring(#v).." items  …" end
+  self:_listen(group,key,refresh,scope);refresh(group.Values[key])
+  self:_on(control.Activated,function() self:_listEditor(control,group,key,def) end,scope)
+  row.Resize=function(width) control.Position=UDim2.fromOffset(width-124,3);row.Label.Size=UDim2.fromOffset(math.max(1,width-148),32) end
+ end
+ row.Refresh=row.Refresh or function() end
+ return row
+end
+function Window:_listEditor(owner,group,key,def)
+ local popup=self:_popup(owner,owner,360,340,false,"beside");if not popup then return end
+ local frame,scope=popup.Frame,popup.Scope
+ text(frame,self:_tr(nameOf(def)),14,8,popup.Width-28,28,17,T.Title,true)
+ local input=create("TextBox",frame,{Name="NewItem",Position=UDim2.fromOffset(12,43),Size=UDim2.fromOffset(popup.Width-100,30),BackgroundColor3=color(T.Field),Text="",PlaceholderText="New entry…",TextColor3=color(T.Title),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=14});corner(input,4)
+ local rowsScope
+ local scroll=create("ScrollingFrame",frame,{Name="ListItems",BackgroundTransparency=1,Position=UDim2.fromOffset(12,85),Size=UDim2.fromOffset(popup.Width-24,popup.Height-130),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,Active=true})
+ local function render()
+  if rowsScope then rowsScope:Clean() end;rowsScope=Scope.new(scope)
+  for i,value in ipairs(group.Values[key]) do
+   local label=text(scroll,value,5,(i-1)*36,popup.Width-82,32,14,T.Label);rowsScope.disposals[#rowsScope.disposals+1]=function() if label.Parent then label:Destroy() end end
+   self:_button(scroll,"×",popup.Width-66,(i-1)*36,32,30,function() local values=group:Get(key);table.remove(values,i);group:Set(key,values) end,rowsScope)
+  end
+  scroll.CanvasSize=UDim2.fromOffset(0,#group.Values[key]*36)
+ end
+ local function add() if input.Text~="" then local values=group:Get(key);if #values>=(def.maxItems or 100) then self:Notify("List limit reached");return end;values[#values+1]=input.Text;group:Set(key,values);input.Text="" end end
+ self:_button(frame,"Add",popup.Width-78,43,66,30,add,scope)
+ self:_on(input.FocusLost,function(enter) if enter then add() end end,scope)
+ self:_button(frame,"Clear",12,popup.Height-36,80,26,function() group:Set(key,{}) end,scope)
+ self:_button(frame,"Done",popup.Width-92,popup.Height-36,80,26,function() self:_closePopups(table.find(self._popups,popup)) end,scope)
+ self:_listen(group,key,render,scope);render()
+end
+
+function Window:_closePopups(from,immediate)
+ from=math.max(1,from or 1)
+ for i=#self._popups,from,-1 do
+  local p=table.remove(self._popups,i)
+  if self._drag and self._drag.scope==p.Scope then self._drag=nil end
+  if self._binding and self._binding.scope==p.Scope then self._binding.cancel();self._binding=nil end
+  if p.Anchor and p.Anchor.Parent then p.Anchor:SetAttribute("PopupOpen",false) end
+  for object,tw in pairs(self._tweens) do if object==p.Frame or object:IsDescendantOf(p.Scope.root) then tw:Cancel();self._tweens[object]=nil end end
+  self:_cancelTransition(p.Surface,true)
+  if not immediate and not self._dead and not self.ReducedMotion then
+   local ghost=p.Scope.root:Clone();ghost.Name="ClosingPopup";ghost.Parent=self.Gui
+   for _,o in ipairs(ghost:GetDescendants()) do if o:IsA("GuiButton") or o:IsA("TextBox") then o.Active=false;o.Interactable=false end end
+   local exit=Scope.new(self._scope);exit.root=ghost
+   self:_transition(ghost,1,0,.12,exit,function() exit:Clean() end,{Y=-5})
+  end
+  p.Scope:Clean()
+ end
+end
+function Window:_popup(owner,anchor,width,height,modal,placement)
+ for i,p in ipairs(self._popups) do if p.Owner==owner then self:_closePopups(i);return nil end end
+ local s=self:_activeScale();local view=self.Gui.AbsoluteSize
+ local contentHeight=height
+ width=math.min(width,view.X/s-12);height=math.min(height,view.Y/s-12)
+ local x,y=(view.X-width*s)/2,(view.Y-height*s)/2
+ if anchor then
+  local pos=anchor.AbsolutePosition-self.Gui.AbsolutePosition
+  x=pos.X;y=pos.Y+anchor.AbsoluteSize.Y+3*s
+  if placement=="beside" then
+   x=pos.X+anchor.AbsoluteSize.X+6*s;if x+width*s>view.X-2 then x=pos.X-width*s-6*s end;y=pos.Y-4*s
+  elseif placement=="above" then y=pos.Y-height*s-4*s
+  elseif y+height*s>view.Y-6 then y=pos.Y-height*s-3*s end
+ end
+ x=math.clamp(x,6,math.max(6,view.X-width*s-6));y=math.clamp(y,6,math.max(6,view.Y-height*s-6))
+ local scope=Scope.new(self._scope)
+ local overlay=create("Frame",self.Gui,{Name="PopupLayer",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=100+#self._popups*20});scope.root=overlay
+ local blocker=create("TextButton",overlay,{Name="Dismiss",Text="",AutoButtonColor=false,BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=modal and .65 or 1,Size=UDim2.fromScale(1,1),Active=true,ZIndex=1})
+ local surface=create("Frame",overlay,{Name="PopupSurface",BackgroundTransparency=1,Position=UDim2.fromOffset(math.round(x),math.round(y)),Size=UDim2.fromOffset(width,height),ZIndex=2})
+ create("UIScale",surface,{Scale=s});softShadow(surface,2.5,8)
+ local frame=create("Frame",surface,{Name="Popup",BackgroundColor3=color(T.Popup),Size=UDim2.fromOffset(width,height),ZIndex=2,Active=true})
+ corner(frame,7);stroke(frame,0x685163,1)
+ local chrome=frame
+ if contentHeight>height then
+  frame=create("ScrollingFrame",chrome,{Name="PopupContent",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),CanvasSize=UDim2.fromOffset(0,contentHeight),ScrollBarThickness=3,ScrollBarImageColor3=color(self:_accentHex()),ScrollingDirection=Enum.ScrollingDirection.Y,Active=true})
+ end
+ local popup={Owner=owner,Anchor=anchor,Scope=scope,Frame=frame,Surface=surface,Width=width,Height=contentHeight,ViewportHeight=height,Chrome=chrome}
+ self._popups[#self._popups+1]=popup
+ if anchor then anchor:SetAttribute("PopupOpen",true) end
+ self:_transition(surface,0,1,.16,scope,nil,{Y=-6})
+ self:_on(blocker.Activated,function() self:_closePopups(table.find(self._popups,popup) or #self._popups) end,scope)
+ return popup
+end
+function Window:_listPopup(owner,options,selected,multi,callback)
+ local widest=0;for _,option in ipairs(options) do widest=math.max(widest,measured(option,14,false)) end
+ local searchable=#options>8 or multi
+ local header=searchable and 44 or 6;local footer=multi and 42 or 6
+ local popup=self:_popup(owner,owner,math.max(190,owner.AbsoluteSize.X/self:_activeScale()+20,math.min(360,widest+58)),math.min(8,#options)*32+header+footer);if not popup then return end
+ local frame,scope=popup.Frame,popup.Scope;local current=clone(selected);local rows={};local visible={};local focus=1
+ frame.BackgroundColor3=color(0x211D27)
+ local scroll=create("ScrollingFrame",frame,{Name="Options",BackgroundTransparency=1,Position=UDim2.fromOffset(5,header),Size=UDim2.new(1,-10,1,-header-footer),CanvasSize=UDim2.fromOffset(0,#options*32),ScrollBarThickness=3,ScrollBarImageColor3=color(self:_accentHex()),ScrollingDirection=Enum.ScrollingDirection.Y,Active=true})
+ local function refresh()
+  for _,entry in ipairs(rows) do
+   local chosen=multi and table.find(current or {},entry.Value)~=nil or not multi and current==entry.Value
+   local hot=entry.Hover or visible[focus]==entry
+   self:_animate(entry.Button,{BackgroundTransparency=hot and .1 or chosen and .7 or 1})
+   self:_animate(entry.Label,{TextColor3=color(chosen and self:_accentHex() or hot and T.Title or T.FieldText)})
+   entry.Check.Root.Visible=chosen
+  end
+ end
+ local function choose(entry)
+  if not entry then return end
+  if multi then
+   current=current or {};local index=table.find(current,entry.Value);if index then table.remove(current,index) else current[#current+1]=entry.Value end
+   callback(clone(current));refresh()
+  else local index=table.find(self._popups,popup);callback(entry.Value);if index then self:_closePopups(index) end end
+ end
+ for i,option in ipairs(options) do
+  local b=create("TextButton",scroll,{Name="Option_"..tostring(option),Text="",BackgroundColor3=color(0x4D3A4D),BackgroundTransparency=1,Position=UDim2.fromOffset(0,(i-1)*32),Size=UDim2.new(1,0,0,32),AutoButtonColor=false});corner(b,4)
+  local label=text(b,tostring(option),10,0,popup.Width-54,32,14,T.FieldText)
+  local check=icon(b,"check",14,self:_accentHex());check.Root.Position=UDim2.new(1,-23,0,9)
+  local entry={Value=option,Label=label,Button=b,Check=check,Hover=false};rows[#rows+1]=entry;visible[#visible+1]=entry
+  self:_on(b.MouseEnter,function() entry.Hover=true;focus=table.find(visible,entry) or focus;refresh() end,scope)
+  self:_on(b.MouseLeave,function() entry.Hover=false;refresh() end,scope)
+  self:_on(b.Activated,function() choose(entry) end,scope)
+ end
+ if searchable then
+  local search=create("TextBox",frame,{Name="OptionSearch",BackgroundColor3=color(T.Field),Position=UDim2.fromOffset(10,8),Size=UDim2.new(1,-20,0,28),Text="",PlaceholderText=self:_tr("Search").."…",PlaceholderColor3=color(T.Muted),ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=14,TextColor3=color(T.Title),TextXAlignment=Enum.TextXAlignment.Left});corner(search,4)
+  create("UIPadding",search,{PaddingLeft=UDim.new(0,8)})
+  self:_on(search:GetPropertyChangedSignal("Text"),function()
+   visible={};local query=search.Text:lower()
+   for _,entry in ipairs(rows) do local show=tostring(entry.Value):lower():find(query,1,true)~=nil;entry.Button.Visible=show;if show then entry.Button.Position=UDim2.fromOffset(0,#visible*32);visible[#visible+1]=entry end end
+   focus=1;scroll.CanvasPosition=Vector2.new(0,0);scroll.CanvasSize=UDim2.fromOffset(0,#visible*32);refresh()
+  end,scope)
+ end
+ if multi then
+  self:_button(frame,self:_tr("All"),10,popup.Height-34,(popup.Width-28)/2,26,function()
+   current=current or {};for _,entry in ipairs(visible) do if not table.find(current,entry.Value) then current[#current+1]=entry.Value end end;callback(clone(current));refresh()
+  end,scope)
+  self:_button(frame,self:_tr("Clear"),popup.Width/2+4,popup.Height-34,(popup.Width-28)/2,26,function() current={};callback({});refresh() end,scope)
+ end
+ self:_on(Input.InputBegan,function(input)
+  if self._popups[#self._popups]~=popup or self._binding or input.UserInputType~=Enum.UserInputType.Keyboard then return end
+  local key=input.KeyCode
+  if key==Enum.KeyCode.Down or key==Enum.KeyCode.Up then
+   focus=math.clamp(focus+(key==Enum.KeyCode.Down and 1 or -1),1,math.max(1,#visible));refresh()
+   local top=(focus-1)*32*self:_activeScale();local bottom=top+32*self:_activeScale()
+   if top<scroll.CanvasPosition.Y then scroll.CanvasPosition=Vector2.new(0,top) elseif bottom>scroll.CanvasPosition.Y+scroll.AbsoluteSize.Y then scroll.CanvasPosition=Vector2.new(0,bottom-scroll.AbsoluteSize.Y) end
+  elseif key==Enum.KeyCode.Return or key==Enum.KeyCode.KeypadEnter then choose(visible[focus]) end
+ end,scope)
+ refresh()
+end
+function Window:_gearPopup(owner,group,key,defs)
+ local popup=self:_popup(owner,owner,320,math.max(36,28+#defs*32),false,"beside");if not popup then return end
+ text(popup.Frame,nameOf(group._definitions[key]),10,1,popup.Width-20,20,10,T.Title)
+ local scroll=create("ScrollingFrame",popup.Frame,{BackgroundTransparency=1,Position=UDim2.fromOffset(-2,20),Size=UDim2.new(1,4,1,-24),CanvasSize=UDim2.fromOffset(0,#defs*25.5),ScrollBarThickness=1.5,ScrollBarImageColor3=color(0x3A3A3A),Active=true})
+ local rows={}
+ for _,def in ipairs(defs) do rows[#rows+1]=self:_makeRow(group,def,key.."/"..nameOf(def),scroll,popup.Scope) end
+ local function layout()
+  local y=0;for _,row in ipairs(rows) do local shown=matches(row.Definition.when or row.Definition.VisibleIf,group.Values);row:Place(popup.Width+4,y,shown);if shown then y+=row.Height end end
+  scroll.CanvasSize=UDim2.fromOffset(0,y);popup.Height=math.min(math.max(32,28+y),self.Gui.AbsoluteSize.Y/self:_activeScale()-12);popup.Frame.Size=UDim2.fromOffset(popup.Width,popup.Height);popup.Surface.Size=popup.Frame.Size
+ end
+ popup.Reflow=layout
+ for setting in pairs(group._definitions) do self:_listen(group,setting,layout,popup.Scope) end
+ layout()
+end
+function Window:_colorPopup(owner,group,key)
+ local def=group._definitions[key];local rainbow=def.allowRainbow==true or def.rainbow==true
+ local popup=self:_popup(owner,owner,324,rainbow and 390 or 354);if not popup then return end
+ local frame,scope=popup.Frame,popup.Scope;local h,s,v,a=0,1,1,1;local mode="RGB";local committing=false
+ local width=popup.Width;local svW=width-62;local svH=164
+ text(frame,self:_tr("Color"),14,7,width-110,28,17,T.Title,true)
+ local modeButton
+ modeButton=self:_button(frame,"RGB",width-78,9,64,25,function() mode=mode=="RGB" and "HSV" or "RGB";modeButton.Text=mode;popup.Refresh(group.Values[key]) end,scope)
+ local sv=field(frame,14,45,svW,svH);sv.Name="SaturationValue"
+ local white=create("Frame",sv,{BackgroundColor3=Color3.new(1,1,1),Size=UDim2.fromScale(1,1)})
+ create("UIGradient",white,{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0),NumberSequenceKeypoint.new(1,1)})})
+ local black=create("Frame",sv,{BackgroundColor3=Color3.new(0,0,0),Size=UDim2.fromScale(1,1),ZIndex=2})
+ create("UIGradient",black,{Rotation=90,Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})})
+ local cursor=create("Frame",sv,{BackgroundTransparency=1,Name="SVCursor",Size=UDim2.fromOffset(10,10),AnchorPoint=Vector2.new(.5,.5),ZIndex=3});corner(cursor,5);stroke(cursor,0xFFFFFF,2)
+ local hue=field(frame,width-32,45,18,svH);hue.Name="Hue";hue.BackgroundColor3=Color3.new(1,1,1)
+ local stops={};for i=0,6 do stops[#stops+1]=ColorSequenceKeypoint.new(i/6,Color3.fromHSV(i/6,1,1)) end
+ create("UIGradient",hue,{Color=ColorSequence.new(stops),Rotation=90})
+ local hueTick=create("Frame",hue,{Name="HueCursor",Size=UDim2.new(1,4,0,3),Position=UDim2.fromOffset(-2,0),BackgroundColor3=color(T.Title),ZIndex=2})
+ local alpha=field(frame,14,222,width-28,14);alpha.Name="Alpha"
+ for y=0,1 do for x=0,math.ceil((width-28)/7)-1 do create("Frame",alpha,{BackgroundColor3=color((x+y)%2==0 and 0x45404B or 0x77717C),Size=UDim2.fromOffset(7,7),Position=UDim2.fromOffset(x*7,y*7)}) end end;alpha.ClipsDescendants=true
+ local alphaFill=create("Frame",alpha,{Size=UDim2.fromScale(1,1),ZIndex=2})
+ create("UIGradient",alphaFill,{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(1,0)})})
+ local alphaTick=create("Frame",alpha,{Size=UDim2.fromOffset(3,14),BackgroundColor3=color(T.Title),ZIndex=3})
+ local boxes,labels={},{}
+ local cell=(width-46)/4
+ for i=1,4 do
+  labels[i]=text(frame,({"R","G","B","A"})[i],14+(i-1)*(cell+6),244,cell,18,14,T.Muted)
+  boxes[i]=create("TextBox",frame,{Name=({"Red","Green","Blue","Opacity"})[i],BackgroundColor3=color(T.Field),Position=UDim2.fromOffset(14+(i-1)*(cell+6),265),Size=UDim2.fromOffset(cell,28),Text="",ClearTextOnFocus=false,Font=Enum.Font.BuilderSans,TextSize=14,TextColor3=color(T.Title)});corner(boxes[i],4)
+ end
+ local hex=create("TextBox",frame,{BackgroundColor3=color(T.Field),Name="HexRGBA",Position=UDim2.fromOffset(14,309),Size=UDim2.fromOffset(width-100,30),ClearTextOnFocus=false,Font=Enum.Font.Code,TextSize=14,TextColor3=color(T.Title),Text=""});corner(hex,4)
+ local refresh
+ local function commit()
+  committing=true;group:Set(key,{Hex="#"..Color3.fromHSV(h,s,v):ToHex(),Alpha=a,Rainbow=group.Values[key].Rainbow});refresh(group.Values[key]);committing=false
+ end
+ refresh=function(value)
+  local rgb=Color3.fromHex(value.Hex)
+  if not committing then local nh,ns,nv=rgb:ToHSV();if ns>0 then h=nh end;s=ns;v=nv end;a=value.Alpha
+  sv.BackgroundColor3=Color3.fromHSV(h,1,1);cursor.Position=UDim2.fromScale(s,1-v);hueTick.Position=UDim2.new(0,-2,h,-1);alphaFill.BackgroundColor3=rgb;alphaTick.Position=UDim2.new(a,-1,0,0)
+  if Input:GetFocusedTextBox()~=hex then hex.Text=value.Hex..string.format("%02X",math.round(a*255)) end
+  local channels=mode=="RGB" and {rgb.R*255,rgb.G*255,rgb.B*255,a*255} or {h*360,s*100,v*100,a*100}
+  local names=mode=="RGB" and {"R","G","B","A"} or {"H°","S%","V%","A%"}
+  for i,box in ipairs(boxes) do labels[i].Text=names[i];if Input:GetFocusedTextBox()~=box then box.Text=tostring(math.round(channels[i])) end end
+ end
+ popup.Refresh=refresh;self:_listen(group,key,refresh,scope)
+ self:_on(sv.InputBegan,function(input) self:_startDrag(input,function(p)
+  s=math.clamp((p.X-(sv.AbsolutePosition.X-self.Gui.AbsolutePosition.X))/math.max(1,sv.AbsoluteSize.X),0,1)
+  v=1-math.clamp((p.Y-(sv.AbsolutePosition.Y-self.Gui.AbsolutePosition.Y))/math.max(1,sv.AbsoluteSize.Y),0,1);commit()
+ end,scope) end,scope)
+ self:_on(hue.InputBegan,function(input) self:_startDrag(input,function(p) h=math.clamp((p.Y-(hue.AbsolutePosition.Y-self.Gui.AbsolutePosition.Y))/math.max(1,hue.AbsoluteSize.Y),0,.999999);commit() end,scope) end,scope)
+ self:_on(alpha.InputBegan,function(input) self:_startDrag(input,function(p) a=math.clamp((p.X-(alpha.AbsolutePosition.X-self.Gui.AbsolutePosition.X))/math.max(1,alpha.AbsoluteSize.X),0,1);commit() end,scope) end,scope)
+ local function parse(value)
+  value=value:gsub("#",""):gsub("%s","")
+  if #value==3 and value:match("^%x+$") then value=value:gsub(".",function(c) return c..c end) end
+  if (#value==6 or #value==8) and value:match("^%x+$") then group:Set(key,{Hex="#"..value:sub(1,6),Alpha=#value==8 and tonumber(value:sub(7,8),16)/255 or 1,Rainbow=group.Values[key].Rainbow}) else self:Notify("Use RGB / RRGGBB / RRGGBBAA") end
+  refresh(group.Values[key])
+ end
+ self:_on(hex.Focused,function() local original=hex.Text;self._editCancel=function() hex.Text=original end end,scope)
+ self:_on(hex.FocusLost,function() self._editCancel=nil;parse(hex.Text) end,scope)
+ for i,box in ipairs(boxes) do
+  self:_on(box.Focused,function() local original=box.Text;self._editCancel=function() box.Text=original end end,scope)
+  self:_on(box.FocusLost,function()
+   self._editCancel=nil;local n=tonumber(box.Text)
+   if n then
+    if mode=="RGB" then local rgb=Color3.fromHSV(h,s,v);local values={rgb.R*255,rgb.G*255,rgb.B*255};if i==4 then a=math.clamp(n/255,0,1) else values[i]=math.clamp(n,0,255);local result=Color3.fromRGB(values[1],values[2],values[3]);local nh,ns,nv=result:ToHSV();if ns>0 then h=nh end;s=ns;v=nv end
+    else if i==1 then h=(n%360)/360 elseif i==2 then s=math.clamp(n/100,0,1) elseif i==3 then v=math.clamp(n/100,0,1) else a=math.clamp(n/100,0,1) end end
+    commit()
+   end;refresh(group.Values[key])
+  end,scope)
+ end
+ self:_iconButton(frame,"copy",width-78,309,28,30,function() self._colorClipboard=hex.Text;hex:CaptureFocus();hex.CursorPosition=#hex.Text+1;hex.SelectionStart=1;self:Notify("Color selected · Ctrl+C") end,scope)
+ self:_iconButton(frame,"paste",width-44,309,28,30,function() if self._colorClipboard then parse(self._colorClipboard) else hex:CaptureFocus() end end,scope)
+ if rainbow then
+  text(frame,"Rainbow",14,350,width-75,28,14,T.Label)
+  local check=field(frame,width-37,354,20,20);local setCheck=self:_checkbox(check,scope)
+  local function update(value) setCheck(value.Rainbow==true) end;self:_listen(group,key,update,scope);update(group.Values[key])
+  self:_on(check.Activated,function() local value=group:Get(key);value.Rainbow=not value.Rainbow;group:Set(key,value) end,scope)
+ end
+ refresh(group.Values[key])
+end
+function Window:_slotsPopup(owner,group,key,roles)
+ local popup=self:_popup(owner,owner,324,140+math.ceil(#roles/2)*34);if not popup then return end
+ local frame,scope=popup.Frame,popup.Scope;local selected=1;local cells,roleButtons={},{}
+ text(frame,self:_tr("Slots"),14,7,popup.Width-28,28,17,T.Title,true)
+ local status=text(frame,"",14,94,popup.Width-28,28,14,T.FieldText)
+ local cell=math.floor((popup.Width-28-8*4)/9)
+ local function refresh()
+  local values=group.Values[key];status.Text=(selected==10 and "Offhand" or "Slot "..selected).."  ·  "..values[selected]
+  for i,b in ipairs(cells) do
+   b.Text=i==10 and "Offhand" or tostring(i)
+   self:_animate(b,{BackgroundColor3=color(i==selected and self:_accentHex() or values[i]~="None" and 0x5B3B58 or T.Field)})
+   b.TextColor3=color(i==selected and 0xFFFFFF or T.FieldText)
+  end
+  for i,b in ipairs(roleButtons) do b.TextColor3=color(roles[i]==values[selected] and self:_accentHex() or T.FieldText) end
+ end
+ for i=1,10 do
+  local index=i;local b=self:_button(frame,tostring(i),i==10 and 14 or 14+(i-1)*(cell+4),i==10 and 82 or 44,i==10 and 95 or cell,30,function() selected=index;refresh() end,scope);cells[i]=b
+  if i==10 then b.Position=UDim2.fromOffset(popup.Width-109,84);b.Size=UDim2.fromOffset(95,28) end
+  self:_on(b.MouseButton2Click,function() local value=group:Get(key);value[index]="None";group:Set(key,value) end,scope)
+ end
+ for i,role in ipairs(roles) do
+  local bw=(popup.Width-36)/2
+  local b=self:_button(frame,role,14+((i-1)%2)*(bw+8),132+math.floor((i-1)/2)*34,bw,28,function() local values=group:Get(key);values[selected]=role;group:Set(key,values) end,scope)
+  b.TextXAlignment=Enum.TextXAlignment.Center;roleButtons[i]=b
+ end
+ self:_listen(group,key,refresh,scope);refresh()
+end
+function Window:_textDialog(title,value,submit)
+ local popup=self:_popup(title,nil,520,400,true);if not popup then return end
+ text(popup.Frame,title,12,7,popup.Width-24,24,17,T.Title,true)
+ local box=create("TextBox",popup.Frame,{Position=UDim2.fromOffset(12,42),Size=UDim2.new(1,-24,1,-88),BackgroundColor3=color(T.Field),Text=value or "",ClearTextOnFocus=false,MultiLine=true,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Top,Font=Enum.Font.Code,TextSize=14,TextColor3=color(T.Label)});corner(box,3)
+ self:_button(popup.Frame,submit and self:_tr("Import") or "Select all",12,popup.Height-36,120,28,function()
+  if submit then local index=table.find(self._popups,popup);local ok,err=submit(box.Text);if ok then if index and self._popups[index]==popup then self:_closePopups(index) end;self:Notify("Applied") else self:Notify(tostring(err)) end
+  else box:CaptureFocus();box.CursorPosition=#box.Text+1;box.SelectionStart=1 end
+ end,popup.Scope)
+ self:_button(popup.Frame,"Close",popup.Width-92,popup.Height-36,80,28,function() self:_closePopups(table.find(self._popups,popup) or #self._popups) end,popup.Scope)
+end
+
+local CATEGORY_NAMES={"Combat","Window","Process","Registry","File","Control","Render","Web","Misc","Driver"}
+local CATEGORY_GLYPHS={Combat="combat",Window="player",Process="misc",Registry="gear",File="folder",Control="movement",Render="render",Web="world",Misc="misc",Driver="gear"}
+local PAGES={"Modules","Config","GUI","HUD","Sound","Search","Profiles","Apps","About"}
+local NAMED={Black=0x010101,White=0xFFFFFF,Gray=0x777777,Red=0xF33436,Gold=0xFFD700,Aqua=0x00DDDF,Blue=0x3478E8,Green=0x49DA5B,Orange=0xFFA84A,Purple=0x9D58F6,Pink=0xDA6DA6}
+function UI.GetLayouts() return clone(LAYOUT_NAMES) end
+function UI.GetPresets() return clone(PRESET_NAMES) end
+function UI.GetLauncherStyles() return clone(LAUNCHER_NAMES) end
+function UI.GetSourcePreset(name) return clone(assert(PRESETS[name],"Unknown preset")) end
+function Window:GetLayouts() return UI.GetLayouts() end
+function Window:GetPresets() return UI.GetPresets() end
+function Window:GetLayout() return self.Layout end
+function Window:GetPreset() return self.Preset end
+function Window:Describe(message) if self.Hint then self.Hint.Text=tostring(message) end end
+function Window:Notify(message,options)
+ if self._dead then return nil end
+ options=options or {}
+ if self.DynamicIsland and self.DynamicIsland.Options.Enabled and self.DynamicIsland.Options.SyncNotifications and options.Island~=false then
+  return self.DynamicIsland:Notify({Title=options.Title or "Jackal",Text=tostring(message),Level=options.Level or "info",Duration=options.Duration or 3})
+ end
+ self._toastAt=os.clock();self.Toast.Text=tostring(message);self.Toast.TextTransparency=0;self.Toast.BackgroundTransparency=.18;self.Toast.Visible=true
+end
+local function rgba(value,fallback)
+ if type(value)=="string" then
+  local r,g,b,a=value:match("^(%d+);(%d+);(%d+);?(%d*)$")
+  if r then return Color3.fromRGB(tonumber(r),tonumber(g),tonumber(b)),a~="" and tonumber(a)/255 or 1 end
+  if NAMED[value] then return color(NAMED[value]),1 end
+  for name,hex in pairs(NAMED) do if name:lower()==value:lower() then return color(hex),1 end end
+ end
+ return color(fallback or 0xC8C8C8),1
+end
+function Window:_named(value,index)
+ if value=="Rainbow" or value=="Flow" then return Color3.fromHSV((os.clock()*.025+.24+(index or 0)*.041)%1,.94,.82) end
+ return rgba(value,0x34A5F8)
+end
+function Window:_moduleName(group)
+ local name=self:_tr(group.Name)
+ if self.Theme["Remove Spaces in Module Names"] then name=name:gsub("%s","") end
+ local case=self.Theme["Module Name Case Style"]
+ if case=="Lower Case" then name=name:lower() elseif case=="Upper Case" then name=name:upper() end
+ return name
+end
+function Window:_newGroup(def)
+ local id=def.id or def.Id or def.Name or def.name
+ assert(type(id)=="string" and not self._byId[id],"Unique module id required")
+ def.settings=def.settings or def.Settings or {}
+ local group=setmetatable({Window=self,Id=id,Name=def.name or def.Name or id,Category=def.category or def.Category or "Misc",Enabled=def.enabled==true or def.Enabled==true,Key=def.key or def.Key or "None",Hidden=false,Values={},Definition=def,Defaults={},_definitions={},_listeners={}},Group)
+ group.Scope=Scope.new(self._scope);local key=normalized({type="key"},group.Key);assert(key,"Invalid module key");group.Key=key
+ self:_registerSettings(group,def.settings);group.Defaults=clone(group.Values);self._byId[id]=group
+ return group
+end
+function Window:AddCategory(name)
+ assert(type(name)=="string" and name~="","Category name required")
+ if not table.find(self._categories,name) then table.insert(self._categories,name) end
+ return self
+end
+function Window:AddModule(def)
+ local group=self:_newGroup(def);self:AddCategory(group.Category);table.insert(self._modules,group)
+ if self._built then self:_invalidate() end;return group
+end
+function Window:_settingsRows(group,parent,scope)
+ local rows={}
+ for _,def in ipairs(group.Definition.settings or {}) do rows[#rows+1]=self:_makeRow(group,def,nameOf(def),parent,scope) end
+ return rows
+end
+function Window:_placeRows(group,rows,width,y)
+ y=y or 4
+ for _,row in ipairs(rows) do
+  local shown=matches(row.Definition.when or row.Definition.VisibleIf,group.Values)
+  if row.Fraction==nil then
+   row.Fraction=shown and 1 or 0;row.TargetFraction=row.Fraction
+   self:_motion(row.Label,function(dt)
+    if row.Fraction~=row.TargetFraction then
+     row.Fraction+=(row.TargetFraction-row.Fraction)*(1-math.exp(-dt*20))
+     if math.abs(row.Fraction-row.TargetFraction)<.001 then row.Fraction=row.TargetFraction end
+     self._layoutDirty=true
+    end
+   end,row.Scope)
+  end
+  row.TargetFraction=shown and 1 or 0
+  if self.ReducedMotion then row.Fraction=row.TargetFraction end
+  row:Place(width,y,shown or row.Fraction>.001)
+  local occupied=row.Height*row.Fraction
+  row.Root.ClipsDescendants=true;row.Root.Size=UDim2.fromOffset(width,occupied)
+  y+=occupied
+ end
+ return y+4
+end
+function Window:_moduleTools(group,parent,scope)
+ local rows={}
+ local binding=self:_rowBase(parent,scope,self:_tr("Bind"));binding.Definition={};binding.Height=34
+ local bind=self:_button(binding.Root,group.Key,0,4,126,26,function() end,scope);bind.Name="ModuleBind"
+ self:_on(bind.Activated,function() self:_beginBinding(group,"key",bind,scope) end,scope)
+ self:_on(bind.MouseButton2Click,function() group:SetKey("None") end,scope)
+ self:_listen(group,"key",function(v) bind.Text=v end,scope)
+ binding.Resize=function(width) bind.Position=UDim2.fromOffset(width-138,4);binding.Label.Size=UDim2.fromOffset(width-160,34) end
+ rows[#rows+1]=binding
+ local hidden=self:_rowBase(parent,scope,self:_tr("Hidden"));hidden.Definition={};hidden.Height=34
+ local switch=self:_button(hidden.Root,"",0,7,34,20,function() group:SetHidden(not group.Hidden) end,scope);switch.Name="ModuleHidden";corner(switch,10)
+ local knob=create("Frame",switch,{BackgroundColor3=color(T.Title),Size=UDim2.fromOffset(16,16),Position=UDim2.fromOffset(2,2)});corner(knob,8)
+ local function refresh(v) self:_animate(switch,{BackgroundColor3=color(v and self:_accentHex() or 0x49414F)});self:_animate(knob,{Position=UDim2.fromOffset(v and 16 or 2,2)},.22) end
+ self:_listen(group,"hidden",refresh,scope);refresh(group.Hidden)
+ hidden.Resize=function(width) switch.Position=UDim2.fromOffset(width-46,7);hidden.Label.Size=UDim2.fromOffset(width-72,34) end
+ if not self.Options.Embedded then rows[#rows+1]=hidden else hidden.Root:Destroy() end
+ return rows
+end
+function Window:_resetModule(group,owner)
+ local confirm=not self.Models.Config or self.Models.Config.Values["Confirm reset"]~=false
+ if not confirm then group:Reset();self:Notify("Options reset");return end
+ local popup=self:_popup("Reset:"..group.Id,owner,300,142,true);if not popup then return end
+ text(popup.Frame,self:_tr("Reset").." · "..self:_moduleName(group),14,8,popup.Width-28,28,17,T.Title,true)
+ text(popup.Frame,self:_tr("Restore default values?"),14,42,popup.Width-28,30,14,T.FieldText)
+ self:_button(popup.Frame,self:_tr("Cancel"),14,98,120,28,function() self:_closePopups(table.find(self._popups,popup)) end,popup.Scope)
+ self:_button(popup.Frame,self:_tr("Reset"),popup.Width-134,98,120,28,function() group:Reset();self:_closePopups(table.find(self._popups,popup));self:Notify("Options reset") end,popup.Scope)
+end
+function Window:_entry(parent,group,scope,card)
+ local radius=self.Layout=="Neverlose" and 8 or self.Layout=="Imgui" and 0 or self.Theme["Round Corners"] and 4 or 0
+ local height=self.Layout=="Neverlose" and 44 or self.Layout=="Imgui" and 32 or math.max(25,self.Theme["Module Height"])
+ local frame=create("Frame",parent,{Name=group.Id,BackgroundTransparency=1,Size=UDim2.fromOffset(240,height)})
+ local button=create("TextButton",frame,{Name="ModuleHeader",Text="",AutoButtonColor=false,BackgroundColor3=color(0x010101),Size=UDim2.fromOffset(240,height)});corner(button,radius)
+ local fontSize=self.Layout=="Neverlose" and 17 or self.Layout=="Imgui" and 15 or self.Theme["Module Font Size"]
+ local label=text(button,self:_moduleName(group),10,0,180,height,fontSize,0xC8C8C8)
+ label.Font=self.Theme.Font=="Minecraft AE Pixel.ttf" and Enum.Font.Arcade or Enum.Font.BuilderSans
+ local entry={Group=group,Frame=frame,Header=button,Label=label,Height=height,Width=240,Rows={},Expanded=self._expanded[group.Id]==true,Index=#self._entries+1}
+ local body=create("ScrollingFrame",frame,{Name="Options",BackgroundColor3=color(self.Layout=="Neverlose" and 0x201923 or 0x090B0E),BackgroundTransparency=self.Theme["Module Option Background Color"]=="Transparent" and .65 or .08,Position=UDim2.fromOffset(0,height),Size=UDim2.fromOffset(240,0),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=2,ScrollBarImageColor3=color(self:_accentHex()),ScrollingDirection=Enum.ScrollingDirection.Y,Visible=false,ClipsDescendants=true,Active=true});corner(body,radius)
+ entry.Body=body;entry.Rows=self:_settingsRows(group,body,scope)
+ local meta=self:_moduleTools(group,body,scope);for _,row in ipairs(meta) do entry.Rows[#entry.Rows+1]=row end
+ local mark=create("Frame",button,{Name="EnabledBar",BackgroundColor3=color(self:_accentHex()),Size=UDim2.fromOffset(3,height),Visible=false});entry.Mark=mark
+ local key=text(button,"",0,0,70,height,11,0x858585,false,Enum.TextXAlignment.Right);entry.KeyLabel=key
+ if group.Definition.integrationExample then entry.ExampleBadge=text(button,self:_tr("Demo"),0,0,48,height,14,0xD8B88E,false,Enum.TextXAlignment.Center);entry.ExampleBadge.Name="IntegrationExample" end
+ local expand=create("TextButton",button,{Name="OptionsButton",Text="",AutoButtonColor=false,BackgroundTransparency=1,Size=UDim2.fromOffset(28,height)})
+ local mode=self.Layout=="Neverlose" and "Arrow" or self.Theme["Module Option Open Button"]
+ -- Opai's source preset hides this control; expose it for mouse and touch users.
+ if self.Layout=="Dropdown" and self.Preset=="Opai" then mode="Arrow" end
+ local expandIcon=icon(expand,"down",10,0x888888);expandIcon.Root.Position=UDim2.new(.5,-5,.5,-5);entry.ExpandIcon=expandIcon
+ if mode=="Dots" then
+  expandIcon.Root.Visible=false
+  for i=-1,1 do local dot=create("Frame",expand,{Name="OptionDot",BackgroundColor3=color(0x888888),Position=UDim2.new(.5,-1.25,.5,i*5-1.25),Size=UDim2.fromOffset(2.5,2.5)});corner(dot,1.25) end
+ elseif mode=="Future" then expandIcon.Root.Visible=false;expand.Text="+";expand.TextSize=16;expand.TextColor3=color(0xC0C0C0) end
+ expand.Visible=mode~="Off";entry.ExpandButton=expand
+ if self.Layout=="Neverlose" then
+  entry.Switch=create("Frame",button,{Name="Toggle",BackgroundColor3=color(0x49414F),Size=UDim2.fromOffset(30,18)});corner(entry.Switch,9)
+  entry.Switch.Size=UDim2.fromOffset(38,22);corner(entry.Switch,11)
+  entry.Knob=create("Frame",entry.Switch,{BackgroundColor3=color(0xFBEAF5),Position=UDim2.fromOffset(3,3),Size=UDim2.fromOffset(16,16)});corner(entry.Knob,8)
+  entry.Tick=icon(entry.Knob,"check",11,self:_accentHex());entry.Tick.Root.Position=UDim2.fromOffset(2.5,2.5)
+  entry.Reset=self:_iconButton(button,"reset",0,0,28,height,function() self:_resetModule(group,entry.Reset) end,scope)
+  create("UIGradient",button,{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,color(0xF4C5E1)),ColorSequenceKeypoint.new(1,color(0xAC87B5))}),Rotation=25})
+  entry.Mark.Size=UDim2.fromOffset(3,height-16);entry.Mark.Position=UDim2.fromOffset(0,8)
+ elseif self.Layout=="Imgui" then
+  label.Font=Enum.Font.Code;label.Position=UDim2.fromOffset(29,0)
+  local box=create("Frame",button,{Name="ImGuiCheckbox",BackgroundColor3=color(0x343434),Position=UDim2.fromOffset(6,6),Size=UDim2.fromOffset(16,16)})
+  entry.ImCheck=create("Frame",box,{BackgroundColor3=color(0x4296FA),Position=UDim2.fromOffset(3,3),Size=UDim2.fromOffset(10,10)})
+ end
+ function entry:Place(width,y)
+  self.Width=width;self.Frame.Position=UDim2.fromOffset(0,y);self.Header.Size=UDim2.fromOffset(width,self.Height)
+  self.Label.Size=UDim2.fromOffset(math.max(1,width-(self.Switch and 130 or 35)-(self.ExampleBadge and 50 or 0)),self.Height)
+  self.ExpandButton.Position=UDim2.fromOffset(width-(self.Switch and 83 or 28),0)
+  if self.Group.Window.Layout=="Dropdown" and self.Group.Window.Preset=="Opai" then
+   self.ExpandButton.Size=UDim2.fromOffset(44,self.Height);self.ExpandButton.Position=UDim2.fromOffset(width-44,0)
+   self.Label.Size=UDim2.fromOffset(math.max(1,width-64-(self.ExampleBadge and 50 or 0)),self.Height)
+  end
+  self.KeyLabel.Position=UDim2.fromOffset(math.max(30,width-106),0)
+  if self.ExampleBadge then self.ExampleBadge.Position=UDim2.fromOffset(width-(self.Switch and 166 or 82),0);self.KeyLabel.Visible=false end
+  if self.Switch then self.Switch.Position=UDim2.fromOffset(width-48,(self.Height-22)/2);self.Reset.Position=UDim2.fromOffset(width-112,0);self.KeyLabel.Visible=false end
+ end
+ local function refresh()
+  local enabled=group.Enabled
+  local bg,alpha
+  if self.Layout=="Neverlose" then bg=color(enabled and 0x65354F or 0x28202D);alpha=.94
+  elseif self.Layout=="Imgui" then bg=color(0x232323);alpha=1
+  elseif enabled then bg=self:_named(self.Theme["Module Background Color (Enabled)"],entry.Index);alpha=self.Theme["Module Background Opacity (0~1)"]
+  else bg=self:_named(self.Theme["Module Background Color"],entry.Index);alpha=self.Theme["Module Background Color"]=="Transparent" and 0 or self.Theme["Module Background Opacity (0~1)"];bg=bg:Lerp(Color3.new(0,0,0),self.Theme["Module Background Blackness (0~1)"] or 0) end
+  if entry.Hover then bg=bg:Lerp(color(0x51463F),.5) end
+  local code=bg:ToHex()
+  if entry.TargetBackground~=code then entry.TargetBackground=code;self:_animate(button,{BackgroundColor3=bg},self.Layout=="Neverlose" and .3 or .18) end
+  if entry.TargetAlpha~=alpha then entry.TargetAlpha=alpha;button.BackgroundTransparency=1-(alpha or 1) end
+  label.TextColor3=self.Layout=="Neverlose" and color(0xEAD9E6) or rgba(enabled and self.Theme["Module Text Color (Enabled)"] or self.Theme["Module Text Color"],0xC8C8C8)
+  label.TextXAlignment=Enum.TextXAlignment[self.Theme["Module Name Alignment"] or "Left"]
+  mark.Visible=enabled and (self.Layout=="Neverlose" or self.Theme["Module Left Bar"]==true)
+  key.Text=self.Theme["Module Keybind Display"] and group.Key~="None" and group.Key or ""
+  if entry.Switch and entry.LastEnabled~=enabled then
+   self:_animate(entry.Switch,{BackgroundColor3=color(enabled and self:_accentHex() or 0x49414F)},.22)
+   self:_animate(entry.Knob,{Position=UDim2.fromOffset(enabled and 19 or 3,3)},.22);entry.Tick.Root.Visible=enabled
+  end
+  entry.LastEnabled=enabled
+  if entry.ImCheck then entry.ImCheck.Visible=enabled end
+ end
+ entry.Refresh=refresh;refresh()
+ self:_motion(frame,function(dt)
+  if entry.TargetHeight and math.abs(entry.TargetHeight-(entry.DisplayHeight or 0))>.001 then
+   entry.HeightTime=(entry.HeightTime or 0)+dt
+   local t=self.ReducedMotion and 1 or math.clamp(entry.HeightTime/.3,0,1)
+   entry.DisplayHeight=(entry.StartHeight or 0)+(entry.TargetHeight-(entry.StartHeight or 0))*(1-(1-t)^3)
+   if t==1 then entry.DisplayHeight=entry.TargetHeight end
+   self._layoutDirty=true
+  end
+ end,scope)
+ self:_listen(group,"enabled",refresh,scope);self:_listen(group,"key",refresh,scope)
+ local function open()
+  if self.Theme["Module Option Style"]=="Old" and self.Layout=="Dropdown" then self:OpenModule(group.Id)
+  else entry.Expanded=not entry.Expanded;self._expanded[group.Id]=entry.Expanded;self:_animate(entry.ExpandIcon.Root,{Rotation=entry.Expanded and 180 or 0},.22);self:_layout() end
+ end
+ self:_on(button.Activated,function() group:SetEnabled(not group.Enabled) end,scope)
+ self:_on(button.MouseButton2Click,open,scope);self:_on(expand.Activated,open,scope)
+ self:_on(button.MouseEnter,function() entry.Hover=true;self:Describe(self:_tr(group.Definition.description or group.Name));refresh() end,scope)
+ self:_on(button.MouseLeave,function() entry.Hover=false;refresh() end,scope)
+ self._entries[#self._entries+1]=entry
+ return entry
+end
+function Window:_entryHeight(entry,width)
+ local fullHeight=self:_placeRows(entry.Group,entry.Rows,width)
+ local maximum=entry.Group.Definition.maxRows or (self.Layout=="Neverlose" and 15 or 10)
+ local target=entry.Expanded and math.min(fullHeight,maximum*32+8) or 0
+ if entry.DisplayHeight==nil then entry.DisplayHeight=target;entry.TargetHeight=target end
+ if target~=entry.TargetHeight then
+  entry.StartHeight=entry.DisplayHeight;entry.TargetHeight=target;entry.HeightTime=0
+ end
+ if self.ReducedMotion then entry.DisplayHeight=target end
+ local height=entry.DisplayHeight
+ entry.Body.Visible=entry.Expanded or height>.1;entry.Body.Size=UDim2.fromOffset(width,height);entry.Body.CanvasSize=UDim2.fromOffset(0,fullHeight)
+ entry.Frame.Size=UDim2.fromOffset(width,entry.Height+height)
+ return entry.Height+height
+end
+function Window:OpenModule(id)
+ local group=assert(self._byId[id],"Unknown module")
+ local popup=self:_popup("Module:"..id,nil,460,math.min(520,100+#(group.Definition.settings or {})*32),true);if not popup then return end
+ text(popup.Frame,self:_moduleName(group),16,8,popup.Width-65,30,20,0xE5E5E5)
+ self:_button(popup.Frame,"×",popup.Width-40,10,26,24,function() self:_closePopups() end,popup.Scope)
+ local scroll=create("ScrollingFrame",popup.Frame,{Name="ModuleOptions",BackgroundTransparency=1,Position=UDim2.fromOffset(0,48),Size=UDim2.new(1,0,1,-96),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,ScrollBarImageColor3=color(self:_accentHex()),Active=true})
+ local rows=self:_settingsRows(group,scroll,popup.Scope);for _,row in ipairs(self:_moduleTools(group,scroll,popup.Scope)) do rows[#rows+1]=row end
+ local function layout() local h=self:_placeRows(group,rows,popup.Width);scroll.CanvasSize=UDim2.fromOffset(0,h) end
+ popup.Reflow=layout;for key in pairs(group._definitions) do self:_listen(group,key,layout,popup.Scope) end;layout()
+ self:_button(popup.Frame,self:_tr("Reset"),16,popup.Height-38,85,24,function() self:_resetModule(group,nil) end,popup.Scope)
+ local bind=self:_button(popup.Frame,group.Key,popup.Width-150,popup.Height-38,134,24,function() end,popup.Scope)
+ self:_on(bind.Activated,function() self:_beginBinding(group,"key",bind,popup.Scope) end,popup.Scope)
+ self:_listen(group,"key",function(v) bind.Text=v end,popup.Scope)
+end
+function Window:_buildDropdown()
+ local scroll=create("ScrollingFrame",self.View,{Name="CategoryCanvas",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),CanvasSize=UDim2.fromOffset(0,0),ScrollingDirection=Enum.ScrollingDirection.XY,ScrollBarThickness=4,ScrollBarImageColor3=color(0x666666),Active=true})
+ self.Canvas=scroll;self._panels={}
+ for index,category in ipairs(self._categories) do
+  local width=self.Theme["Tab Width (Fixed)"] and self.Theme["Tab Width (Fixed)"] or 238
+  if self.Theme["Tab Width Mode"]=="Auto" then
+   width=150;for _,g in ipairs(self._modules) do if g.Category==category then width=math.max(width,measured(self:_moduleName(g),self.Theme["Module Font Size"],false)+(self.Theme["Tab Width Addition (Auto)"] or 0)+35) end end
+   width=math.clamp(width,140,490)
+  end
+  local panel={Name=category,HeaderHeight=self.Theme["Module Height"],Width=width,Entries={},Collapsed=self._collapsed[category]==true,Index=index}
+  panel.Root=create("Frame",scroll,{Name="Category_"..category,BackgroundTransparency=1,Size=UDim2.fromOffset(width,100)})
+  if self.Theme["Tab Shadows"] then softShadow(panel.Root,4,math.clamp(math.round((self.Theme["Tab Shadows Thickness"] or 30)*.4),3,16),self.Theme["Tab Shadows Opacity (0~1)"] or .7) end
+  panel.Surface=create("Frame",panel.Root,{Active=true,BackgroundColor3=color(0x090909),BackgroundTransparency=.12,Size=UDim2.fromScale(1,1),ZIndex=1});corner(panel.Surface,self.Theme["Round Corners"] and 4 or 0)
+  local header=create("TextButton",panel.Surface,{Name="CategoryHeader",Text="",BackgroundColor3=rgba(self.Theme["Tab Theme Color"],0x0A0A0A),AutoButtonColor=false,Size=UDim2.fromOffset(width,panel.HeaderHeight)});panel.Header=header
+  local title=self:_tr(category);if self.Theme["Tab Name Case Style"]=="Lower Case" then title=title:lower() elseif self.Theme["Tab Name Case Style"]=="Upper Case" then title=title:upper() end
+  local label=text(header,title,self.Theme["Tab Icons"] and 34 or 12,0,width-52,panel.HeaderHeight,self.Theme["Module Font Size"],0xD8D8D8);label.TextXAlignment=Enum.TextXAlignment[self.Theme["Tab Name Alignment"] or "Left"]
+  if self.Theme["Tab Icons"] then local img=icon(header,CATEGORY_GLYPHS[category] or "misc",20,0xC8C8C8);img.Root.Position=UDim2.fromOffset(9,(panel.HeaderHeight-20)/2);local clr=rgba(self.Theme["Tab Icon Color"],0xFFFFFF);img:SetColor(tonumber(clr:ToHex(),16)) end
+  if self.Theme.Outline then stroke(panel.Surface,tonumber(rgba(self.Theme["Tab Theme Color"],0x333333):ToHex(),16),1.3) end
+  local collapse,collapseIcon=self:_iconButton(header,"up",width-28,0,28,panel.HeaderHeight,function() panel.Collapsed=not panel.Collapsed;self._collapsed[category]=panel.Collapsed;if panel.CollapseIcon then self:_animate(panel.CollapseIcon.Root,{Rotation=panel.Collapsed and 180 or 0},.22) end;self:_layout() end,self._viewScope);collapse.Visible=self.Theme["Tab Expand Arrow"]==true;panel.CollapseIcon=collapseIcon;collapseIcon.Root.Rotation=panel.Collapsed and 180 or 0
+  self:_on(header.MouseButton2Click,function() panel.Collapsed=not panel.Collapsed;self._collapsed[category]=panel.Collapsed;if panel.CollapseIcon then self:_animate(panel.CollapseIcon.Root,{Rotation=panel.Collapsed and 180 or 0},.22) end;self:_layout() end,self._viewScope)
+  self:_on(header.InputBegan,function(input)
+   if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then self._gesture={input=input,start=self:_inputPoint(input),origin=Vector2.new(panel.Root.Position.X.Offset,panel.Root.Position.Y.Offset),panel=panel} end
+  end,self._viewScope)
+  panel.Body=create("ScrollingFrame",panel.Surface,{Name="ModuleList",BackgroundTransparency=1,Position=UDim2.fromOffset(0,panel.HeaderHeight),Size=UDim2.fromOffset(width,100),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=2,ScrollingDirection=Enum.ScrollingDirection.Y,Active=true})
+  for _,g in ipairs(self._modules) do if g.Category==category and not g.Definition.omitFromMenu then panel.Entries[#panel.Entries+1]=self:_entry(panel.Body,g,self._viewScope) end end
+  self:_motion(panel.Root,function(dt)
+   if panel.TargetHeight and math.abs(panel.TargetHeight-panel.DisplayHeight)>.001 then
+    panel.HeightTime+=dt;local t=self.ReducedMotion and 1 or math.clamp(panel.HeightTime/.3,0,1)
+    panel.DisplayHeight=panel.StartHeight+(panel.TargetHeight-panel.StartHeight)*(1-(1-t)^3);if t==1 then panel.DisplayHeight=panel.TargetHeight end;self._layoutDirty=true
+   end
+  end,self._viewScope)
+  self._panels[#self._panels+1]=panel
+ end
+end
+function Window:_buildNeverlose()
+ local scope=self._viewScope
+ self.NLShadow=create("Frame",self.View,{Name="NeverloseShadow",BackgroundTransparency=1,Size=UDim2.fromOffset(1080,640),ZIndex=0});softShadow(self.NLShadow,15,16,.8)
+ self.NL=create("Frame",self.View,{Name="Neverlose",Active=true,BackgroundColor3=Color3.new(1,1,1),Size=UDim2.fromOffset(1080,640),ClipsDescendants=false});corner(self.NL,15);stroke(self.NL,0x76556D,1)
+ local backdrop=create("ImageLabel",self.NL,{Name="Wallpaper",Image=self.Options.BackgroundImage or "",ScaleType=Enum.ScaleType.Crop,BackgroundTransparency=1,ImageTransparency=self.Options.BackgroundImage and .55 or 1,Size=UDim2.fromScale(1,1),ZIndex=0});corner(backdrop,15)
+ create("UIGradient",self.NL,{Rotation=32,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,color(0x4C1837)),ColorSequenceKeypoint.new(.55,color(0x221B2D)),ColorSequenceKeypoint.new(1,color(0x352138))})})
+ self.NLSide=create("Frame",self.NL,{Name="Sidebar",BackgroundColor3=color(0x311C30),BackgroundTransparency=.08,Size=UDim2.fromOffset(188,640),ClipsDescendants=true});corner(self.NLSide,14)
+ create("UIGradient",self.NLSide,{Rotation=90,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,color(0xD8AAC4)),ColorSequenceKeypoint.new(.5,color(0x875D89)),ColorSequenceKeypoint.new(1,color(0xBC81A4))})})
+ self.NLBrand=text(self.NLSide,"NEVERLOSE",18,12,164,46,23,0xFCF7FF,true)
+ create("Frame",self.NLSide,{Name="BrandRule",Position=UDim2.fromOffset(18,62),Size=UDim2.new(1,-36,0,1),BackgroundColor3=color(0x1C2531)})
+ self.NLFeatures=text(self.NLSide,"—  FEATURES  —",16,72,156,26,14,0xAF9BAE,false,Enum.TextXAlignment.Center)
+ self.SideScroll=create("ScrollingFrame",self.NLSide,{Name="Categories",BackgroundTransparency=1,Position=UDim2.fromOffset(12,112),Size=UDim2.new(1,-24,1,-202),CanvasSize=UDim2.fromOffset(0,#self._categories*42),ScrollBarThickness=2,ScrollBarImageColor3=color(0x89617B),Active=true})
+ self.NLCategories={}
+ local tones={0xE35698,0x5CEB7D,0x82CC82,0xA16AEF,0x57C6D8,0xBE69F0,0x9EF18B,0xB170E9,0x6C9FEB,0xF5BA78}
+ for i,category in ipairs(self._categories) do
+  local b=self:_button(self.SideScroll,"",0,(i-1)*42,164,38,function() self.Category=category;self:_invalidate() end,scope);b.Name="Category_"..category
+  local active=category==self.Category;b.BackgroundColor3=color(active and 0x62405F or 0x302030);b.BackgroundTransparency=active and .15 or 1;b.TextXAlignment=Enum.TextXAlignment.Left;b.TextSize=16
+  local img=icon(b,CATEGORY_GLYPHS[category] or "misc",20,tones[i] or 0xC58FC0);img.Root.Position=UDim2.fromOffset(10,9)
+  local marker=create("Frame",b,{Name="SelectionBar",BackgroundColor3=color(0xE76AAE),Position=UDim2.fromOffset(0,9),Size=UDim2.fromOffset(3,20),Visible=active});corner(marker,2)
+  self.NLCategories[#self.NLCategories+1]={Name=category,Button=b}
+  self:_on(b.MouseLeave,function() self:_animate(b,{BackgroundColor3=color(active and 0x62405F or 0x302030)}) end,scope)
+ end
+ self.NLAccount=create("Frame",self.NLSide,{Name="Account",BackgroundColor3=color(0x1B1221),BackgroundTransparency=.3,Position=UDim2.new(0,10,1,-78),Size=UDim2.new(1,-20,0,66)});corner(self.NLAccount,8)
+ local user=create("ImageLabel",self.NLAccount,{Name="User",BackgroundColor3=color(0x554B60),Position=UDim2.fromOffset(10,14),Size=UDim2.fromOffset(36,36),Image=self.Player and 'rbxthumb://type=AvatarHeadShot&id='..self.Player.UserId..'&w=150&h=150' or ""});corner(user,18)
+ self.NLUsername=text(self.NLAccount,self.Player and self.Player.DisplayName or "Roblox",56,10,100,24,14,0xF0E5EF,true)
+ self.NLAccountDetail=text(self.NLAccount,self.Options.Embedded and "Syntax · Jackal" or "Jackal · Roblox",56,34,100,20,14,0xB390AB)
+ self.NLSearchWrap=field(self.NL,208,20,570,36);self.NLSearchWrap.Name="SearchBar";self.NLSearchWrap.BackgroundColor3=color(0x17101C);corner(self.NLSearchWrap,7);stroke(self.NLSearchWrap,0x855B7A,1)
+ local searchIcon=icon(self.NLSearchWrap,"search",20,0xBA9AB2);searchIcon.Root.Position=UDim2.fromOffset(10,8)
+ self.NLSearch=create("TextBox",self.NLSearchWrap,{Name="InlineSearch",BackgroundTransparency=1,Position=UDim2.fromOffset(38,0),Size=UDim2.new(1,-48,1,0),Text=self.NLQuery or "",PlaceholderText=self:_tr("Search modules and settings").."  (Ctrl+F)",PlaceholderColor3=color(0xB89AAC),TextColor3=color(T.Title),Font=Enum.Font.BuilderSans,TextSize=16,ClearTextOnFocus=false,TextXAlignment=Enum.TextXAlignment.Left})
+ self:_on(self.NLSearch:GetPropertyChangedSignal("Text"),function() self.NLQuery=self.NLSearch.Text;self:_layoutModules() end,scope)
+ self.NLActions=create("Frame",self.NL,{Name="Actions",BackgroundTransparency=1,Size=UDim2.fromOffset(114,36)})
+ self:_iconButton(self.NLActions,"save",0,0,34,36,function() if self.Options.Embedded then self.Options.OnOpenConfigs() else self:SetPage("Profiles") end end,scope)
+ self:_iconButton(self.NLActions,"gear",40,0,34,36,function() if self.Options.Embedded then self.Options.OnOpenAppearance() else self:SetPage("GUI") end end,scope)
+ self:_iconButton(self.NLActions,"down",80,0,34,36,function()
+  local any=false;for _,e in ipairs(self._entries) do if e.Expanded then any=true end end
+  for _,e in ipairs(self._entries) do e.Expanded=not any;self._expanded[e.Group.Id]=e.Expanded;self:_animate(e.ExpandIcon.Root,{Rotation=e.Expanded and 180 or 0},.22) end;self:_layout()
+ end,scope)
+ self.NLTitle=text(self.NL,self:_tr(self.Category),208,65,600,29,17,0xEFE4EF,true)
+ self.NLBody=create("Frame",self.NL,{Name="Cards",BackgroundTransparency=1,Position=UDim2.fromOffset(208,100),Size=UDim2.fromOffset(850,510)})
+ self.NLColumns={}
+ for i=1,2 do self.NLColumns[i]=create("ScrollingFrame",self.NLBody,{Name="CardColumn"..i,BackgroundTransparency=1,Size=UDim2.fromOffset(400,510),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,ScrollBarImageColor3=color(0xEBA6D0),Active=true}) end
+ local n=0
+ for _,g in ipairs(self._modules) do if g.Category==self.Category and not g.Definition.omitFromMenu then n+=1;self:_entry(self.NLColumns[(n-1)%2+1],g,scope,true) end end
+ self.NLStatus=text(self.NL,"JACKAL  /  UI "..UI.Version,208,0,600,24,14,0xB399AD);self.NLStatus.Position=UDim2.new(0,208,1,-27)
+end
+function Window:_buildImgui()
+ self.IG=create("Frame",self.View,{Name="ImguiWindow",Active=true,BackgroundColor3=color(0x171717),Size=UDim2.fromOffset(840,560)});stroke(self.IG,0x696969,1)
+ local header=create("TextButton",self.IG,{Name="Titlebar",Text="  JackalClient 1.1.9 — Dear ImGui",Font=Enum.Font.Code,TextSize=13,TextColor3=color(0xFFFFFF),TextXAlignment=Enum.TextXAlignment.Left,BackgroundColor3=color(0x294F81),Size=UDim2.new(1,0,0,26),AutoButtonColor=false})
+ self:_on(header.InputBegan,function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then self._gesture={input=input,start=self:_inputPoint(input),origin=self._imguiPosition or Vector2.new(0,0),imgui=true} end end,self._viewScope)
+ self.IGTree=create("ScrollingFrame",self.IG,{Name="CategoryTree",BackgroundColor3=color(0x1E1E1E),Position=UDim2.fromOffset(7,33),Size=UDim2.new(0,160,1,-40),CanvasSize=UDim2.fromOffset(0,#self._categories*28),ScrollBarThickness=2,Active=true})
+ for i,category in ipairs(self._categories) do
+  local b=self:_button(self.IGTree,"▸ "..self:_tr(category),3,(i-1)*28,151,25,function() self.Category=category;self:_invalidate() end,self._viewScope)
+  b.Font=Enum.Font.Code;b.TextSize=14;b.BackgroundColor3=color(category==self.Category and 0x31567B or 0x252525);b.TextXAlignment=Enum.TextXAlignment.Left
+ end
+ self.IGBody=create("ScrollingFrame",self.IG,{Name="ImGuiContent",BackgroundTransparency=1,Position=UDim2.fromOffset(177,33),Size=UDim2.new(1,-185,1,-40),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,Active=true})
+ for _,g in ipairs(self._modules) do if g.Category==self.Category and not g.Definition.omitFromMenu then self:_entry(self.IGBody,g,self._viewScope) end end
+end
+function Window:_layoutModules()
+ local w,h=self._width,self._height-self._top-32
+ if self.Layout=="Dropdown" then
+  local x,maxY=12,0
+  for _,panel in ipairs(self._panels) do
+   local offset=self._positions[panel.Name] or Vector2.new(x,10)
+   panel.Root.Position=UDim2.fromOffset(offset.X,offset.Y)
+   local y=0
+   for _,entry in ipairs(panel.Entries) do
+    entry.Frame.Visible=true;entry:Place(panel.Width,y)
+    y+=self:_entryHeight(entry,panel.Width);entry.Refresh()
+   end
+   local targetH=panel.Collapsed and 0 or math.min(y,math.max(100,h-30))
+   if panel.DisplayHeight==nil then panel.DisplayHeight=targetH;panel.TargetHeight=targetH end
+   if panel.TargetHeight~=targetH then panel.StartHeight=panel.DisplayHeight;panel.TargetHeight=targetH;panel.HeightTime=0 end
+   local visibleH=panel.DisplayHeight
+   panel.Body.Visible=visibleH>.1;panel.Body.Size=UDim2.fromOffset(panel.Width,visibleH);panel.Body.CanvasSize=UDim2.fromOffset(0,y)
+   panel.Root.Size=UDim2.fromOffset(panel.Width,panel.HeaderHeight+visibleH)
+   x+=panel.Width+14;maxY=math.max(maxY,offset.Y+panel.HeaderHeight+visibleH)
+  end
+  local sorted=table.clone(self._panels)
+  table.sort(sorted,function(a,b) if a.Root.Position.X.Offset==b.Root.Position.X.Offset then return a.Index<b.Index end;return a.Root.Position.X.Offset<b.Root.Position.X.Offset end)
+  local edge=12
+  for _,panel in ipairs(sorted) do
+   local target=math.max(edge,panel.Root.Position.X.Offset);local top=panel.Root.Position.Y.Offset
+   if target~=panel.Root.Position.X.Offset then panel.Root.Position=UDim2.fromOffset(target,top);self._positions[panel.Name]=Vector2.new(target,top) end
+   edge=target+panel.Width+14
+  end
+  local right=x;for _,p in ipairs(self._panels) do right=math.max(right,p.Root.Position.X.Offset+p.Width+12) end
+  self.Canvas.CanvasSize=UDim2.fromOffset(right,maxY+12)
+ elseif self.Layout=="Neverlose" then
+  local width=math.min(1080,w-24);local height=math.min(640,h-14);local sidebar=width<650 and 64 or 188;local compact=height<380
+  self.NL.Size=UDim2.fromOffset(width,height);self.NL.Position=UDim2.fromOffset(math.round((w-width)/2),7);self.NLSide.Size=UDim2.fromOffset(sidebar,height);self.NLShadow.Position=self.NL.Position;self.NLShadow.Size=self.NL.Size
+  self.NLBrand.Text=sidebar<100 and "NL" or "NEVERLOSE";self.NLBrand.Size=UDim2.fromOffset(sidebar-28,46);self.NLBrand.TextSize=math.round((sidebar<100 and 20 or 23)*self:_activeScale())/self:_activeScale();self.NLFeatures.Visible=sidebar>=100 and not compact;self.NLUsername.Visible=sidebar>=100;self.NLAccountDetail.Visible=sidebar>=100
+  self.NLAccount.Position=UDim2.new(0,sidebar<100 and 4 or 10,1,-78);self.NLAccount.Size=UDim2.new(1,sidebar<100 and -8 or -20,0,66)
+  for _,category in ipairs(self.NLCategories) do category.Button.Size=UDim2.fromOffset(sidebar-24,38);category.Button.Text=sidebar<100 and "" or "         "..self:_tr(category.Name) end
+  self.NLAccount.Visible=not compact
+  self.SideScroll.Position=UDim2.fromOffset(12,compact and 54 or 112);self.SideScroll.Size=UDim2.new(1,-24,1,compact and -62 or -202)
+  local start=sidebar+18;local bodyW=width-sidebar-36
+  self.NLSearchWrap.Position=UDim2.fromOffset(start,compact and 8 or 18);self.NLSearchWrap.Size=UDim2.fromOffset(math.max(80,bodyW-(width<650 and 0 or 130)),36)
+  self.NLActions.Visible=width>=650;self.NLActions.Position=UDim2.fromOffset(width-132,compact and 8 or 18)
+  local count=0;local query=(self.NLQuery or ""):lower()
+  for _,e in ipairs(self._entries) do
+   local saved=self.Query;self.Query=query;e.Filtered=not self:_searchMatch(e.Group);self.Query=saved
+   e.Frame.Visible=not e.Filtered;if not e.Filtered then count+=1 end
+  end
+  self.NLTitle.Text=self:_tr(self.Category).."  ("..count..")";self.NLTitle.Position=UDim2.fromOffset(start,compact and 48 or 62);self.NLTitle.Size=UDim2.fromOffset(bodyW,30)
+  self.NLBody.Position=UDim2.fromOffset(start,compact and 84 or 99);self.NLBody.Size=UDim2.fromOffset(bodyW,math.max(40,height-(compact and 94 or 134)))
+  self.NLStatus.Visible=not compact;self.NLStatus.Position=UDim2.new(0,start,1,-27);self.NLStatus.Size=UDim2.fromOffset(bodyW,24)
+  local cols=bodyW>=600 and 2 or 1;local colW=math.floor((bodyW-(cols-1)*14)/cols);local ends={0,0};local visibleIndex=0
+  for i,column in ipairs(self.NLColumns) do column.Visible=i<=cols;column.Position=UDim2.fromOffset((i-1)*(colW+14),0);column.Size=UDim2.fromOffset(colW,math.max(40,height-(compact and 94 or 134))) end
+  for _,entry in ipairs(self._entries) do if not entry.Filtered then
+   visibleIndex+=1;local col=(visibleIndex-1)%cols+1
+   if entry.Frame.Parent~=self.NLColumns[col] then entry.Frame.Parent=self.NLColumns[col] end
+   entry:Place(colW,ends[col]);ends[col]+=self:_entryHeight(entry,colW)+10;entry.Refresh()
+  end end
+  for i,column in ipairs(self.NLColumns) do column.CanvasSize=UDim2.fromOffset(0,ends[i]) end
+
+ else
+  local width=math.min(840,w-24);local height=math.min(560,h-14)
+  local position=self._imguiPosition or Vector2.new((w-width)/2,7);position=Vector2.new(math.clamp(position.X,0,math.max(0,w-width)),math.clamp(position.Y,0,math.max(0,h-height)))
+  self.IG.Position=UDim2.fromOffset(position.X,position.Y);self.IG.Size=UDim2.fromOffset(width,height)
+  local treeW=width<550 and 90 or 160
+  self.IGTree.Size=UDim2.fromOffset(treeW,height-40);self.IGBody.Position=UDim2.fromOffset(treeW+17,33);self.IGBody.Size=UDim2.fromOffset(width-treeW-25,height-40)
+  local y=0;for _,entry in ipairs(self._entries) do entry:Place(width-treeW-25,y);y+=self:_entryHeight(entry,width-treeW-25)+4;entry.Refresh() end
+  self.IGBody.CanvasSize=UDim2.fromOffset(0,y)
+ end
+end
+
+function Window:_optionsPage(group,title)
+ text(self.View,title,16,10,self._width-32,34,23,0xE7E7E7,true)
+ local scroll=create("ScrollingFrame",self.View,{Name="PageOptions",BackgroundColor3=color(0x0D1117),BackgroundTransparency=.12,Position=UDim2.fromOffset(16,55),Size=UDim2.fromOffset(math.min(720,self._width-32),self._height-self._top-105),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,ScrollBarImageColor3=color(self:_accentHex()),Active=true});corner(scroll,6)
+ local rows=self:_settingsRows(group,scroll,self._viewScope);self._pageRows={Group=group,Rows=rows,Scroll=scroll}
+end
+function Window:_searchMatch(group)
+ local query=self.Query:lower();if query=="" then return true end
+ if group.Id:lower():find(query,1,true) or self:_moduleName(group):lower():find(query,1,true) or (group.Definition.description or ""):lower():find(query,1,true) then return true end
+ for key,def in pairs(group._definitions) do
+  if key:lower():find(query,1,true) or self:_tr(key):lower():find(query,1,true) or Http:JSONEncode(group.Values[key]):lower():find(query,1,true) then return true end
+  for _,option in ipairs(def.options or def.Options or {}) do if tostring(option):lower():find(query,1,true) then return true end end
+ end
+ return false
+end
+function Window:_searchResults()
+ if self._resultsScope then self._resultsScope:Clean() end;self._resultsScope=Scope.new(self._viewScope)
+ local scope=self._resultsScope;local root=create("Frame",self.SearchResults,{BackgroundTransparency=1,Size=UDim2.fromScale(1,1)});scope.root=root
+ local width=math.max(100,self._width-40);local cols=math.max(1,math.floor(width/250));local itemW=(width-(cols-1)*12)/cols;local count=0
+ for _,g in ipairs(self._modules) do if not g.Definition.omitFromMenu and self:_searchMatch(g) then
+  local index=count;local button=self:_button(root,self:_moduleName(g),index%cols*(itemW+12),math.floor(index/cols)*49,itemW,42,function() self:OpenModule(g.Id) end,scope)
+  button.TextSize=14;button.TextXAlignment=Enum.TextXAlignment.Left;button.Text="  "..button.Text;button.BackgroundColor3=color(g.Enabled and self:_accentHex() or 0x1F242D)
+  self:_on(button.MouseButton2Click,function() g:SetEnabled(not g.Enabled) end,scope);count+=1
+ end end
+ self.SearchCount.Text=tostring(count).." "..self:_tr("Results")
+ self.SearchResults.CanvasSize=UDim2.fromOffset(0,math.ceil(count/cols)*49)
+ if count==0 then text(root,self:_tr("No matching modules"),0,15,width,32,15,0xD7B06B,false,Enum.TextXAlignment.Center) end
+end
+function Window:_buildSearch()
+ text(self.View,self:_tr("Search"),15,0,self._width-30,48,28,0xE7E4F5,true,Enum.TextXAlignment.Center)
+ self.SearchInput=create("TextBox",self.View,{Name="SearchInput",BackgroundColor3=color(0x0B0D15),Position=UDim2.fromOffset(20,57),Size=UDim2.fromOffset(self._width-40,38),ClearTextOnFocus=false,PlaceholderText=self:_tr("Search modules and settings"),PlaceholderColor3=color(0x777777),Text=self.Query,Font=Enum.Font.Gotham,TextSize=16,TextColor3=color(0xE8E6EC),TextXAlignment=Enum.TextXAlignment.Center});corner(self.SearchInput,6);stroke(self.SearchInput,self:_accentHex(),1)
+ self.SearchCount=text(self.View,"",20,100,self._width-40,24,13,0xAD84DB,false,Enum.TextXAlignment.Center)
+ self.SearchResults=create("ScrollingFrame",self.View,{Name="SearchResults",BackgroundTransparency=1,Position=UDim2.fromOffset(20,135),Size=UDim2.fromOffset(self._width-40,self._height-self._top-182),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,Active=true})
+ self:_on(self.SearchInput:GetPropertyChangedSignal("Text"),function() self.Query=self.SearchInput.Text;self:_searchResults() end,self._viewScope)
+ self:_searchResults()
+end
+function Window:_buildProfiles()
+ text(self.View,self:_tr("Profiles"),18,6,self._width-36,36,24,0xEEEEEE,true)
+ local scope=self._viewScope;local width=math.min(680,self._width-36)
+ local name=create("TextBox",self.View,{Name="ProfileName",BackgroundColor3=color(0x121820),Position=UDim2.fromOffset(18,53),Size=UDim2.fromOffset(width-90,30),Text=self._selectedProfile or "Default",PlaceholderText="Profile name",ClearTextOnFocus=false,Font=Enum.Font.Gotham,TextSize=13,TextColor3=color(0xE7E7E7)});corner(name,4)
+ self:_button(self.View,self:_tr("Save"),width-62,53,80,30,function() local ok,err=self:SaveProfile(name.Text);if ok then self:Notify("Profile saved");self:_invalidate() else self:Notify(err) end end,scope)
+ local scroll=create("ScrollingFrame",self.View,{Name="ProfilesList",BackgroundTransparency=1,Position=UDim2.fromOffset(18,96),Size=UDim2.fromOffset(width,self._height-self._top-190),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,Active=true})
+ local names={};for key in pairs(self._profiles) do names[#names+1]=key end;table.sort(names)
+ for i,key in ipairs(names) do
+  local b=self:_button(scroll,key,0,(i-1)*42,width-90,35,function() local ok,err=self:LoadProfile(key);self:Notify(ok and "Profile loaded" or err) end,scope);b.TextXAlignment=Enum.TextXAlignment.Left;b.Text="  "..key;b.TextSize=14
+  self:_button(scroll,"×",width-75,(i-1)*42,64,35,function() self:DeleteProfile(key);self:_invalidate() end,scope)
+ end
+ scroll.CanvasSize=UDim2.fromOffset(0,#names*42)
+ if #names==0 then text(scroll,self:_tr("No saved profiles"),0,12,width,32,14,0x777777) end
+ self:_button(self.View,"Import JSON",18,self._height-self._top-80,130,28,function() self:_textDialog("Import JSON","",function(raw) return self:ImportJSON(raw) end) end,scope)
+ self:_button(self.View,"Export JSON",160,self._height-self._top-80,130,28,function() self:_textDialog("Export JSON",self:ExportJSON()) end,scope)
+end
+function Window:_buildApps()
+ text(self.View,self:_tr("Apps"),18,6,self._width-36,36,24,0xEEEEEE,true)
+ local scroll=create("ScrollingFrame",self.View,{BackgroundTransparency=1,Position=UDim2.fromOffset(18,55),Size=UDim2.new(1,-36,1,-70),CanvasSize=UDim2.fromOffset(0,#(self.Options.Apps or {})*54),ScrollBarThickness=3,Active=true})
+ for i,app in ipairs(self.Options.Apps or {}) do
+  local b=self:_button(scroll,app.Name or app.name or "Application",0,(i-1)*54,math.min(680,self._width-36),44,function() if app.Callback then task.spawn(app.Callback,self) end end,self._viewScope);b.TextSize=15
+ end
+ if #(self.Options.Apps or {})==0 then text(scroll,"Add applications with Options.Apps",0,15,self._width-36,30,14,0x888888) end
+end
+function Window:_buildAbout()
+ local lines={"JACKAL CLIENT","Roblox UI Library · "..UI.Version,"Original client: 1.1.9 · @Wormwaker","Dropdown / Neverlose / Imgui","10 source GUI Styler presets","Original UI configuration: AGPL-3.0","Roblox port: native instances and client input","Windows module names in the demo are interface examples."}
+ for i,line in ipairs(lines) do text(self.View,line,16,18+(i-1)*42,self._width-32,36,i==1 and 30 or 14,i==1 and self:_accentHex() or 0xCCC4D4,i==1,Enum.TextXAlignment.Center) end
+ local y=18+#lines*42
+ self:_button(self.View,"Launcher preview",math.max(16,self._width/2-100),y,200,32,function() self:ShowLauncher(self.Launcher or "Default") end,self._viewScope)
+end
+function Window:ShowLauncher(style)
+ assert(table.find(LAUNCHER_NAMES,style),"Unknown launcher style")
+ local colors={Default=0xD2D2D2,Vape=0x5BD38B,Jackal=0xDC5E41,Neon=0xE24DD7,Matrix=0x49D54A,Aurora=0x7C84F9}
+ if style=="Random" then style=LAUNCHER_NAMES[math.random(1,#LAUNCHER_NAMES-1)] end
+ self.Launcher=style
+ local popup=self:_popup("Launcher",nil,380,250,true);if not popup then return end
+ popup.Frame.BackgroundColor3=color(style=="Matrix" and 0x061108 or 0x11131C)
+ if style=="Matrix" then for i=1,14 do text(popup.Frame,"0101 1010",8+(i%5)*78,6+math.floor(i/5)*24,75,20,11,0x185125) end end
+ text(popup.Frame,"JACKAL",18,65,popup.Width-36,44,36,colors[style] or 0xFFFFFF,true,Enum.TextXAlignment.Center)
+ text(popup.Frame,style.." · Native launcher preview",18,112,popup.Width-36,24,12,0xAAA7B9,false,Enum.TextXAlignment.Center)
+ self:_button(popup.Frame,"START",popup.Width/2-70,173,140,32,function() self:_closePopups();self:SetPage("Modules") end,popup.Scope)
+end
+function Window:_settingsModels()
+ local function def(name,kind,value,options,callback) return {name=name,type=kind,default=value,options=options,callback=callback} end
+ self.Models={}
+ self.Models.GUI=self:_newGroup({id="@GUI",settings={
+  def("ClickGUI Layout","select",self.Layout,LAYOUT_NAMES,function(v) self:SetLayout(v) end),
+  def("Style Preset","select",self.Preset,PRESET_NAMES,function(v) self:SetPreset(v) end),
+  def("Language","select",self.Language,{"English","中文"},function(v) self:SetLanguage(v) end),
+  self.Options.Embedded and {name="Global Scale",type="slider",default=self.RequestedScale,min=.5,max=4,step=.05} or def("Global Scale","select",self.RequestedScale,{.75,1,1.05,1.25,1.5,2},function(v) self:SetScale(v) end),
+  def("Reduced motion","toggle",self.ReducedMotion,nil,function(v) self:SetReducedMotion(v) end),
+  def("Launcher Style","select","Default",LAUNCHER_NAMES,function(v) self.Launcher=v end),
+  {name="Reset panel positions",type="button",buttonText="Reset",callback=function() self:ResetPositions() end},
+ }})
+ self.Models.HUD=self:_newGroup({id="@HUD",settings={def("Arraylist","toggle",true),def("Keystrokes","toggle",true),def("Time display","toggle",true),def("HUD while menu open","toggle",self.Options.HUDWhileMenuOpen==true),def("Dynamic Island","toggle",false),def("Crosshair","toggle",false)}})
+ self.Models.Sound=self:_newGroup({id="@Sound",settings={def("Option sound","toggle",false),{name="Volume",type="slider",min=0,max=100,step=1,default=80},{name="Sound asset",type="text",default=""},{name="Preview sound",type="button",buttonText="Play",callback=function() local ok,err=self:PlayUISound();if not ok then self:Notify(err) end end}}})
+ self.Models.Config=self:_newGroup({id="@Config",settings={def("Confirm reset","toggle",true),def("Display default values","toggle",true),def("Highlight modified options","toggle",true),{name="Profiles",type="button",buttonText="Open",callback=function() self:SetPage("Profiles") end}}})
+end
+
+function Window:GetState()
+ local modules={};for _,group in ipairs(self._modules) do modules[group.Id]=group:GetState() end
+ local models={};for name,group in pairs(self.Models) do models[name]=group:GetState() end
+ return {version=1,modules=modules,models=models,ui={layout=self.Layout,preset=self.Preset,scale=self.RequestedScale,island=self.DynamicIsland and self.DynamicIsland:GetOptions() or nil,reducedMotion=self.ReducedMotion,language=self.Language,category=self.Category,launcher=self.Launcher or "Default"}}
+end
+function Window:ApplyState(state)
+ if type(state)~="table" or state.version~=1 or type(state.modules)~="table" then return false,"Invalid configuration" end
+ local ui=state.ui or {};if type(ui)~="table" then return false,"Invalid interface configuration" end
+ if ui.layout and not table.find(LAYOUT_NAMES,ui.layout) then return false,"Invalid layout" end
+ if ui.preset and not PRESETS[ui.preset] then return false,"Invalid preset" end
+ if ui.scale and (not finite(ui.scale) or ui.scale<.5 or ui.scale>2) then return false,"Invalid scale" end
+ if ui.language and ui.language~="English" and ui.language~="中文" then return false,"Invalid language" end
+ if ui.launcher and not table.find(LAUNCHER_NAMES,ui.launcher) then return false,"Invalid launcher" end
+ if ui.reducedMotion~=nil and type(ui.reducedMotion)~="boolean" then return false,"Invalid motion preference" end
+ local islandOptions
+ if ui.island~=nil then local ok,result=pcall(self._validateIslandConfig,self,ui.island);if not ok then return false,"Invalid island configuration" end;islandOptions=result end
+ local staged={}
+ local function stage(group,value)
+  if type(value)~="table" or type(value.enabled)~="boolean" or type(value.settings)~="table" then return false end
+  local key=normalized({type="key"},value.key or "None");if not key or value.hidden~=nil and type(value.hidden)~="boolean" then return false end
+  local values={}
+  for name,v in pairs(value.settings) do if group._definitions[name] then local result=normalized(group._definitions[name],v);if result==nil then return false end;values[name]=result end end
+  staged[#staged+1]={group=group,enabled=value.enabled,key=key,hidden=value.hidden==true,values=values,previous=group:GetState()};return true
+ end
+ for id,value in pairs(state.modules) do if self._byId[id] and not stage(self._byId[id],value) then return false,"Invalid module: "..id end end
+ if state.models~=nil then
+  if type(state.models)~="table" then return false,"Invalid page options" end
+  for name,value in pairs(state.models) do if self.Models[name] and not stage(self.Models[name],value) then return false,"Invalid page options: "..name end end
+ end
+ -- All fields are validated before mutating state. Restore values without firing layout callbacks mid-import.
+ self._batch=true
+ for _,entry in ipairs(staged) do
+  local group=entry.group;group.Enabled=entry.enabled;group.Key=entry.key;group.Hidden=entry.hidden
+  for key,v in pairs(entry.values) do group.Values[key]=clone(v) end
+ end
+ self.Layout=ui.layout or self.Layout;self.Preset=ui.preset or self.Preset;self.Theme=clone(PRESETS[self.Preset]);self.RequestedScale=ui.scale or self.RequestedScale;self.Language=ui.language or self.Language;self.Launcher=ui.launcher or self.Launcher
+ self.Accent=NAMED[self.Theme["Module Background Color (Enabled)"]] or 0x55C25F
+ for _,entry in ipairs(staged) do if entry.group.Id=="GUIStyler" and entry.group._definitions["Style preset"] then entry.group.Values["Style preset"]=self.Preset;entry.values["Style preset"]=self.Preset end end
+ if ui.category and table.find(self._categories,ui.category) then self.Category=ui.category end
+ self.Models.GUI.Values["ClickGUI Layout"]=self.Layout;self.Models.GUI.Values["Style Preset"]=self.Preset;self.Models.GUI.Values["Global Scale"]=self.RequestedScale;self.Models.GUI.Values.Language=self.Language
+ if ui.reducedMotion~=nil then self.ReducedMotion=ui.reducedMotion end
+ self.Models.GUI.Values["Reduced motion"]=self.ReducedMotion
+ if islandOptions then
+  if self.DynamicIsland then self.DynamicIsland.Options=islandOptions else self:CreateDynamicIsland(islandOptions) end
+  local module=self:_component("Island")
+  if module then self.Models.HUD.Values["Dynamic Island"]=module.Enabled else self.Models.HUD.Values["Dynamic Island"]=islandOptions.Enabled==true end
+ end
+ self:_fit();self:_invalidate()
+ -- Reapply functional module callbacks once per changed module/setting, through the normal notification path.
+ for _,entry in ipairs(staged) do
+  if entry.group.Id:sub(1,1)~="@" then
+   if entry.previous.enabled~=entry.enabled then self:_notify(entry.group,"enabled",entry.enabled) end
+   if entry.previous.key~=entry.key then self:_notify(entry.group,"key",entry.key) end
+   if entry.previous.hidden~=entry.hidden then self:_notify(entry.group,"hidden",entry.hidden) end
+   for key,v in pairs(entry.values) do if Http:JSONEncode(entry.previous.settings[key])~=Http:JSONEncode(v) then self:_notify(entry.group,key,v) end end
+  end
+ end
+ self._batch=false;self._needsLayout=false;self:_applyComponents();self:_layout();return true
+end
+function Window:ExportJSON() return Http:JSONEncode(self:GetState()) end
+function Window:ImportJSON(raw)
+ local ok,result=pcall(Http.JSONDecode,Http,raw);if not ok then return false,"Invalid JSON" end;return self:ApplyState(result)
+end
+function Window:_loadProfiles()
+ _G.JackalProfiles=_G.JackalProfiles or {};self._profiles=clone(_G.JackalProfiles[self.Options.Name or "JackalUI"] or {})
+ local storage=self.Options.Storage
+ if storage and storage.Load then local ok,raw=pcall(storage.Load,storage);if ok and type(raw)=="string" then local valid,result=pcall(Http.JSONDecode,Http,raw);if valid and type(result)=="table" then self._profiles=result end end end
+end
+function Window:_saveProfiles()
+ _G.JackalProfiles[self.Options.Name or "JackalUI"]=clone(self._profiles)
+ local storage=self.Options.Storage
+ if storage and storage.Save then local ok,err=pcall(storage.Save,storage,Http:JSONEncode(self._profiles));if not ok then return false,tostring(err) end end
+ return true
+end
+function Window:SaveProfile(name)
+ if type(name)~="string" then return false,"Profile name required" end;name=name:match("^%s*(.-)%s*$")
+ if name=="" or #name>80 then return false,"Profile name must be 1–80 bytes" end
+ self._profiles[name]=self:GetState();self._selectedProfile=name;return self:_saveProfiles()
+end
+function Window:LoadProfile(name)
+ if not self._profiles[name] then return false,"Profile not found" end
+ local ok,err=self:ApplyState(clone(self._profiles[name]));if ok then self._selectedProfile=name end;return ok,err
+end
+function Window:DeleteProfile(name)
+ if not self._profiles[name] then return false,"Profile not found" end;self._profiles[name]=nil;return self:_saveProfiles()
+end
+
+-- Dynamic Island: a live, reusable notification/progress component.
+local Island={};Island.__index=Island
+local IslandMessage={};IslandMessage.__index=IslandMessage
+local ISLAND_COLORS={info=0xA692F7,success=0x68E0AB,warning=0xFFCF7D,error=0xFF879B,progress=0xE98FC0}
+local function islandString(value,fallback)
+ if value==nil then return fallback or "" end
+ assert(type(value)=="string" and utf8.len(value),"Island text must be valid UTF-8")
+ return shortText(value,4096)
+end
+local function islandOptions(base,patch)
+ local out=clone(base)
+ for k,v in pairs(patch or {}) do out[k]=v end
+ for key,range in pairs({Width={100,700},MaxWidthRate={.2,1},Duration={0,5},OffsetY={0,300},QueueLimit={1,100}}) do
+  if out[key]~=nil then assert(finite(out[key]),"Invalid island "..key);out[key]=math.clamp(out[key],range[1],range[2]) end
+ end
+ for _,key in ipairs({"Enabled","Progress","ShowBrand","ShowUser","ShowFPS","ShowTime","HideWhenIdle","SyncNotifications","ReserveSpace","AutoWidth"}) do if out[key]~=nil then assert(type(out[key])=="boolean","Island "..key.." must be boolean") end end
+ if out.BrandName~=nil then assert(type(out.BrandName)=="string" and utf8.len(out.BrandName),"Invalid island brand name") end
+ if out.Easing then assert(table.find({"Cubic","Linear","Exponential"},out.Easing),"Unknown island easing") end
+ return out
+end
+function Window:CreateDynamicIsland(options)
+ if self.DynamicIsland and not self.DynamicIsland._dead then self.DynamicIsland:SetOptions(options or {});return self.DynamicIsland end
+ local component=setmetatable({Window=self,Options=islandOptions({Enabled=false,Width=240,MaxWidthRate=.75,Duration=.3,Easing="Cubic",Progress=true,ShowBrand=true,ShowUser=true,ShowFPS=true,ShowTime=true,HideWhenIdle=false,SyncNotifications=true,OffsetY=10,QueueLimit=24,ReserveSpace=true},options),_scope=Scope.new(self._scope),_queue={},_items={},_serial=0,_elapsed=0,_width=200,_height=38,_expanded=true},Island)
+ local layer=create("Frame",self.Gui,{Name="DynamicIslandLayer",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=70});component._scope.root=layer
+ local root=create("Frame",layer,{Name="DynamicIsland",BackgroundColor3=color(0x0E0C14),BackgroundTransparency=.06,AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,10),Size=UDim2.fromOffset(240,38),ClipsDescendants=true,Visible=false});corner(root,20)
+ component.Root=root;component.Scale=create("UIScale",root,{Scale=1});component.Border=stroke(root,0x745269,1)
+ component.Hit=create("TextButton",root,{Name="ExpandCollapse",Text="",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),AutoButtonColor=false,ZIndex=1})
+ component.Idle=text(root,"",14,0,210,38,14,0xE4DCEB,true,Enum.TextXAlignment.Center);component.Idle.ZIndex=2
+ component.Symbol=icon(root,"info",21,ISLAND_COLORS.info);component.Symbol.Root.Position=UDim2.fromOffset(14,13);component.Symbol.Root.ZIndex=2
+ component.Title=text(root,"",46,6,180,28,17,0xFCF5FF,true);component.Title.Name="IslandTitle";component.Title.ZIndex=2
+ component.Detail=text(root,"",46,35,180,42,14,0xC9BDCE);component.Detail.Name="IslandDetail";component.Detail.TextWrapped=true;component.Detail.TextTruncate=Enum.TextTruncate.None;component.Detail.TextYAlignment=Enum.TextYAlignment.Top;component.Detail.ZIndex=2
+ component.Track=create("Frame",root,{Name="IslandProgressTrack",BackgroundColor3=color(0x4B3A50),Position=UDim2.fromOffset(16,83),Size=UDim2.fromOffset(200,4),ZIndex=2});corner(component.Track,3)
+ component.Fill=create("Frame",component.Track,{Name="IslandProgressFill",BackgroundColor3=color(ISLAND_COLORS.progress),Size=UDim2.fromScale(0,1)});corner(component.Fill,3)
+ component.Percent=text(root,"",0,6,42,28,14,0xDAC8DD,false,Enum.TextXAlignment.Right);component.Percent.ZIndex=2
+ component.Close=create("TextButton",root,{Name="IslandDismiss",Text="",BackgroundTransparency=1,Position=UDim2.fromOffset(200,8),Size=UDim2.fromOffset(28,28),AutoButtonColor=false,ZIndex=3})
+ local cross=icon(component.Close,"close",14,0xD9CDD9);cross.Root.Position=UDim2.fromOffset(7,7)
+ component.Cancel=create("TextButton",root,{Name="IslandCancel",Text="Cancel",Font=Enum.Font.BuilderSans,TextSize=14,TextColor3=color(0xF4D9E8),BackgroundColor3=color(0x4F3047),Position=UDim2.fromOffset(14,98),Size=UDim2.fromOffset(90,26),AutoButtonColor=false,ZIndex=3});corner(component.Cancel,6)
+ self:_on(component.Hit.Activated,function() if component.Active then component:SetExpanded(not component._expanded) end end,component._scope)
+ self:_on(component.Close.Activated,function() if component.Active then component:_remove(component.Active.Id,"dismissed") end end,component._scope)
+ self:_on(component.Cancel.Activated,function() if component.Active then component:_remove(component.Active.Id,"cancelled") end end,component._scope)
+ self:_on(root.MouseEnter,function() component._hovered=Input.MouseEnabled==true end,component._scope);self:_on(root.MouseLeave,function() component._hovered=false end,component._scope)
+ self:_motion(root,function(dt) component:_step(dt) end,component._scope)
+ self.DynamicIsland=component
+ component._scope.disposals[#component._scope.disposals+1]=function() component._dead=true;table.clear(component._items);table.clear(component._queue);component.Active=nil end
+ if self._built then self:_componentLayoutChanged() end
+ return component
+end
+function Island:SetOptions(options)
+ assert(not self._dead,"Island destroyed")
+ local before=self.Options.Enabled and self.Options.ReserveSpace
+ local wasEnabled=self.Options.Enabled
+ self.Options=islandOptions(self.Options,options)
+ self.Window:_islandOptionsChanged(options)
+ if wasEnabled~=self.Options.Enabled then self.Window:_islandEnabledChanged(self.Options.Enabled) end
+ if before~=(self.Options.Enabled and self.Options.ReserveSpace) then self.Window:_componentLayoutChanged() end
+ return self
+end
+function Island:SetEnabled(value)
+ assert(type(value)=="boolean","Enabled must be boolean")
+ if self._dead then return self end
+ local changed=self.Options.Enabled~=value;self.Options.Enabled=value
+ if changed then self.Window:_islandEnabledChanged(value);self.Window:_componentLayoutChanged() end
+ return self
+end
+function Island:SetExpanded(value) self._expanded=value==true;return self end
+function Island:_patch(item,patch)
+ local nextItem=clone(item)
+ if patch.Title~=nil then nextItem.Title=islandString(patch.Title) end
+ if patch.Text~=nil then nextItem.Text=islandString(patch.Text) end
+ if patch.Level~=nil then assert(ISLAND_COLORS[patch.Level],"Unknown notification level");nextItem.Level=patch.Level end
+ if patch.Progress~=nil then assert(finite(patch.Progress),"Progress must be a finite number");nextItem.Progress=math.clamp(patch.Progress,0,1) end
+ if patch.Duration~=nil then assert(finite(patch.Duration) and patch.Duration>=0,"Invalid notification duration");nextItem.Duration=math.min(patch.Duration,120);nextItem.Remaining=nextItem.Duration end
+ if patch.OnCancel~=nil then assert(type(patch.OnCancel)=="function","OnCancel must be a function");nextItem.OnCancel=patch.OnCancel end
+ for k,v in pairs(nextItem) do item[k]=v end
+end
+function Island:_enqueue(options,kind)
+ assert(not self._dead,"Island destroyed");options=options or {};self._serial+=1
+ local id=tostring(options.Id or self._serial)
+ if self._items[id] then self:_patch(self._items[id],options);return setmetatable({Island=self,Id=id,Generation=self._items[id].Generation},IslandMessage) end
+ local item={Id=id,Generation=self._serial,Kind=kind,Level=kind=="progress" and "progress" or "info",Title="Jackal",Text="",Progress=0,Duration=kind=="progress" and 0 or 3,Remaining=kind=="progress" and 0 or 3}
+ self:_patch(item,options)
+ self._items[id]=item
+ if not self.Active then self.Active=item;self._expanded=true
+ elseif options.Priority==true or kind=="progress" and self.Active.Kind~="progress" then
+  table.insert(self._queue,1,self.Active);self.Active=item;self._expanded=true
+ else
+  if #self._queue>=self.Options.QueueLimit then local old=table.remove(self._queue,1);self._items[old.Id]=nil end
+  self._queue[#self._queue+1]=item
+ end
+ if #self._queue>self.Options.QueueLimit then local evicted=table.remove(self._queue);self._items[evicted.Id]=nil end
+ return setmetatable({Island=self,Id=id,Generation=item.Generation},IslandMessage)
+end
+function Island:Notify(options) if type(options)=="string" then options={Text=options} end;return self:_enqueue(options,"notification") end
+function Island:BeginProgress(options) return self:_enqueue(options,"progress") end
+function Island:_remove(id,reason)
+ local item=self._items[id];if not item then return false end
+ self._items[id]=nil
+ if self.Active==item then self.Active=table.remove(self._queue,1);self._expanded=true else local index=table.find(self._queue,item);if index then table.remove(self._queue,index) end end
+ if (reason=="cancelled" or reason=="dismissed") and item.Kind=="progress" and item.OnCancel then
+  local callback=item.OnCancel;task.spawn(function() local ok,err=pcall(callback,reason);if not ok then self.Window:Notify(tostring(err),{Island=false}) end end)
+ end
+ return true
+end
+function Island:Clear() table.clear(self._queue);table.clear(self._items);self.Active=nil;return self end
+function Island:GetState()
+ local active=self.Active
+ return {Enabled=self.Options.Enabled,Expanded=self._expanded,QueueLength=#self._queue,Active=active and {Id=active.Id,Title=active.Title,Text=active.Text,Kind=active.Kind,Level=active.Level,Progress=active.Progress,Remaining=active.Remaining} or nil}
+end
+function IslandMessage:Update(options)
+ local component=self.Island;local item=not component._dead and component._items[self.Id]
+ if not item or item.Generation~=self.Generation then return false end;component:_patch(item,options or {});return true
+end
+function IslandMessage:SetProgress(value,message) return self:Update({Progress=value,Text=message}) end
+function IslandMessage:Complete(message,duration)
+ local component=self.Island;local item=not component._dead and component._items[self.Id];if not item or item.Generation~=self.Generation then return false end
+ component:_patch(item,{Progress=1,Text=message or item.Text,Level="success",Duration=duration or 2.5});item.Kind="notification";return true
+end
+function IslandMessage:Close()
+ local item=not self.Island._dead and self.Island._items[self.Id]
+ return item and item.Generation==self.Generation and self.Island:_remove(self.Id,"closed") or false
+end
+function IslandMessage:Cancel()
+ local item=not self.Island._dead and self.Island._items[self.Id]
+ return item and item.Generation==self.Generation and self.Island:_remove(self.Id,"cancelled") or false
+end
+function Island:Destroy()
+ if self._dead then return end;self._scope:Clean()
+ if self.Window.DynamicIsland==self then self.Window.DynamicIsland=nil;self.Window:_islandEnabledChanged(false);self.Window:_componentLayoutChanged() end
+end
+function Island:_step(dt)
+ if self._dead then return end
+ local window=self.Window;local options=self.Options;local active=self.Active
+ if not options.Enabled then self.Root.Visible=false;return end
+ local scale=window:_activeScale();self.Scale.Scale=scale
+ local maxWidth=math.min(window.Gui.AbsoluteSize.X/scale-20,window.Gui.AbsoluteSize.X/scale*options.MaxWidthRate)
+ maxWidth=math.max(80,maxWidth)
+ local idleText=""
+ if not active then
+  local parts={};if options.ShowBrand then parts[#parts+1]=options.BrandName or "Jackal" end
+  if options.ShowUser and window.Player then parts[#parts+1]=window.Player.DisplayName end
+  if options.ShowFPS then parts[#parts+1]=tostring(math.round(window._fps or 60)).." FPS" end
+  if options.ShowTime then parts[#parts+1]=window:_formatClock("%H:%M") end
+  idleText=table.concat(parts,"  ·  ")
+ end
+ local targetWidth=math.min(options.Width,maxWidth);local targetHeight=38
+ local idleWidth=measured(idleText,14,true)
+ if not active and options.AutoWidth~=false then targetWidth=math.min(maxWidth,math.max(targetWidth,idleWidth+28)) end
+ local expanded=active and self._expanded
+ if active then
+  local measureKey=active.Title.."\0"..active.Text
+  if self._measureKey~=measureKey then self._measureKey=measureKey;self._messageWidth=math.max(measured(active.Title,17,true)+144,math.min(390,measured(active.Text,14,false)+70)) end
+  targetWidth=math.min(maxWidth,math.max(targetWidth,self._messageWidth))
+  targetHeight=expanded and (active.Kind=="progress" and active.OnCancel and 134 or 98) or 44
+  if options.Enabled and active.Duration>0 and not self._hovered then active.Remaining-=dt;if active.Remaining<=0 then self:_remove(active.Id,"expired");active=self.Active end end
+ end
+ local signature=tostring(targetWidth)..":"..tostring(targetHeight)
+ if self._target~=signature then self._target=signature;self._fromW=self._width;self._fromH=self._height;self._elapsed=0 end
+ self._elapsed+=dt
+ local t=(window.ReducedMotion or options.Duration==0) and 1 or math.clamp(self._elapsed/options.Duration,0,1)
+ local eased=options.Easing=="Linear" and t or options.Easing=="Exponential" and (t==1 and 1 or 1-2^(-10*t)) or 1-(1-t)^3
+ self._width=(self._fromW or self._width)+(targetWidth-(self._fromW or self._width))*eased;self._height=(self._fromH or self._height)+(targetHeight-(self._fromH or self._height))*eased
+ self.Root.Visible=options.Enabled and (active~=nil or not options.HideWhenIdle)
+ local targetY=(window.Visible and (window._chromeHeight or 42)*scale or 0)+options.OffsetY
+ self._y=(self._y or targetY)+(targetY-(self._y or targetY))*(window.ReducedMotion and 1 or 1-math.exp(-dt*18));self.Root.Position=UDim2.new(.5,0,0,self._y)
+ self.Root.Size=UDim2.fromOffset(self._width,self._height)
+ self.Idle.Visible=not active;self.Idle.Size=UDim2.fromOffset(self._width-24,38)
+ if not active then
+  self.Idle.Text=idleText
+  local overflow=math.max(0,idleWidth-(self._width-28))
+  self.Idle.TextTruncate=Enum.TextTruncate.None;self.Idle.Size=UDim2.fromOffset(math.max(self._width-28,idleWidth),38)
+  self.Idle.Position=UDim2.fromOffset(14-overflow*(.5-.5*math.cos(window._componentClock*.6)),0)
+ end
+ self.Symbol.Root.Visible=active~=nil;self.Title.Visible=active~=nil;self.Close.Visible=active~=nil;self.Detail.Visible=expanded==true;self.Percent.Visible=active and active.Kind=="progress" or false
+ self.Track.Visible=expanded and options.Progress and active and (active.Kind=="progress" or active.Duration>0) or false
+ self.Cancel.Visible=expanded and active and active.Kind=="progress" and active.OnCancel~=nil or false
+ if active then
+  local tint=ISLAND_COLORS[active.Level];self.Symbol:SetColor(tint);self.Fill.BackgroundColor3=color(tint);self.Border.Color=color(tint)
+  self.Symbol.Root.Rotation=active.Kind=="progress" and ((self.Symbol.Root.Rotation or 0)+dt*120)%360 or 0
+  self.Title.Text=active.Title;self.Detail.Text=active.Text
+  self.Title.Size=UDim2.fromOffset(math.max(1,self._width-(active.Kind=="progress" and 130 or 84)),28)
+  self.Detail.Size=UDim2.fromOffset(math.max(1,self._width-62),42)
+  self.Close.Position=UDim2.fromOffset(self._width-36,8);self.Percent.Position=UDim2.fromOffset(self._width-84,6)
+  self.Percent.Text=tostring(math.round(active.Progress*100)).."%"
+  self.Track.Size=UDim2.fromOffset(math.max(1,self._width-32),4)
+  local fraction=active.Kind=="progress" and active.Progress or active.Duration>0 and math.clamp(active.Remaining/active.Duration,0,1) or 1
+  self._fraction=(self._fraction or fraction)+(fraction-(self._fraction or fraction))*(window.ReducedMotion and 1 or 1-math.exp(-dt*20));self.Fill.Size=UDim2.fromScale(self._fraction,1)
+  self.Cancel.Text=window:_tr("Cancel")
+ end
+ if self._textScale~=scale then self._textScale=scale;window:_snapText(self.Root,scale) end
+end
+
+function Island:GetOptions()
+ local out={}
+ for _,key in ipairs({"Enabled","Width","MaxWidthRate","Duration","Easing","Progress","ShowBrand","ShowUser","ShowFPS","ShowTime","HideWhenIdle","SyncNotifications","OffsetY","QueueLimit","ReserveSpace","AutoWidth","BrandName"}) do out[key]=self.Options[key] end
+ return out
+end
+function Window:_validateIslandConfig(options)
+ assert(type(options)=="table","Invalid island configuration")
+ return islandOptions(self.DynamicIsland and self.DynamicIsland:GetOptions() or {},options)
+end
+
+-- Native UI effects. Only resources owned by this window are modified.
+local COMPONENT_IDS={Arraylist={"Arraylist"},Keystrokes={"Keystrokes"},TimeDisplay={"TimeDisplay","Time Display"},Island={"Island","DynamicIsland","Dynamic Island"},GUIBlur={"GUIBlur","GUI Blur"},Background={"Background"},Crosshair={"Crosshair"},Volume={"Volume"}}
+local HUD_COMPONENTS={Arraylist="Arraylist",Keystrokes="Keystrokes",TimeDisplay="Time display",Island="Dynamic Island",Crosshair="Crosshair"}
+function Window:_component(name)
+ if self.Options.BindBuiltinComponents==false then return nil end
+ for _,id in ipairs(COMPONENT_IDS[name] or {}) do if self._byId[id] then return self._byId[id] end end
+ return nil
+end
+function Window:_componentLayoutChanged()
+ if self._batch then self._componentReflowPending=true;return end
+ if self._built and not self._dead and self._componentsReady then self:_fit();self:_invalidate() end
+end
+function Window:_islandEnabledChanged(value)
+ if not self.Models or self._syncingComponents then return end
+ self._syncingComponents=true
+ local group=self:_component("Island");if group then group:SetEnabled(value) end
+ self.Models.HUD:Set("Dynamic Island",value)
+ self._syncingComponents=false
+end
+function Window:_componentChanged(group,key,value)
+ if not self._componentsReady or self._syncingComponents then return end
+ self._syncingComponents=true
+ for name,setting in pairs(HUD_COMPONENTS) do
+  local module=self:_component(name)
+  if group==module and key=="enabled" then self.Models.HUD:Set(setting,value)
+  elseif group==self.Models.HUD and key==setting and module then module:SetEnabled(value) end
+ end
+ self._syncingComponents=false
+ self:_applyComponents()
+ if not self._batch and self.Models.Sound.Values["Option sound"] and self.OptionSound.SoundId~="" and self.SoundGroup.Volume>0 then self.OptionSound:Play() end
+end
+function Window:_formatClock(format)
+ if self.Options.TimeProvider then return tostring(self.Options.TimeProvider(format)) end
+ if os.date then return os.date(format) end
+ return format:find("%%S") and "12:00:00" or "12:00"
+end
+function Window:_componentTint(value,offset)
+ value=value or {Hex="#FFFFFF",Alpha=1}
+ if value.Rainbow then return Color3.fromHSV((self._componentClock*.1+(offset or 0))%1,.65,1) end
+ return Color3.fromHex(value.Hex)
+end
+function Window:_createHUD()
+ self.HUD=create("Frame",self.Gui,{Name="HUD",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=20})
+ self.Arraylist=create("Frame",self.HUD,{Name="ArraylistHUD",BackgroundTransparency=1,Position=UDim2.new(1,-254,0,42),Size=UDim2.fromOffset(242,520)})
+ self._arrayLabels={}
+ self.Clock=text(self.HUD,"",12,8,280,28,15,0xB8AACF)
+ self.KeyHUD=create("Frame",self.HUD,{Name="Keystrokes",BackgroundTransparency=1,Position=UDim2.new(0,16,1,-196),Size=UDim2.fromOffset(126,168)})
+ self.Keys={}
+ for _,info in ipairs({{"W",43,0},{"A",0,43},{"S",43,43},{"D",86,43},{"Space",0,86}}) do
+  local b=field(self.KeyHUD,info[2],info[3],info[1]=="Space" and 126 or 40,40);b.Active=false;b.Interactable=false;b.Text=info[1];b.Font=Enum.Font.BuilderSans;b.TextSize=14;b.TextColor3=color(0xA5DDCF);self.Keys[info[1]]=b
+ end
+ self.MouseKeys={};self.MouseCPS={}
+ for i,label in ipairs({"LMB","RMB"}) do
+  local b=field(self.KeyHUD,(i-1)*66,132,60,34);b.Name=label;b.Active=false;b.Interactable=false;b.Text=""
+  text(b,label,0,0,60,18,14,0xBDD4CF,true,Enum.TextXAlignment.Center)
+  local cps=text(b,"0 CPS",0,16,60,18,14,0xA4BCB8,false,Enum.TextXAlignment.Center)
+  self.MouseKeys[i]=b;self.MouseCPS[i]=cps
+ end
+ self._clickTimes={{},{}};self._mouseDown={false,false};self._componentClock=0;self._fps=60
+ self.Crosshair=create("Frame",self.HUD,{Name="Crosshair",BackgroundTransparency=1,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(100,100),Visible=false})
+ self.CrosshairLines={}
+ for i=1,4 do self.CrosshairLines[i]=create("Frame",self.Crosshair,{Name="CrosshairLine"..i,BackgroundColor3=color(0xFFFFFF),Size=UDim2.fromOffset(10,2),Position=UDim2.fromOffset(45,49)}) end
+ self.CrosshairDot=create("Frame",self.Crosshair,{Name="CrosshairDot",BackgroundColor3=color(0xFFFFFF),Position=UDim2.fromOffset(49,49),Size=UDim2.fromOffset(2,2)});corner(self.CrosshairDot,2)
+ self:_on(Input.InputBegan,function(input)
+  local index=input.UserInputType==Enum.UserInputType.MouseButton1 and 1 or input.UserInputType==Enum.UserInputType.MouseButton2 and 2
+  if index then self._mouseDown[index]=true;table.insert(self._clickTimes[index],self._componentClock) end
+ end)
+ self:_on(Input.InputEnded,function(input)
+  local index=input.UserInputType==Enum.UserInputType.MouseButton1 and 1 or input.UserInputType==Enum.UserInputType.MouseButton2 and 2
+  if index then self._mouseDown[index]=false end
+ end)
+ self:_on(Input.WindowFocusReleased,function() self._mouseDown={false,false} end)
+end
+function Window:_initComponents()
+ self.EffectLayer=create("Frame",self.Main,{Name="VisualEffects",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0})
+ self.BackgroundTint=create("Frame",self.EffectLayer,{Name="BackgroundFilter",BackgroundColor3=color(0x346A5A),BackgroundTransparency=.5,Size=UDim2.fromScale(1,1),Visible=false})
+ self.BackgroundGradient=create("UIGradient",self.BackgroundTint,{Rotation=35,Color=ColorSequence.new({ColorSequenceKeypoint.new(0,color(0xB8FFE3)),ColorSequenceKeypoint.new(1,color(0x605DE8))})})
+ self.MaterialTint=create("Frame",self.EffectLayer,{Name="MaterialTint",BackgroundColor3=color(0x241D2D),BackgroundTransparency=.6,Size=UDim2.fromScale(1,1),Visible=false})
+ self.Blur=create("BlurEffect",Lighting,{Name=(self.Options.Name or "JackalUI").."_Blur",Size=0,Enabled=false})
+ self.SoundGroup=create("SoundGroup",SoundService,{Name=(self.Options.Name or "JackalUI").."_Audio",Volume=.8})
+ self.OptionSound=create("Sound",self.SoundGroup,{Name="InteractionSound",SoundId="",Volume=.8,SoundGroup=self.SoundGroup})
+ self._scope.disposals[#self._scope.disposals+1]=function() if self.Blur.Parent then self.Blur:Destroy() end;if self.SoundGroup.Parent then self.SoundGroup:Destroy() end end
+ local config=clone(self.Options.DynamicIsland or {});local islandModule=self:_component("Island")
+ if islandModule then config.Enabled=islandModule.Enabled end
+ self:CreateDynamicIsland(config)
+ self._componentsReady=true
+ for name,setting in pairs(HUD_COMPONENTS) do local module=self:_component(name);if module then self.Models.HUD.Values[setting]=module.Enabled end end
+ self.Models.HUD.Values["Dynamic Island"]=config.Enabled==true
+ self:_applyComponents()
+end
+function Window:_applyComponents()
+ if not self._componentsReady or self._dead then return end
+ local island=self:_component("Island");local opts={Enabled=self.Models.HUD.Values["Dynamic Island"]}
+ if island then
+  local v=island.Values;opts.Width=v.Width or 240;opts.Progress=v.Progress~=false;opts.Duration=(v["Animation/Duration (ms)"] or 300)/1000;opts.Easing=v["Animation/Easing"] or "Cubic"
+  for _,name in ipairs({"Show brand","Show user","Show FPS","Show time","Hide when idle","Sync notifications"}) do
+   local key=({["Show brand"]="ShowBrand",["Show user"]="ShowUser",["Show FPS"]="ShowFPS",["Show time"]="ShowTime",["Hide when idle"]="HideWhenIdle",["Sync notifications"]="SyncNotifications"})[name]
+   if v[name]~=nil then opts[key]=v[name] end
+  end
+ end
+ if not self.DynamicIsland and opts.Enabled then self:CreateDynamicIsland(opts) end
+ if self.DynamicIsland then self._applyingIslandOptions=true;self.DynamicIsland:SetOptions(opts);self._applyingIslandOptions=false end
+ local bg=self:_component("Background");local blur=self:_component("GUIBlur");local mode=bg and bg.Values.Filter or "Off"
+ self.BackgroundTint.Visible=bg~=nil and bg.Enabled and mode~="Off" and self.Visible
+ if bg then local value=bg.Values.Tint or {Hex="#346A5A",Alpha=1};self.BackgroundTint.BackgroundColor3=Color3.fromHex(value.Hex);self.BackgroundTint.BackgroundTransparency=1-(bg.Values.Opacity or .5)*value.Alpha end
+ self.BackgroundGradient.Enabled=mode=="Flow" or mode=="Gradient"
+ if mode~="Flow" then self.BackgroundGradient.Rotation=35;self.BackgroundGradient.Offset=Vector2.new(0,0) end
+ self.Main.BackgroundTransparency=self.BackgroundTint.Visible and .75 or .25
+ local blurOn=self.Visible and (blur and blur.Enabled or bg and bg.Enabled and mode=="Blur")
+ local strength=blur and blur.Enabled and (blur.Values.Strength or 8) or 8
+ self.Blur.Enabled=blurOn==true;self.Blur.Size=blurOn and strength or 0
+ local style=blur and blur.Values.Style or "Blur"
+ self.MaterialTint.Visible=blurOn==true
+ self.MaterialTint.BackgroundTransparency=style=="Mica" and .25 or style=="Acrylic" and .58 or .9
+ self.MaterialTint.BackgroundColor3=color(blur and blur.Values["Dark mode"]==false and 0xEEE8F4 or 0x241D2D)
+ local volume=self:_component("Volume");local volumeSettings=volume and volume.Values or {}
+ self.SoundGroup.Volume=volume and volume.Enabled and (volumeSettings.Mute and 0 or (volumeSettings.Level or 100)/100) or 1
+ local sound=self.Models.Sound.Values;self.OptionSound.Volume=(sound.Volume or 80)/100
+ local asset=tostring(sound["Sound asset"] or "");local id=asset:match("^rbxassetid://(%d+)$") or asset:match("^(%d+)$")
+ self.OptionSound.SoundId=id and "rbxassetid://"..id or ""
+ if not sound["Option sound"] or self.SoundGroup.Volume==0 or self.OptionSound.Volume==0 then self.OptionSound:Stop() end
+ self:_refreshHUD()
+ if self._componentReflowPending and not self._batch then self._componentReflowPending=false;self:_componentLayoutChanged() end
+end
+function Window:PlayUISound()
+ if self._dead then return false,"UI destroyed" end
+ self:_applyComponents()
+ if self.OptionSound.SoundId=="" then return false,"Enter an audio asset ID first" end
+ if self.SoundGroup.Volume==0 or self.OptionSound.Volume==0 then return false,"UI audio is muted" end
+ self.OptionSound:Play();return true
+end
+function Window:_stepEffects(dt)
+ self._componentClock+=dt
+ if dt>0 then self._fps+=(math.clamp(1/dt,1,1000)-self._fps)*(1-math.exp(-dt*3)) end
+ local bg=self:_component("Background")
+ if bg and bg.Enabled and bg.Values.Tint and bg.Values.Tint.Rainbow then self.BackgroundTint.BackgroundColor3=self:_componentTint(bg.Values.Tint) end
+ if bg and bg.Enabled and bg.Values.Filter=="Flow" and self.Visible then self.BackgroundGradient.Rotation=(self._componentClock*14)%360;self.BackgroundGradient.Offset=Vector2.new(math.sin(self._componentClock*.3)*.15,0) end
+end
+function Window:_refreshHUD()
+ if not self.Models then return end
+ local settings=self.Models.HUD.Values;self.HUD.Visible=settings["HUD while menu open"] or not self.Visible
+ self.Arraylist.Visible=settings.Arraylist;self.Clock.Visible=settings["Time display"];self.KeyHUD.Visible=settings.Keystrokes;self.Crosshair.Visible=settings.Crosshair==true
+ local list=self:_component("Arraylist");local listValues=list and list.Values or {};local font=listValues["Font size"] or 14
+ local modules={};for _,g in ipairs(self._modules) do if g.Enabled and not g.Hidden then modules[#modules+1]=g end end
+ table.sort(modules,function(a,b) return measured(self:_moduleName(a),font,false)>measured(self:_moduleName(b),font,false) end)
+ for i,group in ipairs(modules) do
+  local row=self._arrayLabels[i]
+  if not row then
+   local shadow=text(self.Arraylist,"",1,1,240,font+8,font,0x000000,false,Enum.TextXAlignment.Right)
+   local label=text(self.Arraylist,"",0,0,240,font+8,font,0xFFFFFF,false,Enum.TextXAlignment.Right)
+   row={Label=label,Shadow=shadow};self._arrayLabels[i]=row
+  end
+  local mode=listValues["Color mode"] or "Rainbow";local value=listValues.Color or {Hex="#55E69C",Alpha=1}
+  local tint=mode=="Single" and self:_componentTint(value,i*.03) or mode=="Flow" and Color3.fromHex(value.Hex):Lerp(color(0xE3A6E2),.5+.5*math.sin(self._componentClock*.8+i*.3)) or Color3.fromHSV((self._componentClock*.08+i*.035)%1,.55,1)
+  row.Label.Visible=true;row.Shadow.Visible=listValues.Shadow~=false
+  row.Label.Text=self:_moduleName(group);row.Shadow.Text=row.Label.Text
+  row.Label.Position=UDim2.fromOffset(0,(i-1)*(font+5));row.Shadow.Position=UDim2.fromOffset(1,(i-1)*(font+5)+1)
+  row.Label.Size=UDim2.fromOffset(240,font+5);row.Shadow.Size=row.Label.Size;row.Label.TextSize=font;row.Shadow.TextSize=font
+  row.Label.TextColor3=tint;row.Label.TextTransparency=1-(value.Alpha or 1);row.Shadow.TextTransparency=.25
+ end
+ for i=#modules+1,#self._arrayLabels do self._arrayLabels[i].Label.Visible=false;self._arrayLabels[i].Shadow.Visible=false end
+ local time=self:_component("TimeDisplay");local tv=time and time.Values or {};local pattern=tv.Format=="12 hour" and "%I:%M" or "%H:%M"
+ if tv.Seconds~=false then pattern..=":%S" end;if tv.Format=="12 hour" then pattern..=" %p" end
+ self.Clock.Position=UDim2.fromOffset(12,self.Visible and (self._chromeHeight or 42)*self:_activeScale()+8 or 8)
+ self.Clock.Text=self:_formatClock(pattern);if tv.Color then self.Clock.TextColor3=self:_componentTint(tv.Color);self.Clock.TextTransparency=1-tv.Color.Alpha end
+ local keys=self:_component("Keystrokes");local kv=keys and keys.Values or {};local tint=kv.Color and self:_componentTint(kv.Color) or color(0xA5DDCF)
+ for name,b in pairs(self.Keys) do local pressed=Input:IsKeyDown(Enum.KeyCode[name]);b.BackgroundColor3=pressed and tint or color(0x101419);b.TextColor3=pressed and color(0x101419) or tint end
+ for i,b in ipairs(self.MouseKeys) do
+  b.Visible=kv["Mouse buttons"]~=false
+  local times=self._clickTimes[i];while times[1] and self._componentClock-times[1]>1 do table.remove(times,1) end
+  self.MouseCPS[i].Visible=kv["Show CPS"]~=false;self.MouseCPS[i].Text=tostring(#times).." CPS"
+  b.BackgroundColor3=self._mouseDown[i] and tint or color(0x101419)
+ end
+ local cross=self:_component("Crosshair");local cv=cross and cross.Values or {};local value=cv.Color or {Hex="#FFFFFF",Alpha=1};local tintCross=self:_componentTint(value)
+ local length=cv.Size or 10;local thick=cv.Thickness or 2;local gap=cv.Gap or 4
+ local positions={{50-gap-length,50-thick/2,length,thick},{50+gap,50-thick/2,length,thick},{50-thick/2,50-gap-length,thick,length},{50-thick/2,50+gap,thick,length}}
+ for i,line in ipairs(self.CrosshairLines) do local p=positions[i];line.Position=UDim2.fromOffset(p[1],p[2]);line.Size=UDim2.fromOffset(p[3],p[4]);line.BackgroundColor3=tintCross;line.BackgroundTransparency=1-value.Alpha end
+ self.CrosshairDot.Visible=cv.Dot~=false;self.CrosshairDot.BackgroundColor3=tintCross;self.CrosshairDot.BackgroundTransparency=1-value.Alpha
+end
+function Window:DemoDynamicIsland(kind)
+ local island=self.DynamicIsland
+ if not island then island=self:CreateDynamicIsland({Enabled=true}) end
+ island:SetEnabled(true)
+ if kind=="progress" then
+  local taskHandle=island:BeginProgress({Title=self:_tr("Progress"),Text="0%",OnCancel=function() self:Notify(self:_tr("Cancelled")) end})
+  local elapsed=0;local owner=create("Frame",self.Gui,{Name="DemoProgressTask",Visible=false,Size=UDim2.fromOffset(0,0)})
+  local taskScope=Scope.new(self._scope);taskScope.root=owner
+  self:_motion(owner,function(dt)
+   elapsed+=dt
+   local value=math.min(1,elapsed/5)
+   if not taskHandle:SetProgress(value,tostring(math.round(value*100)).."%") then taskScope:Clean();return end
+   if value>=1 then taskHandle:Complete(self:_tr("Completed"));taskScope:Clean() end
+  end,taskScope)
+  return taskHandle
+ end
+ return island:Notify({Priority=true,Title=self:_tr("Dynamic Island"),Text=self:_tr("Notification received"),Level=kind or "success",Duration=3})
+end
+
+function Window:GetDynamicIsland() return self.DynamicIsland end
+function Window:BeginProgress(options)
+ local island=self.DynamicIsland or self:CreateDynamicIsland({Enabled=true})
+ if not island.Options.Enabled then island:SetEnabled(true) end
+ return island:BeginProgress(options)
+end
+
+function Window:_islandOptionsChanged(patch)
+ if self._syncingComponents or self._applyingIslandOptions or not self._componentsReady then return end
+ local group=self:_component("Island");if not group then return end
+ self._syncingComponents=true
+ local map={Width="Width",Progress="Progress",Easing="Animation/Easing",Duration="Animation/Duration (ms)",ShowBrand="Show brand",ShowUser="Show user",ShowFPS="Show FPS",ShowTime="Show time",HideWhenIdle="Hide when idle",SyncNotifications="Sync notifications"}
+ for option,key in pairs(map) do
+  if patch[option]~=nil and group._definitions[key] then
+   group:Set(key,option=="Duration" and patch[option]*1000 or patch[option])
+   if self.DynamicIsland then self.DynamicIsland.Options[option]=option=="Duration" and group.Values[key]/1000 or group.Values[key] end
+  end
+ end
+ self._syncingComponents=false
+end
+
+function Window:_invalidate()
+ if not self._built or self._dead then return end
+ self:_cancelTransition(self.Main,true);self.Main.Visible=self.Visible
+ self:_closePopups(nil,true);self._drag=nil;self._gesture=nil;self._resultsScope=nil
+ if self._binding then self._binding.cancel();self._binding=nil end
+ if self._pageExitScope then self._pageExitScope:Clean();self._pageExitScope=nil end
+ if self._viewScope then
+  self:_cancelTransition(self.View,true)
+  if self.View.Parent and self.Visible and not self.ReducedMotion then
+   local ghost=self.View:Clone();ghost.Name="LeavingPage";ghost.Parent=self.Main;ghost.ZIndex=1
+   for _,o in ipairs(ghost:GetDescendants()) do if o:IsA("GuiButton") or o:IsA("TextBox") then o.Active=false;o.Interactable=false end end
+   local exit=Scope.new(self._scope);exit.root=ghost;self._pageExitScope=exit
+   self:_transition(ghost,1,0,.12,exit,function() exit:Clean();if self._pageExitScope==exit then self._pageExitScope=nil end end,{X=-12})
+  end
+  self._viewScope:Clean()
+ end
+ for target,tween in pairs(self._tweens) do if not target.Parent then tween:Cancel();self._tweens[target]=nil end end
+ self._viewScope=Scope.new(self._scope);self._entries={};self._panels={};self._pageRows=nil
+ self.View=create("Frame",self.Main,{Name="Page_"..self.Page,BackgroundTransparency=1,Position=UDim2.fromOffset(0,self._top),Size=UDim2.fromOffset(self._width,self._height-self._top-32)});self._viewScope.root=self.View
+ if self.Page=="Modules" then
+  if self.Layout=="Dropdown" then self:_buildDropdown() elseif self.Layout=="Neverlose" then self:_buildNeverlose() else self:_buildImgui() end
+ elseif self.Page=="Search" then self:_buildSearch()
+ elseif self.Page=="Profiles" then self:_buildProfiles()
+ elseif self.Page=="Apps" then self:_buildApps()
+ elseif self.Page=="About" then self:_buildAbout()
+ else self:_optionsPage(self.Models[self.Page],self:_tr(self.Page)) end
+ self:_layout()
+ self:_snapText(self.Main,self:_activeScale())
+ self:_transition(self.View,0,1,self._built and .15 or 0,self._viewScope,nil,{X=self.Layout=="Neverlose" and 18 or 0})
+end
+function Window:_layout()
+ if not self._built or self._dead then return end
+ if self.Options.Embedded then self.LayoutButton.Text=self.Options.StyleName;self.PresetButton.Text=self:_tr("Configs") else self.LayoutButton.Text=self.Layout;self.PresetButton.Text=self.Preset;self.LanguageButton.Text=self.Language=="English" and "中 / EN" or "EN / 中" end
+ for name,button in pairs(self.NavButtons) do button.BackgroundColor3=color(name==self.Page and self:_accentHex() or 0x0A0A0A);button.Text=self:_tr(name);button.TextColor3=rgba(self.Theme["Top Tab Text Color"],0xE6E6E6) end
+ if self.Page=="Modules" then self:_layoutModules()
+ elseif self._pageRows then
+  local p=self._pageRows;local width=math.min(720,self._width-32);p.Scroll.Size=UDim2.fromOffset(width,self._height-self._top-105);p.Scroll.CanvasSize=UDim2.fromOffset(0,self:_placeRows(p.Group,p.Rows,width))
+ elseif self.Page=="Search" then self:_searchResults() end
+ for _,popup in ipairs(self._popups) do if popup.Reflow then popup.Reflow() end end
+end
+function Window:_fit()
+ self:_cancelTransition(self.Main,true);self:_stopTween(self.Main);self.Main.Position=UDim2.fromOffset(0,0);self.Main.Visible=self.Visible;if self.MenuBlocker then self.MenuBlocker.Visible=false end;
+ local size=self.Gui.AbsoluteSize
+ self._scale=math.min(self.RequestedScale,math.max(.5,(size.X-4)/340),math.max(.5,(size.Y-4)/260))
+ self.ScaleObject.Scale=self._scale;self._width=size.X/self._scale;self._height=size.Y/self._scale
+ self.Main.Size=UDim2.fromOffset(self._width,self._height)
+ self._top=self._width<1080 and 78 or 42
+ self.Version.Size=UDim2.fromOffset(180,34)
+ local navY=self._width<1080 and 40 or 4;local navX=self._width<1080 and 8 or 185
+ self.Nav.Position=UDim2.fromOffset(navX,navY);self.Nav.Size=UDim2.fromOffset(self._width-(self._width<1080 and 16 or 500),30)
+ self.Controls.Position=UDim2.fromOffset(math.max(185,self._width-306),4)
+ -- On small screens the selectors occupy their own horizontal strip.
+ if self._width<510 then self._top=112;self.Controls.Position=UDim2.fromOffset(8,39);self.Nav.Position=UDim2.fromOffset(8,77);self.Nav.Size=UDim2.fromOffset(self._width-16,29) end
+ if self.Options.Embedded then
+  self._top=self._width<510 and 104 or 76
+  self.Controls.Position=UDim2.fromOffset(self._width<510 and 12 or math.max(190,self._width-310),self._width<510 and 36 or 4)
+  self.Nav.Visible=false;self.LanguageButton.Visible=true
+  self.LayoutButton.Size=UDim2.fromOffset(150,28);self.PresetButton.Position=UDim2.fromOffset(156,0);self.PresetButton.Size=UDim2.fromOffset(90,28)
+  self.LanguageButton.Position=UDim2.fromOffset(252,0);self.LanguageButton.Size=UDim2.fromOffset(48,28)
+ end
+ self._chromeHeight=self._top
+ if self.DynamicIsland and self.DynamicIsland.Options.Enabled and self.DynamicIsland.Options.ReserveSpace then self._top+=48 end
+ self:_snapText(self.Main,self:_activeScale())
+ self.Hint.Position=UDim2.fromOffset(12,self._height-28);self.Hint.Size=UDim2.fromOffset(self._width-24,25)
+ self.Toast.Position=UDim2.new(.5,0,1,-14);self.Toast.Size=UDim2.fromOffset(math.min(size.X-24,640),42)
+end
+function Window:SetLayout(value)
+ if value=="Neverlose (PRO)" then value="Neverlose" end
+ assert(table.find(LAYOUT_NAMES,value),"Unknown ClickGUI layout")
+ if self.Layout==value then return self end
+ self.Layout=value
+ if self.Models then self.Models.GUI.Values["ClickGUI Layout"]=value end
+ self:_invalidate();if self.Options.OnLayoutChanged then task.spawn(self.Options.OnLayoutChanged,value,self) end;return self
+end
+function Window:SetPreset(value)
+ assert(PRESETS[value],"Unknown style preset")
+ if self._built and self.Preset==value then return self end
+ self.Preset=value;self.Theme=clone(PRESETS[value])
+ local mode=self.Theme["Module Background Color (Enabled)"];self.Accent=mode=="Rainbow" and 0x55C25F or NAMED[mode] or 0x34A5F8
+ if self.Models then self.Models.GUI.Values["Style Preset"]=value end
+ local styler=self._byId.GUIStyler
+ if styler and styler._definitions["Style preset"] then styler.Values["Style preset"]=value end
+ self:_invalidate();return self
+end
+function Window:SetScale(value)
+ assert(finite(value) and value>=.5 and value<=(self.Options.Embedded and 4 or 2),"Invalid scale")
+ self.RequestedScale=value;if self.Models then self.Models.GUI.Values["Global Scale"]=value end
+ self:_fit();self:_invalidate();return self
+end
+function Window:SetLanguage(value)
+ assert(value=="English" or value=="中文","Unsupported language")
+ self.Language=value;if self.Models then self.Models.GUI.Values.Language=value end;self:_invalidate();return self
+end
+function Window:SetPage(value)
+ assert(table.find(PAGES,value),"Unknown page")
+ self.Page=value;self:_invalidate();return self
+end
+function Window:Search(query)
+ self.Query=tostring(query or "")
+ if self.Page~="Search" then self:SetPage("Search") else self:_searchResults() end;return self
+end
+function Window:SelectCategory(value)
+ assert(table.find(self._categories,value),"Unknown category")
+ self.Category=value
+ if self.Layout=="Dropdown" and self.Page=="Modules" then
+  for _,p in ipairs(self._panels) do if p.Name==value then self.Canvas.CanvasPosition=Vector2.new(p.Root.Position.X.Offset*self._scale,0) end end
+ else self.Page="Modules";self:_invalidate() end;return self
+end
+function Window:ResetPositions() self._positions={};self._imguiPosition=nil;self:_layout();return self end
+function Window:SetVisible(value)
+ value=value==true
+ if value==self.Visible and self.Main.Visible==value then return self end
+ self.Visible=value;if self.Options.OnVisibilityChanged then self.Options.OnVisibilityChanged(value) end;self.Main.Visible=true;self:_applyComponents();if self.MenuBlocker then self.MenuBlocker.Visible=not value end;self:_closePopups();self._drag=nil;self._gesture=nil
+ local mode=self.Theme["Menu Toggle Animation"] or "Fade"
+ local duration=self.ReducedMotion and 0 or mode=="Off" and 0 or .4
+ local dy=mode=="Slide (Top)" and -36 or mode=="Slide (Bottom)" and 36 or 0
+ self:_transition(self.Main,value and 0 or 1,value and 1 or 0,duration,self._scope,function() if not self.Visible then self.Main.Visible=false end end,{Y=dy,Zoom=mode=="Enlarge II" and .94 or nil})
+ if value and self.Page=="Modules" and self.Layout=="Dropdown" then
+  for i,panel in ipairs(self._panels) do
+   panel.Surface.Position=UDim2.fromOffset(0,-8-(i-1)*2)
+   self:_animate(panel.Surface,{Position=UDim2.fromOffset(0,0)},.3+(i-1)*.028)
+  end
+ end
+ if self._binding then self._binding.cancel();self._binding=nil end
+ if not value then local box=Input:GetFocusedTextBox();if box and box:IsDescendantOf(self.Gui) then box:ReleaseFocus() end end
+ return self
+end
+function Window:Toggle() return self:SetVisible(not self.Visible) end
+function Window:_chrome()
+ self.Version=text(self.Main,self.Options.Embedded and "Syntax / Jackal" or "Jackal Client 1.1.9",12,0,180,34,15,0x9ED677,true)
+ self.Nav=create("ScrollingFrame",self.Main,{Name="TopTabs",BackgroundTransparency=1,Size=UDim2.fromOffset(550,30),CanvasSize=UDim2.fromOffset(9*62,0),ScrollBarThickness=1,ScrollingDirection=Enum.ScrollingDirection.X,Active=true,ZIndex=5})
+ self.NavButtons={}
+ local navX=0
+ for _,name in ipairs(PAGES) do
+  local width=math.max(70,measured(name,16,false)+16)
+  local b=self:_button(self.Nav,name,navX,0,width-1,28,function() self:SetPage(name) end);b.TextSize=16;self.NavButtons[name]=b;navX+=width
+  self:_on(b.MouseLeave,function() self:_animate(b,{BackgroundColor3=color(name==self.Page and self:_accentHex() or 0x0A0A0A)}) end)
+ end
+ self.Nav.CanvasSize=UDim2.fromOffset(navX,0)
+ self.Controls=create("Frame",self.Main,{Name="StyleSelectors",BackgroundTransparency=1,Size=UDim2.fromOffset(300,30),ZIndex=5})
+ self.LayoutButton=self:_button(self.Controls,self.Layout,0,0,102,28,function() if self.Options.Embedded then self:_listPopup(self.LayoutButton,self.Options.StyleOptions,self.Options.StyleName,false,self.Options.OnSelectStyle) else self:_listPopup(self.LayoutButton,LAYOUT_NAMES,self.Layout,false,function(v) self:SetLayout(v) end) end end)
+ self.PresetButton=self:_button(self.Controls,self.Preset,108,0,132,28,function() if self.Options.Embedded then self.Options.OnOpenConfigs() else self:_listPopup(self.PresetButton,PRESET_NAMES,self.Preset,false,function(v) self:SetPreset(v) end) end end)
+ self.LanguageButton=self:_button(self.Controls,self.Options.Embedded and "HUD" or "中 / EN",246,0,54,28,function() if self.Options.Embedded then self.Options.OnEditHUD() else self:SetLanguage(self.Language=="English" and "中文" or "English") end end)
+ self.Hint=text(self.Main,"LMB toggle · RMB / dots options · Drag category headers · RightShift menu",12,0,900,25,12,0xE3A181)
+ self.Toast=text(self.Gui,"",12,0,640,42,14,0xD4F3E7,false,Enum.TextXAlignment.Center)
+ self.Toast.Name="NotificationToast";self.Toast.AnchorPoint=Vector2.new(.5,1);self.Toast.BackgroundColor3=color(0x17121D);self.Toast.ZIndex=75;self.Toast.Visible=false;self.Toast.TextWrapped=true;corner(self.Toast,8)
+end
+function Window:_input()
+ self:_on(Input.InputChanged,function(input)
+  local drag=self._drag
+  if drag and (input==drag.input or drag.input.UserInputType==Enum.UserInputType.MouseButton1 and input.UserInputType==Enum.UserInputType.MouseMovement) then drag.apply(self:_inputPoint(input)) end
+  local g=self._gesture
+  if g and (input==g.input or g.input.UserInputType==Enum.UserInputType.MouseButton1 and input.UserInputType==Enum.UserInputType.MouseMovement) then
+   local delta=self:_inputPoint(input)-g.start;local target=g.origin+Vector2.new(delta.X/self._scale,delta.Y/self._scale)
+   if g.panel then self._positions[g.panel.Name]=Vector2.new(math.max(0,target.X),math.max(0,target.Y)) elseif g.imgui then self._imguiPosition=target end
+   self:_layoutModules()
+  end
+ end)
+ self:_on(Input.InputEnded,function(input)
+  if self._drag and (input==self._drag.input or input.UserInputType==Enum.UserInputType.MouseButton1) then self._drag=nil end
+  if self._gesture and (input==self._gesture.input or input.UserInputType==Enum.UserInputType.MouseButton1) then self._gesture=nil end
+ end)
+ self:_on(Input.WindowFocusReleased,function() self._drag=nil;self._gesture=nil end)
+ self:_on(Input.TextBoxFocused,function() if self._binding then self._binding.cancel();self._binding=nil end end)
+ self:_on(Input.InputBegan,function(input,processed)
+  if self.Options.Embedded and not self.Visible then return end
+  if input.UserInputType~=Enum.UserInputType.Keyboard then return end
+  local key=input.KeyCode;local focused=Input:GetFocusedTextBox()
+  if self._binding then
+   local mods={"LeftControl","RightControl","LeftShift","RightShift","LeftAlt","RightAlt","LeftMeta","RightMeta"}
+   if table.find(mods,key.Name) then return end
+   local binding=self._binding;self._binding=nil;binding.cancel()
+   local parts={};if not self.Options.Embedded then for _,name in ipairs(mods) do if Input:IsKeyDown(Enum.KeyCode[name]) then parts[#parts+1]=name end end end;parts[#parts+1]=key.Name
+   binding.set((key==Enum.KeyCode.Escape or key==Enum.KeyCode.Backspace or key==Enum.KeyCode.Delete) and "None" or table.concat(parts,"+"));return
+  end
+  if focused then if key==Enum.KeyCode.Escape and focused:IsDescendantOf(self.Gui) then if self._editCancel then self._editCancel() end;focused:ReleaseFocus() end;return end
+  if not self.Options.Embedded and key==self.ToggleKey then self:Toggle();return end
+  if self.Visible and key==Enum.KeyCode.Escape then if #self._popups>0 then self:_closePopups(#self._popups) elseif self.Page~="Modules" then self:SetPage("Modules") else self:SetVisible(false) end;return end
+  if self.Visible and key==Enum.KeyCode.F and (Input:IsKeyDown(Enum.KeyCode.LeftControl) or Input:IsKeyDown(Enum.KeyCode.RightControl)) then
+   if self.Page=="Modules" and self.Layout=="Neverlose" then self.NLSearch:CaptureFocus() else self:SetPage("Search");self.SearchInput:CaptureFocus() end;return
+  end
+  if not self.Options.Embedded and not processed then for _,g in ipairs(self._modules) do
+   local parts={};for part in g.Key:gmatch("[^+]+") do parts[#parts+1]=part end
+   if parts[#parts]==key.Name then local ready=true;for i=1,#parts-1 do if not Input:IsKeyDown(Enum.KeyCode[parts[i]]) then ready=false end end;if ready then g:SetEnabled(not g.Enabled) end end
+  end end
+ end)
+ self:_on(self.Gui:GetPropertyChangedSignal("AbsoluteSize"),function() self:_fit();self:_invalidate() end)
+end
+function Window:_hud() self:_createHUD() end
+function Window:_stepHUD() self:_refreshHUD() end
+function Window:Destroy()
+ if self._dead then return end;self._dead=true;self._drag=nil;self._gesture=nil;self:_closePopups()
+ for root in pairs(self._transitions) do self:_cancelTransition(root,true) end
+ for _,tw in pairs(self._tweens) do tw:Cancel() end;table.clear(self._tweens);self._scope:Clean()
+end
+function Window:Inspect()
+ local entries={};for _,e in ipairs(self._entries) do entries[#entries+1]={id=e.Group.Id,x=e.Frame.Position.X.Offset,y=e.Frame.Position.Y.Offset,w=e.Frame.Size.X.Offset,h=e.Frame.Size.Y.Offset} end
+ return {version=UI.Version,layout=self.Layout,preset=self.Preset,page=self.Page,scale=self._scale,width=self._width,height=self._height,entries=entries,popups=#self._popups}
+end
+function UI.new(options)
+ assert(Run:IsClient(),"Jackal UI must run on the client");options=options or {};assert(options.FontFace==nil or typeof(options.FontFace)=="Font","FontFace must be a Roblox Font");local player=Players.LocalPlayer
+ local parent=options.Parent or player and player:WaitForChild("PlayerGui",10);assert(parent,"PlayerGui unavailable")
+ local namespace=options.Name or "JackalUI";local old=parent:FindFirstChild(namespace)
+ if old then local shutdown=old:FindFirstChild("Shutdown");if shutdown then shutdown:Fire() end;old:Destroy() end
+ local self=setmetatable({Options=options,Player=player,Language=options.Language or "English",Layout=options.Layout or "Dropdown",Preset=options.Preset or "Vape",Page=options.Page or "Modules",Category=options.Category or "Render",RequestedScale=options.Scale or UI.DefaultScale,Visible=true,Query="",_scope=Scope.new(),_modules={},_byId={},_categories={},_expanded={},_collapsed={},_positions={},_entries={},_popups={},_motions={},_profiles={},_tweens=setmetatable({},{__mode="k"}),_transitions={},_toastAt=-100,ReducedMotion=options.ReducedMotion==true},Window)
+ assert(table.find(LAYOUT_NAMES,self.Layout) and PRESETS[self.Preset],"Unknown layout or preset")
+ assert(finite(self.RequestedScale) and self.RequestedScale>=.5 and self.RequestedScale<=(options.Embedded and 4 or 2),"Invalid scale")
+ self.Theme=clone(PRESETS[self.Preset]);self.Accent=NAMED[self.Theme["Module Background Color (Enabled)"]] or 0x55C25F;self.ToggleKey=options.ToggleKey or Enum.KeyCode.RightShift;if type(self.ToggleKey)=="string" then self.ToggleKey=Enum.KeyCode[self.ToggleKey] end
+ self.Gui=create("ScreenGui",parent,{Name=namespace,ResetOnSpawn=false,IgnoreGuiInset=false,ScreenInsets=Enum.ScreenInsets.CoreUISafeInsets,ClipToDeviceSafeArea=true,DisplayOrder=options.DisplayOrder or 90,ZIndexBehavior=Enum.ZIndexBehavior.Sibling});self._scope.root=self.Gui
+ local shutdown=create("BindableEvent",self.Gui,{Name="Shutdown"});self:_on(shutdown.Event,function() self:Destroy() end)
+ self._changed=create("BindableEvent",self.Gui,{Name="Changed"});self.Changed=self._changed.Event
+ self:_hud()
+ self.Main=create("Frame",self.Gui,{Name="JackalClickGUI",BackgroundColor3=color(0x090B10),BackgroundTransparency=.25,Size=UDim2.fromScale(1,1),ZIndex=10});self.ScaleObject=create("UIScale",self.Main,{Scale=1})
+ self.Backdrop=create("TextButton",self.Main,{Name="InputBackdrop",Text="",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),AutoButtonColor=false,Active=true,Modal=true,ZIndex=0})
+ self:_on(self.Backdrop.Activated,function(input)
+  if self.Visible and self.Page=="Modules" and self.Layout=="Neverlose" then
+   local p=input and self:_inputPoint(input) or Input:GetMouseLocation()-self.Gui.AbsolutePosition;local a=self.NL.AbsolutePosition-self.Gui.AbsolutePosition;local size=self.NL.AbsoluteSize
+   if p.X<a.X or p.X>a.X+size.X or p.Y<a.Y or p.Y>a.Y+size.Y then self:SetVisible(false) end
+  end
+ end)
+ self:_chrome();self:_fit()
+ for _,category in ipairs(options.Categories or CATEGORY_NAMES) do self:AddCategory(category) end
+ for _,def in ipairs(options.Modules or {}) do self:AddModule(def) end
+ if not table.find(self._categories,self.Category) then self.Category=self._categories[1] end
+ local styler=self._byId.GUIStyler;if styler and styler._definitions["Style preset"] then styler.Values["Style preset"]=self.Preset end
+ self:_settingsModels();self:_initComponents();self._built=true;self:_fit();self:_loadProfiles();self:_invalidate();self:_input()
+ self.MenuBlocker=create("TextButton",self.Main,{Name="ClosingInputGuard",BackgroundTransparency=1,Text="",AutoButtonColor=false,Size=UDim2.fromScale(1,1),Active=true,Visible=false,ZIndex=9999})
+ local mobile=field(self.Gui,0,0,36,36);mobile.Name="TouchMenu";mobile.Position=UDim2.new(1,-52,1,-52);mobile.Text="J";mobile.TextColor3=color(0xA8DD9D);mobile.TextSize=18;mobile.Visible=Input.TouchEnabled and not options.Embedded;mobile.ZIndex=1000;corner(mobile,18)
+ self:_on(mobile.Activated,function() self:Toggle() end)
+ local elapsed=0
+ self:_on(Run.RenderStepped,function(dt)
+  self:_stepEffects(dt)
+  self:_tickTransitions(dt)
+  for owner,step in pairs(self._motions) do if owner.Parent then step(dt) end end
+  if self._layoutDirty then self._layoutDirty=false;self:_layout() end
+  elapsed+=dt
+  if elapsed>.08 then elapsed=0;self:_stepHUD();if self.Page=="Modules" and self.Visible then for _,e in ipairs(self._entries) do e.Refresh() end end end
+  if os.clock()-self._toastAt>2.2 then self.Toast.TextTransparency=math.min(1,self.Toast.TextTransparency+dt*4);self.Toast.BackgroundTransparency=.18+.82*self.Toast.TextTransparency;if self.Toast.TextTransparency==1 then self.Toast.Visible=false end end
+ end)
+ self:_on(self.Gui.Destroying,function() if not self._dead then self:Destroy() end end)
+ if options.Visible==false then self.Visible=false;self.Main.Visible=false;self:_applyComponents() end
+ return self
+end
+
+return UI
+
+end)()
 local UI=(function()
 -- Syntax Roblox UI: Neverlose ClickGUI, Opai typography, independent XHan ArrayList.
 -- Shared layout coordinates for painting, clipping and hit testing.
@@ -10,10 +2261,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",DefaultScale=1.05}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.1",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -50,71 +2301,78 @@ local function toggleDetail(detail,enabled)
  detail=tostring(detail):gsub("%s+$","")
  return (detail~="" and detail.." " or "")..(enabled and "Enabled" or "Disabled").."."
 end
--- A camera-facing, nearly transparent Glass plane gives DepthOfFieldEffect a
--- local depth surface. The tint below remains as a fallback on unsupported GPUs.
-local function updateRegionalBlur(pane,anchor,enabled)
- local camera=workspace.CurrentCamera
- if not enabled or not camera or anchor.AbsoluteSize.X<8 or anchor.AbsoluteSize.Y<8 then
-  pane.active=false
-   if pane.part then pcall(function() pane.part.Transparency=1 end) end
-   if pane.effect then pcall(function() pane.effect.Enabled=false end) end
-  return
+-- GuiObject.AbsolutePosition uses CoreUISafeInsets coordinates. ScreenPointToRay
+-- accepts that same coordinate system; ViewportPointToRay uses DeviceSafeInsets.
+local function updateRegionalBlur(pane,anchor,enabled,bounds)
+ local function hide(reason)
+  pane.active=false;pane.bounds=nil;pane.reason=reason
+  if pane.part then pcall(function() pane.part.Transparency=1 end) end
+  if pane.effect then pcall(function() pane.effect.Enabled=false end) end
  end
- if pane.unsupported then return end
-  -- A replaced camera may have destroyed its children. Rebuild the plane so
-  -- the blur keeps following the new camera instead of using a dead Part.
-  if pane.part and (pane.camera~=camera or pane.part.Parent~=pane.camera) then
-   pcall(function() pane.part:Destroy() end)
-   if pane.effect then pcall(function() pane.effect:Destroy() end) end
-   pane.part=nil;pane.mesh=nil;pane.effect=nil;pane.camera=nil
-  end
+ local camera=workspace.CurrentCamera
+ if not enabled or not anchor or not anchor.Parent or not anchor.Visible then hide("hidden");return end
+ if not camera or camera.ViewportSize.X<=1 or camera.ViewportSize.Y<=1 then hide("camera-not-ready");return end
+ if pane.unsupported then hide("unsupported");return end
+ -- The renderer supplies its current transform so dragging, resizing and the
+ -- opening animation do not depend on a previous-frame GUI layout readback.
+ local position=bounds and Vector2.new(bounds.x,bounds.y) or anchor.AbsolutePosition
+ local size=bounds and Vector2.new(bounds.w,bounds.h) or anchor.AbsoluteSize
+ if position.X~=position.X or position.Y~=position.Y or size.X~=size.X or size.Y~=size.Y
+  or math.abs(position.X)==math.huge or math.abs(position.Y)==math.huge
+  or math.abs(size.X)==math.huge or math.abs(size.Y)==math.huge or size.X<=8 or size.Y<=8 then hide("invalid-bounds");return end
+ position+=Vector2.new(4,4);size-=Vector2.new(8,8)
+ if pane.part and (pane.camera~=camera or pane.part.Parent~=camera or not pane.mesh or pane.mesh.Parent~=pane.part or not pane.effect or pane.effect.Parent~=Lighting) then
+  pcall(function() pane.part:Destroy() end)
+  if pane.effect then pcall(function() pane.effect:Destroy() end) end
+  pane.part=nil;pane.mesh=nil;pane.effect=nil;pane.camera=nil
+ end
  if not pane.part then
-   local effect,part
+  local effect,part
   local ok=pcall(function()
-    effect=Instance.new("DepthOfFieldEffect")
-   effect.Name="SyntaxLocalBackdropBlur";effect.FarIntensity=0;effect.NearIntensity=.9;effect.InFocusRadius=0;effect.FocusDistance=.25-camera.NearPlaneZ
-    part=Instance.new("Part")
+   effect=Instance.new("DepthOfFieldEffect")
+   effect.Name="SyntaxLocalBackdropBlur";effect.FarIntensity=0;effect.NearIntensity=.9;effect.InFocusRadius=0
+   part=Instance.new("Part")
    part.Name="SyntaxLocalBackdropPlane";part.Size=Vector3.new(.01,.01,.01);part.Anchored=true
    part.CanCollide=false;part.CanTouch=false;part.CanQuery=false;part.CastShadow=false
-    part.Material=Enum.Material.Glass;part.Transparency=1-1e-7
+   part.Material=Enum.Material.Glass;part.Transparency=1
    local mesh=Instance.new("BlockMesh");mesh.Parent=part
    part.Parent=camera;effect.Parent=Lighting
    pane.part=part;pane.mesh=mesh;pane.effect=effect;pane.camera=camera
   end)
-   if not ok then
-    if part then pcall(function() part:Destroy() end) end
-    if effect then pcall(function() effect:Destroy() end) end
-    pane.part=nil;pane.mesh=nil;pane.effect=nil;pane.camera=nil
-    pane.unsupported=true;pane.active=false;return
-   end
+  if not ok then
+   if part then pcall(function() part:Destroy() end) end
+   if effect then pcall(function() effect:Destroy() end) end
+   pane.part=nil;pane.mesh=nil;pane.effect=nil;pane.camera=nil;pane.unsupported=true
+   hide("unsupported");return
+  end
  end
- local position=anchor.AbsolutePosition+Vector2.new(4,4)
- local size=anchor.AbsoluteSize-Vector2.new(8,8)
- local normal=camera.CFrame.LookVector
- local planePoint=camera.CFrame.Position+normal*(.05-camera.NearPlaneZ)
+ local cameraFrame=camera.CFrame
+ local normal=cameraFrame.LookVector
+ local depth=.05-camera.NearPlaneZ
+ local planePoint=cameraFrame.Position+normal*depth
  local function project(x,y)
-  local ray=camera:ViewportPointToRay(x,y,1)
+  local ray=camera:ScreenPointToRay(x,y,0)
   local divisor=ray.Direction:Dot(normal)
-  if math.abs(divisor)<.00001 then return nil end
+  if divisor~=divisor or math.abs(divisor)<.00001 then return nil end
   local distance=(planePoint-ray.Origin):Dot(normal)/divisor
-  return camera.CFrame:PointToObjectSpace(ray.Origin+ray.Direction*distance)
+  if distance~=distance or distance<=0 or distance==math.huge then return nil end
+  return cameraFrame:PointToObjectSpace(ray.Origin+ray.Direction*distance)
  end
  local upper=project(position.X,position.Y)
  local lower=project(position.X+size.X,position.Y+size.Y)
- if not upper or not lower then pane.part.Transparency=1;pane.effect.Enabled=false;pane.active=false;return end
+ if not upper or not lower then hide("projection-not-ready");return end
  pane.mesh.Offset=(upper+lower)*.5
  pane.mesh.Scale=Vector3.new(math.abs(lower.X-upper.X)/.01,math.abs(lower.Y-upper.Y)/.01,1)
- pane.part.CFrame=camera.CFrame
- pane.part.Transparency=1-1e-7
- pane.effect.FocusDistance=.25-camera.NearPlaneZ
- pane.effect.Enabled=true;pane.active=true
+ pane.part.CFrame=cameraFrame;pane.part.Transparency=1-1e-7
+ pane.effect.FocusDistance=depth+.2;pane.effect.Enabled=true
+ pane.bounds=rect(position.X,position.Y,size.X,size.Y);pane.reason=nil;pane.active=true
 end
 local function destroyRegionalBlur(pane)
-  if pane.part then pcall(function() pane.part:Destroy() end);pane.part=nil end
-  if pane.effect then pcall(function() pane.effect:Destroy() end);pane.effect=nil end
-  pane.mesh=nil;pane.camera=nil
- pane.active=false
+ if pane.part then pcall(function() pane.part:Destroy() end);pane.part=nil end
+ if pane.effect then pcall(function() pane.effect:Destroy() end);pane.effect=nil end
+ pane.mesh=nil;pane.camera=nil;pane.bounds=nil;pane.reason=nil;pane.active=false
 end
+
 local function createSyntaxTargetHUD(parent)
     local TweenService = game:GetService("TweenService")
     local host = new("Frame", parent, {Name="EditableTargetHUD", BackgroundTransparency=1,
@@ -729,7 +2987,16 @@ end
 end
 
 function UI.new(options)
- options=options or {}
+ options=table.clone(options or {})
+ options.Modules=copy(options.Modules or {})
+ for _,m in ipairs(options.Modules) do
+  if m.id=="ClickGUI" then for _,setting in ipairs(m.settings or {}) do if setting.name=="Style" then setting.options=copy(UI.Styles) end end end
+  if m.id=="HUD" then
+   m.settings=m.settings or {};local found=false
+   for _,setting in ipairs(m.settings) do if setting.name=="Island Background Transparency" then found=true end end
+   if not found then m.settings[#m.settings+1]={name="Island Background Transparency",type="slider",default=options.IslandBackgroundTransparency or 40,min=0,max=100,step=1} end
+  end
+ end
  for _,name in ipairs({"Scale","HUDScale"}) do local value=options[name];assert(value==nil or (type(value)=="number" and value==value and value>=.5 and value<=4),name.." must be between 0.5 and 4") end
  local parent=options.Parent or Players.LocalPlayer:WaitForChild("PlayerGui")
  -- Shutdown is owned by this UI, so repeat execution also works without writable globals.
@@ -763,6 +3030,9 @@ function UI.new(options)
  local visualTime=0;local flowTime=0
   local hudScale=options.HUDScale or options.Scale or 2
   local islandShadow=math.clamp(options.IslandShadow or 50,0,100)
+ local islandBackgroundTransparency=options.IslandBackgroundTransparency or 40
+ assert(type(islandBackgroundTransparency)=="number" and islandBackgroundTransparency==islandBackgroundTransparency and islandBackgroundTransparency>=0 and islandBackgroundTransparency<=100,"IslandBackgroundTransparency must be 0–100")
+ local bridge={app=nil,syncing=false,suspended=false,style=nil,language=nil,scale=nil,animations=nil}
   local appearanceT=0
  assert(themeEffect=="Source" or themeEffect=="FlowingGlow","Invalid theme effect")
  assert(type(animationSpeed)=="number" and animationSpeed>=.5 and animationSpeed<=3,"Invalid animation speed")
@@ -874,6 +3144,7 @@ function UI.new(options)
   state[m.id]={enabled=m.enabled==true,key="Unknown",settings=values}
   rows[m.id]={def=m,expanded=false,reveal=0,enabled=m.enabled and 1 or 0,hover=0,animations={}}
  end
+ if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then islandBackgroundTransparency=state.HUD.settings["Island Background Transparency"] end
  local function selectedTheme() local s=state.ClickGUI;if s and palettes[s.settings["Opai Color"]] then return s.settings["Opai Color"] end;return theme end
 
  local customAccent
@@ -937,7 +3208,13 @@ function UI.new(options)
    if state.HUD and state.HUD.settings["Island Shadow Strength"]~=nil then self:SetSetting("HUD","Island Shadow Strength",value) end
    notify("Appearance","islandShadow",value)
   end
-  function api:GetAppearance() return {language=language,islandShadow=islandShadow,scale=options.Scale or k,hudScale=hudScale,accent=customAccent or false,effect=themeEffect,animations=animations,animationSpeed=animationSpeed,glowStrength=glowStrength} end
+  function api:SetIslandBackgroundTransparency(value)
+   assert(type(value)=="number" and value==value and value>=0 and value<=100,"Transparency must be 0–100")
+   islandBackgroundTransparency=value
+   if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then self:SetSetting("HUD","Island Background Transparency",value) end
+   notify("Appearance","islandBackgroundTransparency",value)
+  end
+  function api:GetAppearance() return {language=language,islandBackgroundTransparency=islandBackgroundTransparency,islandShadow=islandShadow,scale=options.Scale or k,hudScale=hudScale,accent=customAccent or false,effect=themeEffect,animations=animations,animationSpeed=animationSpeed,glowStrength=glowStrength} end
  function api:OpenAppearance() appearanceOpen=true;dropdown=nil;sliding=nil;binding=nil;drag=nil end
 
  local function valid(s,v)
@@ -959,7 +3236,7 @@ function UI.new(options)
  end
  function api:SetSetting(id,name,value)
   local row=assert(rows[id],"Invalid module")
-   for _,s in ipairs(row.def.settings or {}) do if s.name==name then assert(valid(s,value),"Invalid setting");state[id].settings[name]=copy(value);if id=="HUD" and name=="Island Shadow Strength" then islandShadow=value end;notify(id,name,value);return end end
+   for _,s in ipairs(row.def.settings or {}) do if s.name==name then assert(valid(s,value),"Invalid setting");state[id].settings[name]=copy(value);if id=="HUD" and name=="Island Shadow Strength" then islandShadow=value end;if id=="HUD" and name=="Island Background Transparency" then islandBackgroundTransparency=value end;notify(id,name,value);return end end
   error("Unknown setting")
  end
  function api:SetTheme(name) assert(palettes[name],"Unknown palette");theme=name;customAccent=nil;themeEffect="Source";paletteCache=nil;if state.ClickGUI then state.ClickGUI.settings["Opai Color"]=name;notify("ClickGUI","Opai Color",name) end end
@@ -972,7 +3249,7 @@ function UI.new(options)
   if type(snapshot)~="table" or (snapshot.version~=1 and snapshot.version~=2 and snapshot.version~=3) or type(snapshot.modules)~="table" then return false,"Invalid configuration" end
    snapshot=copy(snapshot)
     local oldGUI=snapshot.modules.ClickGUI
-    if type(oldGUI)=="table" and type(oldGUI.settings)=="table" and oldGUI.settings.Style~=nil and oldGUI.settings.Style~="Neverlose" and oldGUI.settings.Style~="Opai" then oldGUI.settings.Style="Neverlose" end
+    if type(oldGUI)=="table" and type(oldGUI.settings)=="table" and oldGUI.settings.Style~=nil and oldGUI.settings.Style~="Neverlose" and oldGUI.settings.Style~="Opai" and oldGUI.settings.Style~="Jackal Neverlose" and oldGUI.settings.Style~="Jackal Opai" then oldGUI.settings.Style="Neverlose" end
    local incomingHUD=snapshot.modules.HUD
    if type(incomingHUD)=="table" and type(incomingHUD.settings)=="table" then
     local hudSettings=incomingHUD.settings
@@ -1001,7 +3278,7 @@ function UI.new(options)
    for _,name in ipairs({"scale","hudScale"}) do local value=incomingAppearance[name];if value~=nil and (type(value)~="number" or value~=value or value<.5 or value>4) then return false,"Invalid appearance scale" end end
    if incomingAppearance.effect~=nil and incomingAppearance.effect~="Source" and incomingAppearance.effect~="FlowingGlow" then return false,"Invalid theme effect" end
    if incomingAppearance.animations~=nil and type(incomingAppearance.animations)~="boolean" then return false,"Invalid animations" end
-   for name,range in pairs({animationSpeed={.5,3},glowStrength={0,1},islandShadow={0,100}}) do local v=incomingAppearance[name];if v~=nil and (type(v)~="number" or v~=v or v<range[1] or v>range[2]) then return false,"Invalid "..name end end
+   for name,range in pairs({animationSpeed={.5,3},glowStrength={0,1},islandShadow={0,100},islandBackgroundTransparency={0,100}}) do local v=incomingAppearance[name];if v~=nil and (type(v)~="number" or v~=v or v<range[1] or v>range[2]) then return false,"Invalid "..name end end
    if incomingAppearance.language~=nil and incomingAppearance.language~="English" and incomingAppearance.language~="中文" then return false,"Invalid language" end
     if incomingAppearance.accent~=nil and incomingAppearance.accent~=false and not parseAccent(incomingAppearance.accent) then return false,"Invalid accent" end
   end
@@ -1018,13 +3295,17 @@ function UI.new(options)
   if snapshot.hudLayout then hudPlacements=copy(snapshot.hudLayout) end
   if snapshot.theme then self:SetTheme(snapshot.theme) end
    if state.HUD and state.HUD.settings["Island Shadow Strength"]~=nil then islandShadow=state.HUD.settings["Island Shadow Strength"] end
-   if incomingAppearance then self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
+   if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then islandBackgroundTransparency=state.HUD.settings["Island Background Transparency"] end
+   if incomingAppearance then if incomingAppearance.islandBackgroundTransparency~=nil then self:SetIslandBackgroundTransparency(incomingAppearance.islandBackgroundTransparency) end;self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
   for _,entry in ipairs(notifications) do notify(entry[1],entry[2],entry[3]) end
   dropdown=nil;return true
  end
  function api:ExportJSON() return Http:JSONEncode(self:GetState()) end
  function api:ImportJSON(text) local ok,result=pcall(Http.JSONDecode,Http,text);if not ok then return false,"Invalid JSON" end;return self:ApplyState(result) end
- function api:Expand(id,value) local row=assert(rows[id]);row.expanded=value;dropdown=nil end
+ function api:Expand(id,value)
+  local row=assert(rows[id]);assert(type(value)=="boolean");row.expanded=value;row.nlExpanded=value;dropdown=nil
+  if bridge.app then bridge.app._expanded[id]=value;for _,entry in ipairs(bridge.app._entries) do if entry.Group.Id==id then entry.Expanded=value end end;bridge.app:_layout() end
+ end
  local categoryOrder=options.Categories or {"Combat","Movement","Player","Visual","Misc"}
  for _,name in ipairs(categoryOrder) do
   local members={};for _,row in pairs(rows) do if row.def.category==name and not row.def.hidden then members[#members+1]=row end end
@@ -1136,9 +3417,15 @@ function UI.new(options)
       row.hover=ease(row.hover,hovered and 1 or 0,dt,30)
       if row.hover>.001 then content:box(0,ey,W,R,palette.text,.047*row.hover*(1-row.enabled)) end
       if row.enabled>.001 then local fill=content:box(0,ey,W,R,palette.enabled,row.enabled);fill.BackgroundColor3=rgb(palette.enabled):Lerp(rgb(palette.enabledHover),row.hover) end
-      local title=content:text(binding==row and "Press a key" or row.def.name,P,ey+R/2,8.3,W-2*P,palette.text)
+      local title=content:text(binding==row and "Press a key" or row.def.name,P,ey+R/2,8.3,W-2*P-18,palette.text)
       title.TextColor3=rgb(palette.text):Lerp(rgb(palette.enabledText),row.enabled)
       hit(rect(x,y+H+ey,W,R),"module",row,bodyClip)
+      if #(row.def.settings or {})>0 then
+       local cx,cy=W-11,ey+R/2;local direction=1-2*row.reveal
+       local left=content:box(cx-4,cy-1.5*direction,5,1.2,palette.text,1,.6);if left then left.Rotation=35*direction end
+       local right=content:box(cx,cy-1.5*direction,5,1.2,palette.text,1,.6);if right then right.Rotation=-35*direction end
+       hit(rect(x+W-25,y+H+ey,25,R),"expandModule",row,bodyClip)
+      end
      elseif row.reveal>.001 then
       row.section.Visible=true;row.section.Position=UDim2.fromOffset(0,entry.sectionTop-c.scroll);row.section.Size=UDim2.fromOffset(W,entry.sectionBottom-entry.sectionTop)
       drawSetting(row.settingsPool,entry.setting,row,0,entry.top-entry.sectionTop,x,y+H+ey,clip,dt)
@@ -1235,7 +3522,7 @@ function UI.new(options)
   local block=table.remove(hits);local at=#hits+1;for i,h in ipairs(hits) do if h.action=="configHeader" then at=i;break end end;table.insert(hits,at,block)
  end
 
-  local styleNames={Neverlose=true,Opai=true}
+  local styleNames={Neverlose=true,Opai=true,["Jackal Neverlose"]=true,["Jackal Opai"]=true}
  if options.Style then assert(styleNames[options.Style],"Unknown style") end
   local function selectedStyle() local name=state.ClickGUI and state.ClickGUI.settings.Style or options.Style;return styleNames[name] and name or "Neverlose" end
   function api:SetStyle(name) assert(styleNames[name],"Unknown style");options.Style=name;if state.ClickGUI then state.ClickGUI.settings.Style=name end;notify("ClickGUI","Style",name) end
@@ -1312,11 +3599,11 @@ function UI.new(options)
   if color then api:SetAccent(color);appearanceError="" else appearanceError="Use six hexadecimal digits: #RRGGBB" end
  end)
  local function appearancePoint(x,y,w,h) local a=appearanceGeometry;return rect(a.x+x*a.s,a.y+y*a.s,w*a.s,h*a.s) end
- local appearanceRanges={UI={.5,4},HUD={.5,4},Speed={.5,3},Glow={0,1},Island={0,100}}
+ local appearanceRanges={UI={.5,4},HUD={.5,4},Speed={.5,3},Glow={0,1},Island={0,100},IslandBackground={0,100}}
  local function appearanceSlide(x)
   if not appearanceSliding then return end;local kind=appearanceSliding;local a=appearanceGeometry;local range=appearanceRanges[kind]
   local f=math.clamp(((x-a.x)/a.s-12)/200,0,1);local value=math.round((range[1]+f*(range[2]-range[1]))*20)/20
-  if kind=="UI" then api:SetScale(value) elseif kind=="HUD" then api:SetHUDScale(value) elseif kind=="Speed" then api:SetAnimationSpeed(value) elseif kind=="Island" then api:SetIslandShadow(math.round(value)) else api:SetGlowStrength(value) end
+  if kind=="UI" then api:SetScale(value) elseif kind=="HUD" then api:SetHUDScale(value) elseif kind=="Speed" then api:SetAnimationSpeed(value) elseif kind=="Island" then api:SetIslandShadow(math.round(value)) elseif kind=="IslandBackground" then api:SetIslandBackgroundTransparency(math.round(value)) else api:SetGlowStrength(value) end
  end
   local function drawAppearance(frameDelta)
    appearanceT=animations and ease(appearanceT,appearanceOpen and 1 or 0,math.min(frameDelta,.1),11) or (appearanceOpen and 1 or 0)
@@ -1324,13 +3611,13 @@ function UI.new(options)
    appearanceRoot.Visible=appearanceOpen or appearanceT>.01;accentBox.Visible=appearanceOpen
   if not appearanceRoot.Visible then return end
   searchBox.Visible=false;altName.Visible=false;editor.Visible=false;jsonEditor.Visible=false
-    local h=354;local base=math.max(.05,math.min(2/k,(width-8)/224,(height-8)/h));local s=base*(.94+.06*reveal);local x,y=(width-224*s)/2,(height-h*s)/2
+    local h=395;local base=math.max(.05,math.min(2/k,(width-8)/224,(height-8)/h));local s=base*(.94+.06*reveal);local x,y=(width-224*s)/2,(height-h*s)/2
    appearanceGeometry={x=x,y=y,s=s};appearanceRoot.Position=UDim2.fromOffset(x,y);appearanceRoot.Size=UDim2.fromOffset(224,h);appearanceScale.Scale=s
    local p=appearancePaint;p.alpha=reveal;p:begin();local pal=currentPalette();p:box(0,0,224,h,pal.header,1,9)
    p:stroke(0,0,224,h,pal.outline,.45,9,1)
    p:text("Appearance",12,17,11,175,pal.text);p:text("×",200,17,15,14,pal.text);if appearanceOpen then hit(rect(0,0,width,height),"appearanceOutside");hit(appearancePoint(0,0,224,h),"appearanceBlock");hit(appearancePoint(196,6,22,22),"appearanceClose") end
   local function slider(label,value,yy,kind)
-   local range=appearanceRanges[kind];p:text(label,12,yy,9,150,pal.text);p:text(kind=="Glow" and tostring(math.round(value*100)).."%" or kind=="Island" and tostring(math.round(value)).."%" or string.format("%.2fx",value),158,yy,9,54,pal.text,false,Enum.TextXAlignment.Right)
+   local range=appearanceRanges[kind];p:text(label,12,yy,9,150,pal.text);p:text(kind=="Glow" and tostring(math.round(value*100)).."%" or (kind=="Island" or kind=="IslandBackground") and tostring(math.round(value)).."%" or string.format("%.2fx",value),158,yy,9,54,pal.text,false,Enum.TextXAlignment.Right)
    p:box(12,yy+15,200,3,pal.track,1,1.5);local f=(value-range[1])/(range[2]-range[1]);p:box(12,yy+15,200*f,3,pal.accent,1,1.5);p:box(8+200*f,yy+12,8,9,pal.accent,1,4)
     if appearanceOpen then hit(appearancePoint(8,yy+8,208,17),"appearanceScale",kind) end
   end
@@ -1348,8 +3635,8 @@ function UI.new(options)
   button("Source colors",12,191,96,"appearanceReset",nil,themeEffect=="Source")
    button("Flowing colors",116,191,96,"appearanceEffect","FlowingGlow",themeEffect=="FlowingGlow")
   button("Animations: "..(animations and "On" or "Off"),12,221,200,"appearanceAnimations",nil,animations)
-   slider("Animation speed",animationSpeed,257,"Speed");slider("Island shadow",islandShadow,296,"Island")
-    if appearanceError~="" then p:text(appearanceError,12,340,6.5,200,0xFF8585) else p:text("F7 · appearance     Ctrl + wheel · UI scale",12,340,6.5,200,pal.line) end
+   slider("Animation speed",animationSpeed,257,"Speed");slider("Island shadow",islandShadow,296,"Island");slider("Island background transparency",islandBackgroundTransparency,337,"IslandBackground")
+    if appearanceError~="" then p:text(appearanceError,12,381,6.5,200,0xFF8585) else p:text("F7 · appearance     Ctrl + wheel · UI scale",12,381,6.5,200,pal.line) end
   p:finish()
  end
 
@@ -1690,6 +3977,7 @@ function UI.new(options)
   elseif a=="scrollbar" and button==0 then drag={kind="scrollbar",c=d.c,travel=d.travel,grab=math.clamp(y-d.top,0,d.thumb)}
   elseif a=="toggle" and button==0 then d.row.press=d.row.press or {};d.row.press[d.s.name]=os.clock();api:SetSetting(d.row.def.id,d.s.name,not state[d.row.def.id].settings[d.s.name])
   elseif a=="slider" and button==0 then sliding=d;slide(x)
+  elseif a=="expandModule" and button==0 then d.expanded=not d.expanded;dropdown=nil
   elseif a=="choice" and button==0 then if dropdown and dropdown.row==d.row and dropdown.s==d.s then dropdown=nil else dropdown={row=d.row,s=d.s,scroll=0,style=activeStyle} end
   elseif a=="option" then
    if button==1 then dropdown=nil elseif button==0 then local choice=dropdown;local s=choice.s;local value=state[choice.row.def.id].settings[s.name]
@@ -1721,8 +4009,7 @@ function UI.new(options)
  local shell=pool(island,true)
   local islandBackdrop=new("Frame",island,{Name="Backdrop",BackgroundColor3=rgb(0x000000),BackgroundTransparency=1-0x98/255,BorderSizePixel=0,ZIndex=30})
   local islandCorner=new("UICorner",islandBackdrop,{CornerRadius=UDim.new(0,12)})
-  local islandSoftShadow
-   pcall(function() islandSoftShadow=new("UIShadow",islandBackdrop,{Color=rgb(0x000000),BlurRadius=UDim.new(0,18),Spread=UDim2.fromOffset(5,5),Offset=UDim2.fromOffset(0,0),Transparency=.5}) end)
+ -- Jackal soft shadows are pooled native layers beneath the opaque surface.
  local islandClip=new("Frame",island,{Name="Content",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=100})
  local ink=pool(islandClip,true)
   ink.fixedText=true
@@ -1837,34 +4124,30 @@ function UI.new(options)
   return st.enabled and type(st.settings.Widgets)=="table" and table.find(st.settings.Widgets,name)~=nil
  end
  if state.HUD and options.HUD~=false then state.HUD.enabled=true;rows.HUD.enabled=1 end
- -- Filled contours adapted from DynamicIslandNanoSurface.java; supersampled once at build time.
-local hudGlyphs={
-CHROME={{17,0,2,1,0.25},{19,0,1,1,0.5},{20,0,2,1,0.75},{22,0,5,1,1.0},{27,0,2,1,0.75},{29,0,1,1,0.5},{30,0,1,1,0.25},{14,1,1,1,0.25},{15,1,1,1,0.5},{16,1,1,1,0.75},{17,1,14,1,1.0},{31,1,1,1,0.75},{32,1,1,1,0.5},{12,2,1,1,0.25},{13,2,1,1,0.75},{14,2,20,1,1.0},{34,2,1,1,0.5},{35,2,1,1,0.25},{11,3,1,1,0.5},{12,3,24,1,1.0},{36,3,1,1,0.5},{9,4,1,1,0.25},{10,4,1,1,0.75},{11,4,26,1,1.0},{37,4,1,1,0.75},{38,4,1,1,0.25},{8,5,1,1,0.5},{9,5,30,1,1.0},{39,5,1,1,0.5},{7,6,1,1,0.5},{8,6,32,1,1.0},{40,6,1,1,0.5},{6,7,1,1,0.5},{7,7,34,1,1.0},{41,7,1,1,0.5},{5,8,1,1,0.25},{6,8,36,1,1.0},{42,8,1,1,0.5},{6,9,37,1,1.0},{43,9,1,1,0.25},{6,10,1,1,0.5},{7,10,36,1,1.0},{43,10,1,1,0.75},{7,11,1,1,0.75},{8,11,36,1,1.0},{44,11,1,1,0.5},{2,12,1,1,0.25},{3,12,1,1,0.75},{7,12,1,1,0.25},{8,12,11,1,1.0},{19,12,1,1,0.75},{20,12,1,1,0.5},{21,12,24,1,0.25},{2,13,1,1,0.5},{3,13,1,1,1.0},{4,13,1,1,0.25},{8,13,1,1,0.75},{9,13,9,1,1.0},{18,13,1,1,0.5},{2,14,3,2,1.0},{8,14,1,1,0.25},{9,14,7,1,1.0},{16,14,1,1,0.75},{1,15,1,1,0.5},{5,15,1,1,0.5},{9,15,1,1,0.5},{10,15,5,1,1.0},{15,15,1,1,0.5},{33,15,14,1,0.25},{1,16,1,1,0.75},{2,16,4,1,1.0},{6,16,1,1,0.25},{10,16,4,1,1.0},{14,16,1,1,0.75},{20,16,1,1,0.25},{21,16,1,1,0.5},{22,16,1,1,0.75},{23,16,2,1,1.0},{25,16,1,1,0.75},{26,16,1,1,0.5},{27,16,1,1,0.25},{33,16,1,1,0.75},{34,16,12,1,1.0},{46,16,1,1,0.75},{0,17,1,1,0.25},{1,17,5,1,1.0},{6,17,1,1,0.75},{10,17,1,1,0.25},{11,17,3,1,1.0},{19,17,1,1,0.5},{20,17,8,1,1.0},{28,17,1,1,0.75},{34,17,13,1,1.0},{47,17,1,1,0.25},{0,18,1,1,0.5},{1,18,6,2,1.0},{7,18,1,1,0.25},{11,18,1,1,0.75},{12,18,1,2,1.0},{13,18,1,1,0.5},{18,18,1,1,0.75},{19,18,10,1,1.0},{29,18,1,1,0.75},{34,18,1,1,0.5},{35,18,12,2,1.0},{47,18,1,1,0.5},{0,19,1,2,0.75},{7,19,1,1,0.75},{11,19,1,1,0.25},{17,19,1,1,0.5},{18,19,12,1,1.0},{30,19,1,1,0.75},{47,19,1,2,0.75},{1,20,7,1,1.0},{8,20,1,1,0.5},{12,20,1,1,0.25},{16,20,1,1,0.25},{17,20,14,2,1.0},{31,20,1,1,0.25},{35,20,1,1,0.75},{36,20,11,1,1.0},{0,21,9,2,1.0},{16,21,1,1,0.5},{31,21,1,1,0.75},{35,21,1,6,0.25},{36,21,12,6,1.0},{9,22,1,1,0.5},{16,22,1,1,0.75},{17,22,15,1,1.0},{0,23,10,2,1.0},{10,23,1,1,0.25},{16,23,16,2,1.0},{32,23,1,2,0.25},{10,24,1,1,0.75},{0,25,11,2,1.0},{11,25,1,1,0.25},{16,25,1,1,0.75},{17,25,15,1,1.0},{11,26,1,1,0.75},{16,26,1,1,0.5},{17,26,14,2,1.0},{31,26,1,1,0.75},{0,27,1,2,0.75},{1,27,11,1,1.0},{12,27,1,1,0.5},{16,27,1,1,0.25},{31,27,1,1,0.25},{35,27,1,1,0.5},{36,27,11,1,1.0},{47,27,1,2,0.75},{1,28,12,2,1.0},{17,28,1,1,0.75},{18,28,12,1,1.0},{30,28,1,1,0.75},{35,28,12,2,1.0},{0,29,1,1,0.5},{13,29,1,1,0.5},{18,29,1,1,0.75},{19,29,10,1,1.0},{29,29,1,1,0.75},{34,29,1,1,0.5},{47,29,1,1,0.5},{0,30,1,1,0.25},{1,30,13,1,1.0},{19,30,1,1,0.75},{20,30,8,1,1.0},{28,30,1,1,0.75},{34,30,13,1,1.0},{47,30,1,1,0.25},{1,31,1,1,0.75},{2,31,12,1,1.0},{14,31,1,1,0.75},{20,31,1,1,0.25},{21,31,1,1,0.75},{22,31,4,1,1.0},{26,31,1,1,0.75},{27,31,1,1,0.25},{33,31,1,1,0.75},{34,31,12,1,1.0},{46,31,1,1,0.75},{1,32,1,1,0.5},{2,32,13,1,1.0},{15,32,1,1,0.5},{23,32,2,1,0.25},{32,32,1,1,0.5},{33,32,13,1,1.0},{46,32,1,1,0.5},{1,33,1,1,0.25},{2,33,14,1,1.0},{16,33,1,1,0.75},{32,33,14,1,1.0},{2,34,1,1,0.75},{3,34,15,1,1.0},{18,34,1,1,0.5},{31,34,1,1,0.5},{32,34,13,1,1.0},{45,34,1,1,0.75},{2,35,1,1,0.25},{3,35,16,1,1.0},{19,35,1,1,0.75},{20,35,1,1,0.5},{21,35,6,1,0.25},{30,35,1,1,0.25},{31,35,14,1,1.0},{45,35,1,1,0.25},{3,36,1,1,0.5},{4,36,22,1,1.0},{26,36,1,1,0.5},{30,36,1,1,0.75},{31,36,13,1,1.0},{44,36,1,1,0.5},{4,37,1,1,0.75},{5,37,20,2,1.0},{25,37,1,1,0.75},{29,37,1,1,0.25},{30,37,13,2,1.0},{43,37,1,1,0.75},{4,38,1,1,0.25},{25,38,1,1,0.25},{29,38,1,1,0.75},{43,38,1,1,0.25},{5,39,1,1,0.5},{6,39,18,1,1.0},{24,39,1,1,0.75},{28,39,1,1,0.5},{29,39,13,1,1.0},{42,39,1,1,0.5},{6,40,1,1,0.5},{7,40,17,1,1.0},{24,40,1,1,0.25},{28,40,13,1,1.0},{41,40,1,1,0.5},{7,41,1,1,0.5},{8,41,15,1,1.0},{23,41,1,1,0.5},{27,41,1,1,0.75},{28,41,12,1,1.0},{40,41,1,1,0.5},{8,42,1,1,0.5},{9,42,14,1,1.0},{26,42,1,1,0.25},{27,42,12,1,1.0},{39,42,1,1,0.5},{9,43,1,1,0.25},{10,43,1,1,0.75},{11,43,11,1,1.0},{22,43,1,1,0.5},{26,43,1,1,0.75},{27,43,10,1,1.0},{37,43,1,1,0.75},{38,43,1,1,0.25},{11,44,1,1,0.5},{12,44,9,1,1.0},{21,44,1,1,0.75},{25,44,1,1,0.5},{26,44,10,1,1.0},{36,44,1,1,0.5},{12,45,1,1,0.25},{13,45,1,1,0.5},{14,45,7,1,1.0},{21,45,1,1,0.25},{25,45,9,1,1.0},{34,45,1,1,0.75},{35,45,1,1,0.25},{15,46,1,1,0.5},{16,46,1,1,0.75},{17,46,3,1,1.0},{20,46,1,1,0.75},{24,46,1,1,0.5},{25,46,6,1,1.0},{31,46,1,1,0.75},{32,46,1,1,0.5},{33,46,1,1,0.25},{17,47,2,1,0.25},{19,47,1,1,0.75},{20,47,1,1,0.25},{23,47,1,1,0.25},{24,47,2,1,1.0},{26,47,2,1,0.75},{28,47,1,1,0.5},{29,47,2,1,0.25}},
-USER={{20,5,1,1,0.25},{21,5,2,1,0.75},{23,5,2,1,1.0},{25,5,2,1,0.75},{27,5,1,1,0.5},{18,6,1,1,0.25},{19,6,1,1,0.75},{20,6,8,1,1.0},{28,6,1,1,0.75},{29,6,1,1,0.5},{17,7,1,1,0.5},{18,7,12,1,1.0},{30,7,1,1,0.5},{16,8,1,1,0.5},{17,8,14,1,1.0},{31,8,1,1,0.75},{15,9,1,1,0.25},{16,9,16,1,1.0},{32,9,1,1,0.5},{15,10,1,1,0.75},{16,10,17,1,1.0},{14,11,1,1,0.25},{15,11,18,2,1.0},{33,11,1,1,0.5},{14,12,1,2,0.75},{33,12,1,1,0.75},{15,13,19,1,1.0},{14,14,20,2,1.0},{34,14,1,2,0.25},{14,16,1,2,0.75},{15,16,19,1,1.0},{15,17,18,3,1.0},{33,17,1,1,0.75},{14,18,1,1,0.5},{33,18,1,1,0.5},{15,20,1,1,0.25},{16,20,16,1,1.0},{32,20,1,1,0.5},{16,21,1,1,0.75},{17,21,14,1,1.0},{31,21,1,1,0.75},{17,22,1,1,0.75},{18,22,12,1,1.0},{30,22,1,1,0.75},{18,23,1,1,0.5},{19,23,10,1,1.0},{29,23,1,1,0.5},{20,24,1,1,0.5},{21,24,1,1,0.75},{22,24,4,1,1.0},{26,24,1,1,0.75},{27,24,1,1,0.5},{28,24,1,1,0.25},{23,25,2,1,0.25},{15,29,1,1,0.25},{16,29,1,1,0.5},{17,29,1,1,0.75},{18,29,12,1,1.0},{30,29,1,1,0.75},{31,29,1,1,0.5},{32,29,1,1,0.25},{13,30,1,1,0.5},{14,30,1,1,0.75},{15,30,18,1,1.0},{33,30,1,1,0.75},{34,30,1,1,0.5},{11,31,1,1,0.25},{12,31,1,1,0.75},{13,31,22,1,1.0},{35,31,1,1,0.75},{36,31,1,1,0.25},{10,32,1,1,0.25},{11,32,26,1,1.0},{37,32,1,1,0.25},{9,33,1,1,0.25},{10,33,28,2,1.0},{38,33,1,1,0.25},{9,34,1,1,0.75},{38,34,1,1,0.75},{8,35,1,1,0.5},{9,35,30,1,1.0},{39,35,1,1,0.5},{8,36,32,4,1.0},{7,37,1,1,0.5},{40,37,1,1,0.5},{7,38,1,2,0.75},{40,38,1,2,0.75},{7,40,34,3,1.0},{7,43,1,1,0.5},{8,43,32,1,1.0},{40,43,1,1,0.5},{9,44,30,1,0.25}},
-LINK={{9,12,2,1,0.25},{11,12,11,1,0.5},{22,12,2,1,0.25},{31,12,2,1,0.5},{33,12,1,1,0.25},{34,12,3,1,0.5},{37,12,2,1,0.25},{7,13,1,1,0.25},{8,13,1,1,0.75},{9,13,15,1,1.0},{24,13,1,1,0.75},{25,13,1,1,0.25},{30,13,1,1,0.75},{31,13,8,1,1.0},{39,13,1,1,0.75},{40,13,1,1,0.25},{5,14,1,1,0.25},{6,14,1,1,0.75},{7,14,19,1,1.0},{26,14,1,1,0.75},{29,14,1,2,0.5},{30,14,11,1,1.0},{41,14,1,1,0.75},{42,14,1,1,0.25},{4,15,1,1,0.25},{5,15,22,1,1.0},{27,15,1,1,0.75},{30,15,13,2,1.0},{43,15,1,1,0.25},{4,16,1,1,0.75},{5,16,23,1,1.0},{28,16,1,1,0.75},{43,16,1,1,0.75},{3,17,1,1,0.5},{4,17,7,1,1.0},{11,17,3,1,0.75},{14,17,4,1,0.5},{18,17,1,1,0.75},{19,17,2,1,0.5},{21,17,1,1,0.75},{22,17,7,1,1.0},{29,17,1,1,0.25},{31,17,3,1,0.5},{34,17,3,1,0.75},{37,17,7,1,1.0},{44,17,1,1,0.5},{3,18,6,1,1.0},{9,18,1,1,0.5},{23,18,1,1,0.5},{24,18,5,1,1.0},{29,18,1,1,0.75},{38,18,1,1,0.5},{39,18,6,1,1.0},{2,19,1,1,0.5},{3,19,5,1,1.0},{8,19,1,1,0.25},{18,19,1,1,0.5},{19,19,2,1,1.0},{21,19,1,1,0.5},{24,19,1,1,0.5},{25,19,5,2,1.0},{39,19,1,1,0.25},{40,19,5,1,1.0},{45,19,1,1,0.5},{2,20,1,2,0.75},{3,20,4,2,1.0},{7,20,1,1,0.75},{17,20,1,1,0.25},{18,20,4,7,1.0},{22,20,1,1,0.5},{30,20,1,1,0.25},{40,20,1,1,0.75},{41,20,4,2,1.0},{45,20,1,2,0.75},{7,21,1,1,0.5},{17,21,1,6,0.5},{22,21,1,1,0.75},{25,21,1,1,0.75},{26,21,4,7,1.0},{30,21,1,3,0.5},{40,21,1,1,0.5},{2,22,5,4,1.0},{7,22,1,5,0.25},{22,22,1,2,0.5},{25,22,1,3,0.5},{40,22,1,5,0.25},{41,22,5,4,1.0},{22,24,1,1,0.75},{30,24,1,1,0.75},{46,24,1,1,0.25},{22,25,1,1,0.5},{25,25,1,1,0.25},{30,25,1,1,0.5},{2,26,1,2,0.75},{3,26,4,2,1.0},{22,26,1,1,0.75},{25,26,1,1,0.5},{30,26,1,1,0.75},{41,26,4,2,1.0},{45,26,1,2,0.75},{7,27,1,1,0.75},{17,27,1,1,0.25},{18,27,5,2,1.0},{25,27,1,1,0.25},{30,27,1,1,0.5},{40,27,1,1,0.75},{2,28,1,1,0.5},{3,28,5,1,1.0},{8,28,1,1,0.25},{23,28,1,1,0.5},{26,28,1,1,0.5},{27,28,2,1,1.0},{29,28,1,1,0.75},{39,28,1,1,0.25},{40,28,5,1,1.0},{45,28,1,1,0.5},{3,29,6,1,1.0},{9,29,1,1,0.25},{18,29,1,1,0.75},{19,29,5,1,1.0},{24,29,1,1,0.5},{38,29,1,1,0.5},{39,29,6,1,1.0},{3,30,1,1,0.5},{4,30,7,1,1.0},{11,30,1,1,0.75},{12,30,5,1,0.5},{18,30,1,1,0.25},{19,30,7,1,1.0},{26,30,1,1,0.75},{27,30,9,1,0.5},{36,30,1,1,0.75},{37,30,7,1,1.0},{44,30,1,1,0.5},{4,31,1,1,0.75},{5,31,13,2,1.0},{19,31,1,1,0.75},{20,31,23,1,1.0},{43,31,1,1,0.75},{4,32,1,1,0.25},{18,32,1,2,0.5},{20,32,1,1,0.75},{21,32,22,1,1.0},{43,32,1,1,0.25},{5,33,1,1,0.25},{6,33,1,1,0.75},{7,33,11,1,1.0},{21,33,1,1,0.75},{22,33,19,1,1.0},{41,33,1,1,0.75},{42,33,1,1,0.25},{7,34,1,1,0.5},{8,34,1,1,0.75},{9,34,9,1,1.0},{18,34,1,1,0.25},{22,34,1,1,0.5},{23,34,1,1,0.75},{24,34,15,1,1.0},{39,34,1,1,0.75},{40,34,1,1,0.5},{9,35,1,1,0.25},{10,35,7,1,0.5},{17,35,1,1,0.25},{24,35,1,1,0.25},{25,35,13,1,0.5},{38,35,1,1,0.25}},
-REFRESH={{24,2,1,1,0.5},{25,2,1,1,1.0},{22,3,1,1,0.25},{23,3,1,1,0.75},{24,3,2,1,1.0},{26,3,1,7,0.25},{21,4,1,1,0.5},{22,4,4,1,1.0},{19,5,1,1,0.25},{20,5,1,1,0.75},{21,5,5,1,1.0},{18,6,1,1,0.5},{19,6,7,1,1.0},{16,7,1,1,0.25},{17,7,1,1,0.75},{18,7,8,1,1.0},{15,8,1,1,0.5},{16,8,10,1,1.0},{14,9,1,1,0.75},{15,9,11,1,1.0},{12,10,1,1,0.25},{13,10,13,1,1.0},{26,10,3,1,0.75},{29,10,1,1,0.5},{30,10,1,1,0.25},{11,11,1,1,0.75},{12,11,20,1,1.0},{32,11,1,1,0.5},{33,11,1,1,0.25},{9,12,1,1,0.25},{10,12,24,1,1.0},{34,12,1,1,0.75},{35,12,1,1,0.25},{9,13,1,1,0.5},{10,13,26,1,1.0},{36,13,1,1,0.5},{10,14,1,1,0.25},{11,14,1,1,0.75},{12,14,25,1,1.0},{37,14,1,1,0.5},{12,15,1,1,0.5},{13,15,25,1,1.0},{38,15,1,1,0.5},{13,16,1,1,0.25},{14,16,1,1,0.75},{15,16,24,1,1.0},{39,16,1,1,0.25},{5,17,1,1,0.25},{15,17,1,1,0.5},{16,17,24,1,1.0},{4,18,1,1,0.25},{5,18,1,1,0.5},{16,18,1,1,0.25},{17,18,1,1,0.75},{18,18,8,1,1.0},{26,18,4,1,0.25},{30,18,1,1,0.5},{31,18,1,1,0.75},{32,18,8,1,1.0},{40,18,1,1,0.5},{5,19,1,1,0.75},{18,19,1,1,0.5},{19,19,7,1,1.0},{33,19,1,1,0.5},{34,19,1,1,0.75},{35,19,6,1,1.0},{41,19,1,1,0.25},{5,20,1,1,1.0},{6,20,1,1,0.25},{19,20,1,1,0.25},{20,20,6,1,1.0},{26,20,1,3,0.25},{35,20,1,1,0.5},{36,20,5,1,1.0},{41,20,1,1,0.5},{5,21,2,1,0.75},{21,21,1,1,0.75},{22,21,4,1,1.0},{36,21,1,1,0.25},{37,21,1,1,0.75},{38,21,3,1,1.0},{41,21,1,1,0.75},{5,22,1,1,0.75},{6,22,1,1,1.0},{7,22,1,1,0.25},{22,22,1,1,0.25},{23,22,3,1,1.0},{38,22,1,1,0.75},{39,22,3,1,1.0},{42,22,1,2,0.25},{5,23,1,1,0.5},{6,23,2,2,1.0},{24,23,1,1,0.75},{25,23,1,1,1.0},{39,23,1,1,0.75},{40,23,2,2,1.0},{5,24,1,2,0.25},{8,24,1,1,0.75},{22,24,1,1,1.0},{23,24,1,1,0.75},{42,24,1,1,0.5},{6,25,3,1,1.0},{9,25,1,1,0.75},{22,25,3,1,1.0},{25,25,1,1,0.25},{40,25,1,1,0.25},{41,25,1,1,1.0},{42,25,1,1,0.75},{6,26,1,1,0.75},{7,26,3,1,1.0},{10,26,1,1,0.75},{11,26,1,1,0.25},{22,26,4,1,1.0},{26,26,1,1,0.5},{41,26,2,1,0.75},{6,27,1,1,0.5},{7,27,5,1,1.0},{12,27,1,1,0.5},{22,27,5,1,1.0},{27,27,1,1,0.75},{28,27,1,1,0.25},{41,27,1,1,0.25},{42,27,1,1,1.0},{6,28,1,1,0.25},{7,28,6,1,1.0},{13,28,1,1,0.75},{14,28,1,1,0.5},{22,28,7,1,1.0},{29,28,1,1,0.5},{42,28,1,1,0.75},{7,29,1,1,0.5},{8,29,8,1,1.0},{16,29,1,1,0.75},{17,29,1,1,0.5},{18,29,4,1,0.25},{22,29,8,1,1.0},{30,29,1,1,0.75},{31,29,1,1,0.25},{42,29,1,1,0.5},{43,29,1,1,0.25},{8,30,24,1,1.0},{32,30,1,1,0.5},{42,30,2,1,0.25},{8,31,1,1,0.25},{9,31,24,1,1.0},{33,31,1,1,0.75},{34,31,1,1,0.25},{9,32,1,1,0.5},{10,32,25,1,1.0},{35,32,1,1,0.5},{10,33,1,1,0.5},{11,33,25,1,1.0},{36,33,1,1,0.75},{37,33,1,1,0.25},{11,34,1,1,0.5},{12,34,26,1,1.0},{38,34,1,2,0.5},{12,35,1,1,0.25},{13,35,1,1,0.75},{14,35,24,1,1.0},{14,36,1,1,0.25},{15,36,1,1,0.5},{16,36,20,1,1.0},{36,36,1,1,0.75},{37,36,1,1,0.25},{17,37,1,1,0.25},{18,37,1,1,0.5},{19,37,2,1,0.75},{21,37,14,1,1.0},{35,37,1,1,0.5},{22,38,11,1,1.0},{33,38,1,1,0.75},{34,38,1,1,0.25},{22,39,10,1,1.0},{32,39,1,1,0.5},{22,40,9,1,1.0},{31,40,1,1,0.25},{22,41,7,1,1.0},{29,41,1,1,0.75},{22,42,6,1,1.0},{28,42,1,1,0.5},{22,43,4,1,1.0},{26,43,1,1,0.75},{27,43,1,1,0.25},{22,44,3,1,1.0},{25,44,1,1,0.5},{22,45,1,1,1.0},{23,45,1,1,0.75},{24,45,1,1,0.25},{22,46,1,1,0.25}},
-BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{11,4,1,1,0.5},{12,4,1,1,0.75},{13,4,2,1,1.0},{15,4,1,1,0.75},{16,4,1,1,0.5},{10,5,1,1,0.75},{11,5,7,1,1.0},{18,5,1,1,0.25},{9,6,1,1,0.75},{10,6,9,1,1.0},{19,6,1,1,0.25},{21,6,1,11,0.5},{22,6,18,1,1.0},{40,6,1,1,0.75},{41,6,1,1,0.5},{42,6,1,1,0.25},{8,7,1,1,0.5},{9,7,10,1,1.0},{19,7,1,1,0.75},{22,7,22,1,1.0},{44,7,1,1,0.5},{8,8,1,1,0.75},{9,8,11,1,1.0},{22,8,23,1,1.0},{45,8,1,1,0.75},{8,9,12,3,1.0},{20,9,1,3,0.25},{22,9,24,1,1.0},{46,9,1,1,0.5},{7,10,1,1,0.25},{22,10,25,2,1.0},{47,10,1,1,0.25},{6,11,1,7,0.25},{47,11,1,1,0.75},{8,12,1,1,0.75},{9,12,11,1,1.0},{22,12,26,4,1.0},{8,13,1,1,0.25},{9,13,10,1,1.0},{19,13,1,1,0.5},{9,14,1,1,0.5},{10,14,8,1,1.0},{18,14,1,1,0.75},{10,15,1,1,0.5},{11,15,6,1,1.0},{17,15,1,1,0.5},{12,16,4,1,0.5},{16,16,1,1,0.25},{22,16,26,1,0.75},{0,18,48,6,1.0},{0,24,6,6,1.0},{6,24,36,1,0.25},{42,24,6,6,1.0},{6,26,1,4,0.25},{0,30,6,1,0.25},{42,30,6,1,0.25}},
-}
+ -- Syntax Vector V2: native rounded strokes, no image assets or raster glyph scaling.
  local function hudIcon(p,name,x,y,size,color)
-  local glyph=hudGlyphs[name]
-  if glyph then p:glyph(name,glyph,x,y,size,color);return end
-  local unit=size/24
-  local function circle(cx,cy,r) p:box(x+(cx-r)*unit,y+(cy-r)*unit,r*2*unit,r*2*unit,color,1,r*unit) end
+  local u=size/24
   local function line(ax,ay,bx,by,weight)
-   local dx,dy=(bx-ax)*unit,(by-ay)*unit;local length=math.sqrt(dx*dx+dy*dy);local h=(weight or 2)*unit
-   local o=p:box(x+(ax+bx)*unit/2-length/2,y+(ay+by)*unit/2-h/2,length,h,color,1,h/2);if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
+   local dx,dy=(bx-ax)*u,(by-ay)*u;local length=math.sqrt(dx*dx+dy*dy);local h=(weight or 1.8)*u
+   local o=p:box(x+(ax+bx)*u/2-length/2,y+(ay+by)*u/2-h/2,length,h,color,1,h/2)
+   if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
   end
-  if name=="SYNTAX" then line(5,7,19,7,2.3);line(5,7,12,12,2.3);line(12,12,5,17,2.3);line(5,17,19,17,2.3);line(19,7,19,17,2.3)
-   elseif name=="USER" then circle(12,7,4);p:box(x+3*unit,y+14*unit,18*unit,8*unit,color,1,5*unit)
-  elseif name=="LINK" then
-   for _,cx in ipairs({7,17}) do for i=0,15 do local a=i*math.pi/8;local b=(i+1)*math.pi/8;line(cx+5*math.cos(a),12+5*math.sin(a),cx+5*math.cos(b),12+5*math.sin(b),1.6) end end;line(8,12,16,12,2)
-  elseif name=="CHROME" then circle(12,12,10);p:box(x+7*unit,y+7*unit,10*unit,10*unit,0x000000,1,5*unit);circle(12,12,3);line(13,3,20,15,1.8);line(4,14,17,14,1.8);line(8,20,13,7,1.8)
-  elseif name=="SUCCESS" then line(5,12,10,17,2);line(10,17,19,6,2)
-  elseif name=="WARNING" then line(12,5,12,14,2);circle(12,18,1)
-  elseif name=="INFO" then line(12,9,12,19,2);circle(12,5,1)
-  elseif name=="BED" then line(2,7,2,21,2);line(22,11,22,21,2);line(2,13,22,13,3);line(2,17,22,17,2);circle(7,8,3);line(11,10,22,10,3)
-  elseif name=="CUBE" then line(12,3,22,8);line(22,8,22,18);line(22,18,12,23);line(12,23,2,18);line(2,18,2,8);line(2,8,12,3);line(2,8,12,13);line(12,13,22,8);line(12,13,12,23)
+  local function arc(cx,cy,r,start,finish,weight)
+   local count=math.max(4,math.ceil(math.abs(finish-start)/22.5))
+   for i=0,count-1 do local a=math.rad(start+(finish-start)*i/count);local b=math.rad(start+(finish-start)*(i+1)/count);line(cx+r*math.cos(a),cy+r*math.sin(a),cx+r*math.cos(b),cy+r*math.sin(b),weight) end
   end
+  local function dot(cx,cy,r) p:box(x+(cx-r)*u,y+(cy-r)*u,2*r*u,2*r*u,color,1,r*u) end
+  if name=="SYNTAX" then
+   line(7,5,2,12,2.3);line(2,12,7,19,2.3);line(17,5,22,12,2.3);line(22,12,17,19,2.3);line(14,3,10,21,2.1)
+  elseif name=="USER" then arc(12,7,4,0,360);arc(12,21,8,195,345);line(4.3,19,4.3,21);line(19.7,19,19.7,21)
+  elseif name=="LINK" then arc(12,21,17,225,315);arc(12,21,11,225,315);arc(12,21,5.5,225,315);dot(12,20,1.5)
+  elseif name=="REFRESH" then arc(12,13,9,150,390);line(5,18,19,18,1.6);line(12,13,17,7,2.1);dot(12,13,2)
+  elseif name=="SUCCESS" then arc(12,12,10,0,360,1.4);line(6,12,10,16,2.1);line(10,16,18,8,2.1)
+  elseif name=="WARNING" then line(12,2,23,21);line(23,21,1,21);line(1,21,12,2);line(12,8,12,14,2.2);dot(12,18,1.2)
+  elseif name=="INFO" then arc(12,12,10,0,360,1.6);line(12,11,12,18,2.2);dot(12,6.5,1.3)
+  elseif name=="CUBE" then line(12,2,22,7);line(22,7,22,18);line(22,18,12,23);line(12,23,2,18);line(2,18,2,7);line(2,7,12,2);line(2,7,12,12);line(12,12,22,7);line(12,12,12,23)
+  elseif name=="BED" then line(2,5,2,21);line(22,11,22,21);line(2,12,22,12,2.4);line(2,18,22,18);p:stroke(x+5*u,y+6*u,6*u,5*u,color,1,1.2*u,1.6*u);line(12,9,21,9,3)
+  else arc(12,12,9,0,360);dot(12,12,2) end
  end
 
  local arrayEntries={}
@@ -2174,6 +4457,10 @@ local function drawArrayList(dt,view,factor,st,p)
 
  local function drawHUDWidgets(dt)
    widgets:begin();hudBounds={};local view=gui.AbsoluteSize;local factor=hudScale
+  if visible and activeStyle:match("^Jackal ") and not hudEditing then
+   widgetRoot.Visible=false;xhan.root.Visible=false;targetHUD.Host.Visible=false;hudControls.Visible=false
+   widgets:finish();return
+  end
   local p=currentPalette();local st=state.HUD and state.HUD.settings or {}
   factor=math.min(factor,math.max(.1,(view.X-4)/182),math.max(.1,(view.Y-4)/166))
   local function text(t,x,y,size,w,color) widgets:text(t,x,y,size,w,color or p.text) end
@@ -2200,6 +4487,7 @@ local function drawArrayList(dt,view,factor,st,p)
   widgets:finish();updateHUDControls()
  end
  local function renderHUD(dt,frameDelta)
+  bridge.Sync()
   expireNotices();local view=gui.AbsoluteSize
   if view.X<=36 or view.Y<=32 then island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;return end
   widgetRoot.Visible=true;hudControls.Visible=true
@@ -2261,17 +4549,14 @@ local function drawArrayList(dt,view,factor,st,p)
   local radius=idle and h/2 or 8.5
    shell:begin();ink:begin()
    islandBackdrop.Size=UDim2.fromOffset(w*scale,h*scale);islandCorner.CornerRadius=UDim.new(0,radius*scale)
+   islandBackdrop.BackgroundTransparency=islandBackgroundTransparency/100
    local shadowStrength=islandShadow/100
-   if islandSoftShadow then
-    islandSoftShadow.Enabled=shadowStrength>0
-    islandSoftShadow.BlurRadius=UDim.new(0,(8+22*shadowStrength)*scale)
-    islandSoftShadow.Spread=UDim2.fromOffset((2+7*shadowStrength)*scale,(2+7*shadowStrength)*scale)
-     islandSoftShadow.Offset=UDim2.fromOffset(0,0)
-    islandSoftShadow.Transparency=1-.8*shadowStrength
-   elseif shadowStrength>0 then
-    local spread=9+10*shadowStrength
-    shell:glow(-spread,-spread,w+spread*2,h+spread*2,0x000000,.2+.52*shadowStrength)
-    for layer=9,1,-1 do local distance=layer*(.75+shadowStrength*.8);shell:box(-distance,-distance,w+distance*2,h+distance*2,0x000000,(.012+.04*(1-layer/9))*shadowStrength*2,radius+distance) end
+   if shadowStrength>0 then
+    local spread=18
+    for layer=spread,1,-1 do
+     local distance=layer*.7
+     shell:box(-distance,-distance,w+distance*2,h+distance*2,0x000000,.075*(shadowStrength/.7)*(1-layer/(spread+1)),radius+distance)
+    end
    end
    islandClip.Position=UDim2.fromOffset(2*scale,scale);islandClip.Size=UDim2.fromOffset(math.max(0,w-4)*scale,math.max(0,h-2)*scale)
     if idle then
@@ -2390,17 +4675,79 @@ local function drawArrayList(dt,view,factor,st,p)
   elseif drag.kind=="config" then config.x=math.clamp(x-drag.dx,4,math.max(4,width-W-4));config.y=math.clamp(y-drag.dy,4,math.max(4,height-H-86))
   elseif drag.kind=="scrollbar" then local c=drag.c;c.scroll=math.clamp((y-c.y-H-2-drag.grab)/math.max(1,drag.travel)*c.maxScroll,0,c.maxScroll);c.target=c.scroll end
  end
+ -- A renderer adapter: Syntax is the single owner of module values and callbacks.
+ function bridge.Mirror(id,key,value)
+  local app=bridge.app;if not app or bridge.syncing then return end
+  local group=app._byId[id];if not group then return end
+  bridge.syncing=true
+  if key=="enabled" then group:SetEnabled(value)
+  elseif key=="key" then group:SetKey(value=="Unknown" and "None" or value)
+  elseif group._definitions[key] then group:Set(key,copy(value)) end
+  bridge.syncing=false
+ end
+ function bridge.Create()
+  if bridge.app then return end
+  local definitions={}
+  for _,original in ipairs(options.Modules or {}) do
+   local def=copy(original);local current=state[def.id]
+   def.enabled=current.enabled;def.key=current.key=="Unknown" and "None" or current.key
+   for _,setting in ipairs(def.settings or {}) do setting.default=copy(current.settings[setting.name]) end
+   definitions[#definitions+1]=def
+  end
+  bridge.app=JackalRenderer.new({Parent=parent,Name="SyntaxJackalRenderer",DisplayOrder=gui.DisplayOrder-1,
+   Embedded=true,Visible=false,Modules=definitions,Categories=categoryOrder,Category=categoryOrder[1],
+   Layout=activeStyle=="Jackal Neverlose" and "Neverlose" or "Dropdown",Preset="Opai",
+   Scale=k,Language=language,BindBuiltinComponents=false,DynamicIsland={Enabled=false},
+   StyleOptions=copy(UI.Styles),StyleName=activeStyle,
+   OnSelectStyle=function(name) api:SetStyle(name) end,
+   OnOpenAppearance=function() api:OpenAppearance() end,
+   OnEditHUD=function() api:EditHUD() end,
+   OnOpenConfigs=function() config.open=not config.open;config.x=math.max(4,width-W-12);config.y=50 end,
+   OnVisibilityChanged=function(value) if not bridge.suspended and visible~=value then api:SetVisible(value) end end})
+  local app=bridge.app
+  app.HUD.Visible=false
+  for _,group in pairs(app.Models) do if group==app.Models.HUD then for _,name in ipairs({"Arraylist","Time display","Keystrokes","Crosshair","Dynamic Island"}) do if group._definitions[name] then group:Set(name,false) end end end end
+  app.EffectLayer.Visible=false
+  connect(app.Changed,function(id,key,value)
+   if bridge.syncing or not state[id] then return end
+   if key=="enabled" then api:SetEnabled(id,value)
+   elseif key=="key" then local normalized=value=="None" and "Unknown" or value;state[id].key=normalized;notify(id,"key",normalized)
+   elseif state[id].settings[key]~=nil then api:SetSetting(id,key,value) end
+  end)
+  connect(changed.Event,bridge.Mirror)
+ end
+ function bridge.Sync()
+  local enabled=activeStyle:match("^Jackal ")~=nil
+  if enabled then bridge.Create() end
+  local app=bridge.app;if not app then return end
+  bridge.suspended=true
+  if enabled then
+   if bridge.style~=activeStyle then
+    bridge.style=activeStyle;app.Options.StyleName=activeStyle
+    app:SetLayout(activeStyle=="Jackal Neverlose" and "Neverlose" or "Dropdown")
+    app:SetPreset("Opai");app:_layout()
+   end
+   local scale=k
+   if bridge.scale~=scale then bridge.scale=scale;app:SetScale(scale) end
+   if bridge.language~=language then bridge.language=language;app:SetLanguage(language) end
+   app.ReducedMotion=not animations
+  end
+  local target=enabled and visible and not appearanceOpen and not config.open
+  if app.Visible~=target then app:SetVisible(target) end
+  bridge.suspended=false
+ end
  render=function(dt)
   if dead then return end;local frameDelta=dt or 0;local motionDelta=math.min(frameDelta,.1)*animationSpeed
    if animations then visualTime+=motionDelta;flowTime+=math.min(frameDelta,.1) end
   dt=animations and motionDelta or 10
-  opacity=animations and ease(opacity,visible and 1 or 0,dt,30) or (visible and 1 or 0);catcher.Visible=visible;root.Visible=opacity>.005
+  opacity=animations and ease(opacity,visible and 1 or 0,dt,30) or (visible and 1 or 0);catcher.Visible=visible and not selectedStyle():match("^Jackal ");root.Visible=opacity>.005
   front:drawFixedToolbar(frameDelta)
    local localBlur=state.ClickGUI and state.ClickGUI.settings["Local Blur"]~=false
-   blur.Size=(options.Blur==false or localBlur) and 0 or 10*opacity
+   blur.Size=(options.Blur==false or state.ClickGUI) and 0 or 10*opacity
   local nextStyle=selectedStyle()
   if activeStyle~=nextStyle then activeStyle=nextStyle;dropdown=nil;sliding=nil;binding=nil;drag=nil;gesture=nil;touch=nil;config.open=false;alt.nav=1;alt.target=0;alt.scroll=0;searchBox:ReleaseFocus();searchBox.Text="";altName:ReleaseFocus() end
   renderHUD(dt,frameDelta)
+  bridge.Sync()
    if not root.Visible then updateRegionalBlur(blurPane,altGlass,false);appearanceRoot.Visible=false;accentBox.Visible=false;hits={};syncNativeHits();return end
   local elapsed=(os.clock()-opened)*animationSpeed;zoom=not animations and 1 or visible and (elapsed>=.32 and 1 or 1+.18*math.exp(-17*elapsed)*math.cos(23*elapsed)) or 1+.6*(1-opacity)
   offsetX=(gui.AbsoluteSize.X-width*k*zoom)/2;offsetY=(gui.AbsoluteSize.Y-height*k*zoom)/2
@@ -2411,12 +4758,13 @@ local function drawArrayList(dt,view,factor,st,p)
   for _,win in pairs(alt.windows) do win.frame.Visible=false end
   for _,c in ipairs(columns) do c.frame.Visible=activeStyle=="Opai" end
   altRoot.Visible=false
-  if activeStyle=="Opai" then drawColumns(dt);drawConfig(dt) else drawAlternatives(dt);if activeStyle=="Modern" and config.open then drawModernConfigs() end end
-   updateRegionalBlur(blurPane,altGlass,visible and localBlur and activeStyle=="Neverlose")
+  if activeStyle:match("^Jackal ") then if config.open then drawConfig(dt) end elseif activeStyle=="Opai" then drawColumns(dt);drawConfig(dt) else drawAlternatives(dt);if activeStyle=="Modern" and config.open then drawModernConfigs() end end
+   updateRegionalBlur(blurPane,altGlass,visible and options.Blur~=false and localBlur and activeStyle=="Neverlose",
+    rect(gui.AbsolutePosition.X+offsetX+alt.x*k*zoom,gui.AbsolutePosition.Y+offsetY+alt.y*k*zoom,760*alt.s*k*zoom,620*alt.s*k*zoom))
   drawThemeGlow()
    drawDropdown(dt)
   if animations and ripple then local t=(os.clock()-ripple.start)*animationSpeed/.32;if t<1 then local r=4+18*(1-(1-t)^3);front:stroke(ripple.x-r,ripple.y-r,r*2,r*2,currentPalette().accent,.45*(1-t),r,1) else ripple=nil end end
-  if activeStyle~="Neverlose" then
+  if activeStyle=="Opai" then
    local x,y=width-34.7,height-34.7;front:box(x,y,26.7,26.7,currentPalette().accent,1,5)
    line(front,x+7,y+18,x+18,y+7,0x101014,5);line(front,x+6,y+22.8,x+22,y+22.8,0x101014,1.6);hit(rect(x,y,26.7,26.7),"hudEditRMB")
   end
@@ -2431,12 +4779,13 @@ local function drawArrayList(dt,view,factor,st,p)
   local key=input.KeyCode;local kind=input.UserInputType
   if kind==Enum.UserInputType.Keyboard then
    if Input:GetFocusedTextBox() then return end
+   if bridge.app and bridge.app._binding then return end
    if binding then state[binding.def.id].key=(key==Enum.KeyCode.Escape or key==Enum.KeyCode.Backspace) and "Unknown" or key.Name;notify(binding.def.id,"key",state[binding.def.id].key);binding=nil;return end
    if key==Enum.KeyCode.F7 then if visible then appearanceOpen=not appearanceOpen;dropdown=nil end;return end
    if key==Enum.KeyCode.F8 then api:SetDiagnostics(not diagnostic);return end
-   if key==Enum.KeyCode.F and activeStyle~="Opai" and (Input:IsKeyDown(Enum.KeyCode.LeftControl) or Input:IsKeyDown(Enum.KeyCode.RightControl)) then searchBox:CaptureFocus();return end
+   if key==Enum.KeyCode.F and not activeStyle:match("^Jackal ") and activeStyle~="Opai" and (Input:IsKeyDown(Enum.KeyCode.LeftControl) or Input:IsKeyDown(Enum.KeyCode.RightControl)) then searchBox:CaptureFocus();return end
    if key==Enum.KeyCode.RightShift then api:SetVisible(not visible);return end
-   if key==Enum.KeyCode.Escape and visible then if appearanceOpen then appearanceOpen=false;appearanceSliding=nil;accentBox:ReleaseFocus() elseif dropdown then dropdown=nil elseif config.open then config.open=false else api:SetVisible(false) end;return end
+   if key==Enum.KeyCode.Escape and visible then if activeStyle:match("^Jackal ") and not appearanceOpen and not config.open then return end; if appearanceOpen then appearanceOpen=false;appearanceSliding=nil;accentBox:ReleaseFocus() elseif dropdown then dropdown=nil elseif config.open then config.open=false else api:SetVisible(false) end;return end
    if not processed then for id,st in pairs(state) do if st.key~="Unknown" and st.key==key.Name then api:SetEnabled(id,not st.enabled) end end end
   end
  end)
@@ -2452,6 +4801,7 @@ local function drawArrayList(dt,view,factor,st,p)
    return
   end
   if not visible then return end
+  if activeStyle:match("^Jackal ") and not appearanceOpen and not config.open then return end
   if input.UserInputType==Enum.UserInputType.MouseMovement or input==touch then local x,y=pointerPoint(input)
    if input==touch and gesture then
     local g=gesture;mx,my=x,y
@@ -2497,15 +4847,15 @@ local function drawArrayList(dt,view,factor,st,p)
  new("UICorner",mobile,{CornerRadius=UDim.new(0,17)})
  connect(mobile.Activated,function() api:SetVisible(not visible) end)
  function api:Destroy()
-    if dead then return end;dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;destroyRegionalBlur(blurPane);blur:Destroy();gui:Destroy()
+    if dead then return end;dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;destroyRegionalBlur(blurPane);blur:Destroy();gui:Destroy()
  end
  connect(shutdown.Event,function() api:Destroy() end)
-   connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;destroyRegionalBlur(blurPane);blur:Destroy() end end)
+   connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;destroyRegionalBlur(blurPane);blur:Destroy() end end)
  if options.Accent~=nil then api:SetAccent(options.Accent) end
  fit();render(0)
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Camera.Value+1,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),island={visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="SyntaxVectorV2",visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  return api
 end
 return UI
