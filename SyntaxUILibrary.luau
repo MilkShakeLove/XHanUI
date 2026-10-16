@@ -15,7 +15,7 @@ local TextService=game:GetService("TextService")
 local Stats=game:GetService("Stats")
 local Lighting=game:GetService("Lighting")
 local SoundService=game:GetService("SoundService")
-local UI={Version="2.1.1",SourceVersion="1.1.9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.1",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={Version="2.1.1",SourceVersion="1.1.9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.2",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local Window={};Window.__index=Window
 local Group={};Group.__index=Group
 local T={Window=0x151515,Header=0x1C1C1C,HeaderTop=0x191919,Divider=0x111111,Group=0x1C1C1C,Border=0x222222,Field=0x161616,Hover=0x191919,Selected=0x222222,Popup=0x1C1C1C,Title=0xEDEDED,Label=0xE4E4E4,LabelHover=0xF4F4F4,Muted=0x95909F,Icon=0x9C91A6,IconHover=0xD2D2D2,FieldText=0xD3CCD9,FieldTextHover=0xD8D8D8,Accent=0x34A5F8,AccentDim=0x315675,Privileged=0xF5A35D}
@@ -1095,6 +1095,7 @@ function Window:_placeRows(group,rows,width,y)
  return y+4
 end
 function Window:_moduleTools(group,parent,scope)
+ if self.Options.SyntaxKeybind then return {} end
  local rows={}
  local binding=self:_rowBase(parent,scope,self:_tr("Bind"));binding.Definition={};binding.Height=34
  local bind=self:_button(binding.Root,group.Key,0,4,126,26,function() end,scope);bind.Name="ModuleBind"
@@ -1135,6 +1136,7 @@ function Window:_entry(parent,group,scope,card)
  local meta=self:_moduleTools(group,body,scope);for _,row in ipairs(meta) do entry.Rows[#entry.Rows+1]=row end
  local mark=create("Frame",button,{Name="EnabledBar",BackgroundColor3=color(self:_accentHex()),Size=UDim2.fromOffset(3,height),Visible=false});entry.Mark=mark
  local key=text(button,"",0,0,70,height,11,0x858585,false,Enum.TextXAlignment.Right);entry.KeyLabel=key
+ if self.Options.SyntaxKeybind then entry.SyntaxBind=self.Options.SyntaxKeybind(group.Id,button,scope,height) end
  if group.Definition.integrationExample then entry.ExampleBadge=text(button,self:_tr("Demo"),0,0,48,height,14,0xD8B88E,false,Enum.TextXAlignment.Center);entry.ExampleBadge.Name="IntegrationExample" end
  local expand=create("TextButton",button,{Name="OptionsButton",Text="",AutoButtonColor=false,BackgroundTransparency=1,Size=UDim2.fromOffset(28,height)})
  local mode=self.Layout=="Neverlose" and "Arrow" or self.Theme["Module Option Open Button"]
@@ -1145,7 +1147,7 @@ function Window:_entry(parent,group,scope,card)
   expandIcon.Root.Visible=false
   for i=-1,1 do local dot=create("Frame",expand,{Name="OptionDot",BackgroundColor3=color(0x888888),Position=UDim2.new(.5,-1.25,.5,i*5-1.25),Size=UDim2.fromOffset(2.5,2.5)});corner(dot,1.25) end
  elseif mode=="Future" then expandIcon.Root.Visible=false;expand.Text="+";expand.TextSize=16;expand.TextColor3=color(0xC0C0C0) end
- expand.Visible=mode~="Off";entry.ExpandButton=expand
+ expand.Visible=mode~="Off" and (not self.Options.SyntaxKeybind or #entry.Rows>0);entry.ExpandButton=expand
  if self.Layout=="Neverlose" then
   entry.Switch=create("Frame",button,{Name="Toggle",BackgroundColor3=color(0x49414F),Size=UDim2.fromOffset(30,18)});corner(entry.Switch,9)
   entry.Switch.Size=UDim2.fromOffset(38,22);corner(entry.Switch,11)
@@ -1169,6 +1171,11 @@ function Window:_entry(parent,group,scope,card)
   end
   self.KeyLabel.Position=UDim2.fromOffset(math.max(30,width-106),0)
   if self.ExampleBadge then self.ExampleBadge.Position=UDim2.fromOffset(width-(self.Switch and 166 or 82),0);self.KeyLabel.Visible=false end
+  if self.SyntaxBind then
+   self.SyntaxBind.Position=UDim2.fromOffset(width-(self.Switch and 188 or 124),0)
+   self.Label.Size=UDim2.fromOffset(math.max(1,width-(self.Switch and 208 or 144)),self.Height)
+   self.KeyLabel.Visible=false
+  end
   if self.Switch then self.Switch.Position=UDim2.fromOffset(width-48,(self.Height-22)/2);self.Reset.Position=UDim2.fromOffset(width-112,0);self.KeyLabel.Visible=false end
  end
  local function refresh()
@@ -1205,6 +1212,7 @@ function Window:_entry(parent,group,scope,card)
  end,scope)
  self:_listen(group,"enabled",refresh,scope);self:_listen(group,"key",refresh,scope)
  local function open()
+  if self.Options.SyntaxKeybind and #entry.Rows==0 then return end
   if self.Theme["Module Option Style"]=="Old" and self.Layout=="Dropdown" then self:OpenModule(group.Id)
   else entry.Expanded=not entry.Expanded;self._expanded[group.Id]=entry.Expanded;self:_animate(entry.ExpandIcon.Root,{Rotation=entry.Expanded and 180 or 0},.22);self:_layout() end
  end
@@ -1292,17 +1300,18 @@ function Window:_buildNeverlose()
  self.NLCategories={}
  local tones={0xE35698,0x5CEB7D,0x82CC82,0xA16AEF,0x57C6D8,0xBE69F0,0x9EF18B,0xB170E9,0x6C9FEB,0xF5BA78}
  for i,category in ipairs(self._categories) do
-  local b=self:_button(self.SideScroll,"",0,(i-1)*42,164,38,function() self.Category=category;self:_invalidate() end,scope);b.Name="Category_"..category
+  local b=self:_button(self.SideScroll,"",0,(i-1)*42,164,38,function() self:SelectCategory(category) end,scope);b.Name="Category_"..category
   local active=category==self.Category;b.BackgroundColor3=color(active and 0x62405F or 0x302030);b.BackgroundTransparency=active and .15 or 1;b.TextXAlignment=Enum.TextXAlignment.Left;b.TextSize=16
   local img=icon(b,CATEGORY_GLYPHS[category] or "misc",20,tones[i] or 0xC58FC0);img.Root.Position=UDim2.fromOffset(10,9)
-  local marker=create("Frame",b,{Name="SelectionBar",BackgroundColor3=color(0xE76AAE),Position=UDim2.fromOffset(0,9),Size=UDim2.fromOffset(3,20),Visible=active});corner(marker,2)
+  local marker=create("Frame",b,{Name="SelectionBar",BackgroundColor3=color(0xE76AAE),Position=UDim2.fromOffset(0,9),Size=UDim2.fromOffset(3,20),Visible=false});corner(marker,2)
   self.NLCategories[#self.NLCategories+1]={Name=category,Button=b}
-  self:_on(b.MouseLeave,function() self:_animate(b,{BackgroundColor3=color(active and 0x62405F or 0x302030)}) end,scope)
+  self:_on(b.MouseLeave,function() self:_animate(b,{BackgroundColor3=color(category==self.Category and 0x62405F or 0x302030)}) end,scope)
  end
+ self.NLSelection=create("Frame",self.SideScroll,{Name="SelectionIndicator",BackgroundColor3=color(0xE76AAE),Position=UDim2.fromOffset(0,((table.find(self._categories,self.Category) or 1)-1)*42+9),Size=UDim2.fromOffset(3,20),ZIndex=5});corner(self.NLSelection,2)
  self.NLAccount=create("Frame",self.NLSide,{Name="Account",BackgroundColor3=color(0x1B1221),BackgroundTransparency=.3,Position=UDim2.new(0,10,1,-78),Size=UDim2.new(1,-20,0,66)});corner(self.NLAccount,8)
  local user=create("ImageLabel",self.NLAccount,{Name="User",BackgroundColor3=color(0x554B60),Position=UDim2.fromOffset(10,14),Size=UDim2.fromOffset(36,36),Image=self.Player and 'rbxthumb://type=AvatarHeadShot&id='..self.Player.UserId..'&w=150&h=150' or ""});corner(user,18)
  self.NLUsername=text(self.NLAccount,self.Player and self.Player.DisplayName or "Roblox",56,10,100,24,14,0xF0E5EF,true)
- self.NLAccountDetail=text(self.NLAccount,self.Options.Embedded and "Syntax · Jackal" or "Jackal · Roblox",56,34,100,20,14,0xB390AB)
+ self.NLAccountDetail=text(self.NLAccount,self.Options.Embedded and "Syntax" or "Jackal · Roblox",56,34,100,20,14,0xB390AB)
  self.NLSearchWrap=field(self.NL,208,20,570,36);self.NLSearchWrap.Name="SearchBar";self.NLSearchWrap.BackgroundColor3=color(0x17101C);corner(self.NLSearchWrap,7);stroke(self.NLSearchWrap,0x855B7A,1)
  local searchIcon=icon(self.NLSearchWrap,"search",20,0xBA9AB2);searchIcon.Root.Position=UDim2.fromOffset(10,8)
  self.NLSearch=create("TextBox",self.NLSearchWrap,{Name="InlineSearch",BackgroundTransparency=1,Position=UDim2.fromOffset(38,0),Size=UDim2.new(1,-48,1,0),Text=self.NLQuery or "",PlaceholderText=self:_tr("Search modules and settings").."  (Ctrl+F)",PlaceholderColor3=color(0xB89AAC),TextColor3=color(T.Title),Font=Enum.Font.BuilderSans,TextSize=16,ClearTextOnFocus=false,TextXAlignment=Enum.TextXAlignment.Left})
@@ -1315,12 +1324,9 @@ function Window:_buildNeverlose()
   for _,e in ipairs(self._entries) do e.Expanded=not any;self._expanded[e.Group.Id]=e.Expanded;self:_animate(e.ExpandIcon.Root,{Rotation=e.Expanded and 180 or 0},.22) end;self:_layout()
  end,scope)
  self.NLTitle=text(self.NL,self:_tr(self.Category),208,65,600,29,17,0xEFE4EF,true)
- self.NLBody=create("Frame",self.NL,{Name="Cards",BackgroundTransparency=1,Position=UDim2.fromOffset(208,100),Size=UDim2.fromOffset(850,510)})
- self.NLColumns={}
- for i=1,2 do self.NLColumns[i]=create("ScrollingFrame",self.NLBody,{Name="CardColumn"..i,BackgroundTransparency=1,Size=UDim2.fromOffset(400,510),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,ScrollBarImageColor3=color(0xEBA6D0),Active=true}) end
- local n=0
- for _,g in ipairs(self._modules) do if g.Category==self.Category and not g.Definition.omitFromMenu then n+=1;self:_entry(self.NLColumns[(n-1)%2+1],g,scope,true) end end
- self.NLStatus=text(self.NL,"JACKAL  /  UI "..UI.Version,208,0,600,24,14,0xB399AD);self.NLStatus.Position=UDim2.new(0,208,1,-27)
+ self.NLBody=create("Frame",self.NL,{Name="Cards",BackgroundTransparency=1,ClipsDescendants=true,Position=UDim2.fromOffset(208,100),Size=UDim2.fromOffset(850,510)})
+ self:_buildNeverloseContents()
+ self.NLStatus=text(self.NL,self.Options.Embedded and "SYNTAX" or "JACKAL  /  UI "..UI.Version,208,0,600,24,14,0xB399AD);self.NLStatus.Position=UDim2.new(0,208,1,-27)
 end
 function Window:_buildImgui()
  self.IG=create("Frame",self.View,{Name="ImguiWindow",Active=true,BackgroundColor3=color(0x171717),Size=UDim2.fromOffset(840,560)});stroke(self.IG,0x696969,1)
@@ -1401,6 +1407,42 @@ function Window:_layoutModules()
   local y=0;for _,entry in ipairs(self._entries) do entry:Place(width-treeW-25,y);y+=self:_entryHeight(entry,width-treeW-25)+4;entry.Refresh() end
   self.IGBody.CanvasSize=UDim2.fromOffset(0,y)
  end
+end
+
+-- The window, sidebar, search and account remain mounted across category changes.
+function Window:_buildNeverloseContents()
+ local scope=Scope.new(self._viewScope);self._nlContentScope=scope
+ self.NLCards=create("Frame",self.NLBody,{Name="CategoryPage_"..self.Category,BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=2});scope.root=self.NLCards
+ self.NLColumns={}
+ for i=1,2 do self.NLColumns[i]=create("ScrollingFrame",self.NLCards,{Name="CardColumn"..i,BackgroundTransparency=1,Size=UDim2.fromOffset(400,510),CanvasSize=UDim2.fromOffset(0,0),ScrollBarThickness=3,ScrollBarImageColor3=color(0xEBA6D0),Active=true}) end
+ local n=0
+ for _,g in ipairs(self._modules) do if g.Category==self.Category and not g.Definition.omitFromMenu then n+=1;self:_entry(self.NLColumns[(n-1)%2+1],g,scope,true) end end
+end
+function Window:_switchNeverloseCategory(value)
+ if value==self.Category then return self end
+ local direction=(table.find(self._categories,value) or 1)>(table.find(self._categories,self.Category) or 1) and 1 or -1
+ self._nlScrolls=self._nlScrolls or {};self._nlScrolls[self.Category]={self.NLColumns[1].CanvasPosition,self.NLColumns[2].CanvasPosition}
+ if self._nlExitScope then self._nlExitScope:Clean();self._nlExitScope=nil end
+ self:_closePopups(nil,true);self._drag=nil;self._gesture=nil
+ if self.Options.CancelSyntaxBinding then self.Options.CancelSyntaxBinding() end
+ if self.Visible and not self.ReducedMotion then
+  local ghost=self.NLCards:Clone();ghost.Name="LeavingCategory";ghost.Parent=self.NLBody;ghost.ZIndex=1
+  for _,o in ipairs(ghost:GetDescendants()) do if o:IsA("GuiButton") or o:IsA("TextBox") then o.Active=false;o.Interactable=false end end
+  local exit=Scope.new(self._viewScope);exit.root=ghost;self._nlExitScope=exit
+  self:_transition(ghost,1,0,.16,exit,function() exit:Clean();if self._nlExitScope==exit then self._nlExitScope=nil end end,{X=-direction*14,Y=-3})
+ end
+ self._nlContentScope:Clean();self._entries={};self.Category=value
+ for object,tween in pairs(self._tweens) do if not object.Parent then tween:Cancel();self._tweens[object]=nil end end
+ self:_buildNeverloseContents();self:_layoutModules();self:_snapText(self.NLCards,self:_activeScale())
+ for i,button in ipairs(self.NLCategories) do
+  local active=button.Name==value
+  self:_animate(button.Button,{BackgroundTransparency=active and .15 or 1,BackgroundColor3=color(active and 0x62405F or 0x302030)},self.ReducedMotion and 0 or .22)
+  if active then self:_animate(self.NLSelection,{Position=UDim2.fromOffset(0,(i-1)*42+9)},self.ReducedMotion and 0 or .28) end
+ end
+ local saved=self._nlScrolls[value]
+ if saved then for i,column in ipairs(self.NLColumns) do column.CanvasPosition=saved[i] end end
+ self:_transition(self.NLCards,0,1,.28,self._nlContentScope,nil,{X=direction*20,Y=7})
+ return self
 end
 
 function Window:_optionsPage(group,title)
@@ -1892,7 +1934,7 @@ function Window:_applyComponents()
  if bg then local value=bg.Values.Tint or {Hex="#346A5A",Alpha=1};self.BackgroundTint.BackgroundColor3=Color3.fromHex(value.Hex);self.BackgroundTint.BackgroundTransparency=1-(bg.Values.Opacity or .5)*value.Alpha end
  self.BackgroundGradient.Enabled=mode=="Flow" or mode=="Gradient"
  if mode~="Flow" then self.BackgroundGradient.Rotation=35;self.BackgroundGradient.Offset=Vector2.new(0,0) end
- self.Main.BackgroundTransparency=self.BackgroundTint.Visible and .75 or .25
+ self.Main.BackgroundTransparency=self.Options.Embedded and 1 or (self.BackgroundTint.Visible and .75 or .25)
  local blurOn=self.Visible and (blur and blur.Enabled or bg and bg.Enabled and mode=="Blur")
  local strength=blur and blur.Enabled and (blur.Values.Strength or 8) or 8
  self.Blur.Enabled=blurOn==true;self.Blur.Size=blurOn and strength or 0
@@ -2107,6 +2149,7 @@ function Window:Search(query)
 end
 function Window:SelectCategory(value)
  assert(table.find(self._categories,value),"Unknown category")
+ if self.Page=="Modules" and self.Layout=="Neverlose" and self.NLCards and self.NLCards.Parent then return self:_switchNeverloseCategory(value) end
  self.Category=value
  if self.Layout=="Dropdown" and self.Page=="Modules" then
   for _,p in ipairs(self._panels) do if p.Name==value then self.Canvas.CanvasPosition=Vector2.new(p.Root.Position.X.Offset*self._scale,0) end end
@@ -2133,7 +2176,7 @@ function Window:SetVisible(value)
 end
 function Window:Toggle() return self:SetVisible(not self.Visible) end
 function Window:_chrome()
- self.Version=text(self.Main,self.Options.Embedded and "Syntax / Jackal" or "Jackal Client 1.1.9",12,0,180,34,15,0x9ED677,true)
+ self.Version=text(self.Main,self.Options.Embedded and "Syntax" or "Jackal Client 1.1.9",12,0,180,34,15,0x9ED677,true)
  self.Nav=create("ScrollingFrame",self.Main,{Name="TopTabs",BackgroundTransparency=1,Size=UDim2.fromOffset(550,30),CanvasSize=UDim2.fromOffset(9*62,0),ScrollBarThickness=1,ScrollingDirection=Enum.ScrollingDirection.X,Active=true,ZIndex=5})
  self.NavButtons={}
  local navX=0
@@ -2169,6 +2212,7 @@ function Window:_input()
  self:_on(Input.WindowFocusReleased,function() self._drag=nil;self._gesture=nil end)
  self:_on(Input.TextBoxFocused,function() if self._binding then self._binding.cancel();self._binding=nil end end)
  self:_on(Input.InputBegan,function(input,processed)
+  if self.Options.SyntaxBindingActive and self.Options.SyntaxBindingActive(input) then return end
   if self.Options.Embedded and not self.Visible then return end
   if input.UserInputType~=Enum.UserInputType.Keyboard then return end
   local key=input.KeyCode;local focused=Input:GetFocusedTextBox()
@@ -2216,7 +2260,7 @@ function UI.new(options)
  local shutdown=create("BindableEvent",self.Gui,{Name="Shutdown"});self:_on(shutdown.Event,function() self:Destroy() end)
  self._changed=create("BindableEvent",self.Gui,{Name="Changed"});self.Changed=self._changed.Event
  self:_hud()
- self.Main=create("Frame",self.Gui,{Name="JackalClickGUI",BackgroundColor3=color(0x090B10),BackgroundTransparency=.25,Size=UDim2.fromScale(1,1),ZIndex=10});self.ScaleObject=create("UIScale",self.Main,{Scale=1})
+ self.Main=create("Frame",self.Gui,{Name="JackalClickGUI",BackgroundColor3=color(0x090B10),BackgroundTransparency=options.Embedded and 1 or .25,Size=UDim2.fromScale(1,1),ZIndex=10});self.ScaleObject=create("UIScale",self.Main,{Scale=1})
  self.Backdrop=create("TextButton",self.Main,{Name="InputBackdrop",Text="",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),AutoButtonColor=false,Active=true,Modal=true,ZIndex=0})
  self:_on(self.Backdrop.Activated,function(input)
   if self.Visible and self.Page=="Modules" and self.Layout=="Neverlose" then
@@ -2261,10 +2305,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.1",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.2",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -2995,6 +3039,8 @@ function UI.new(options)
    m.settings=m.settings or {};local found=false
    for _,setting in ipairs(m.settings) do if setting.name=="Island Background Transparency" then found=true end end
    if not found then m.settings[#m.settings+1]={name="Island Background Transparency",type="slider",default=options.IslandBackgroundTransparency or 40,min=0,max=100,step=1} end
+   local speedFound=false;for _,setting in ipairs(m.settings) do if setting.name=="Island Animation Speed" then speedFound=true end end
+   if not speedFound then m.settings[#m.settings+1]={name="Island Animation Speed",type="slider",default=options.IslandAnimationSpeed or 1,min=.25,max=3,step=.05} end
   end
  end
  for _,name in ipairs({"Scale","HUDScale"}) do local value=options[name];assert(value==nil or (type(value)=="number" and value==value and value>=.5 and value<=4),name.." must be between 0.5 and 4") end
@@ -3032,7 +3078,8 @@ function UI.new(options)
   local islandShadow=math.clamp(options.IslandShadow or 50,0,100)
  local islandBackgroundTransparency=options.IslandBackgroundTransparency or 40
  assert(type(islandBackgroundTransparency)=="number" and islandBackgroundTransparency==islandBackgroundTransparency and islandBackgroundTransparency>=0 and islandBackgroundTransparency<=100,"IslandBackgroundTransparency must be 0–100")
- local bridge={app=nil,syncing=false,suspended=false,style=nil,language=nil,scale=nil,animations=nil}
+ local bridge={app=nil,syncing=false,suspended=false,style=nil,language=nil,scale=nil,animations=nil,islandAnimationSpeed=options.IslandAnimationSpeed or 1,bindings={}}
+ assert(type(bridge.islandAnimationSpeed)=="number" and bridge.islandAnimationSpeed==bridge.islandAnimationSpeed and bridge.islandAnimationSpeed>=.25 and bridge.islandAnimationSpeed<=3,"IslandAnimationSpeed must be 0.25–3")
   local appearanceT=0
  assert(themeEffect=="Source" or themeEffect=="FlowingGlow","Invalid theme effect")
  assert(type(animationSpeed)=="number" and animationSpeed>=.5 and animationSpeed<=3,"Invalid animation speed")
@@ -3145,6 +3192,7 @@ function UI.new(options)
   rows[m.id]={def=m,expanded=false,reveal=0,enabled=m.enabled and 1 or 0,hover=0,animations={}}
  end
  if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then islandBackgroundTransparency=state.HUD.settings["Island Background Transparency"] end
+ if state.HUD and state.HUD.settings["Island Animation Speed"]~=nil then bridge.islandAnimationSpeed=state.HUD.settings["Island Animation Speed"] end
  local function selectedTheme() local s=state.ClickGUI;if s and palettes[s.settings["Opai Color"]] then return s.settings["Opai Color"] end;return theme end
 
  local customAccent
@@ -3214,7 +3262,24 @@ function UI.new(options)
    if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then self:SetSetting("HUD","Island Background Transparency",value) end
    notify("Appearance","islandBackgroundTransparency",value)
   end
-  function api:GetAppearance() return {language=language,islandBackgroundTransparency=islandBackgroundTransparency,islandShadow=islandShadow,scale=options.Scale or k,hudScale=hudScale,accent=customAccent or false,effect=themeEffect,animations=animations,animationSpeed=animationSpeed,glowStrength=glowStrength} end
+  function api:SetIslandAnimationSpeed(value)
+   assert(type(value)=="number" and value==value and value>=.25 and value<=3,"Island animation speed must be 0.25–3")
+   bridge.islandAnimationSpeed=value
+   if state.HUD and state.HUD.settings["Island Animation Speed"]~=nil then self:SetSetting("HUD","Island Animation Speed",value) end
+   notify("Appearance","islandAnimationSpeed",value)
+  end
+  function api:BeginKeybind(id)
+   local row=assert(rows[id],"Unknown module");if not visible then return false end
+   if binding==row then binding=nil else binding=row end
+   dropdown=nil;sliding=nil;drag=nil;bridge.RefreshBindings();return true
+  end
+  function api:CancelKeybind() binding=nil;bridge.RefreshBindings() end
+  function api:SetKeybind(id,key)
+   assert(state[id],"Unknown module");assert(type(key)=="string" and not key:find("+",1,true),"Syntax uses a single key")
+   local ok,item=pcall(function() return Enum.KeyCode[key] end);assert(ok and item,"Invalid key")
+   state[id].key=key;binding=nil;notify(id,"key",key);bridge.RefreshBindings()
+  end
+  function api:GetAppearance() return {language=language,islandAnimationSpeed=bridge.islandAnimationSpeed,islandBackgroundTransparency=islandBackgroundTransparency,islandShadow=islandShadow,scale=options.Scale or k,hudScale=hudScale,accent=customAccent or false,effect=themeEffect,animations=animations,animationSpeed=animationSpeed,glowStrength=glowStrength} end
  function api:OpenAppearance() appearanceOpen=true;dropdown=nil;sliding=nil;binding=nil;drag=nil end
 
  local function valid(s,v)
@@ -3236,7 +3301,7 @@ function UI.new(options)
  end
  function api:SetSetting(id,name,value)
   local row=assert(rows[id],"Invalid module")
-   for _,s in ipairs(row.def.settings or {}) do if s.name==name then assert(valid(s,value),"Invalid setting");state[id].settings[name]=copy(value);if id=="HUD" and name=="Island Shadow Strength" then islandShadow=value end;if id=="HUD" and name=="Island Background Transparency" then islandBackgroundTransparency=value end;notify(id,name,value);return end end
+   for _,s in ipairs(row.def.settings or {}) do if s.name==name then assert(valid(s,value),"Invalid setting");state[id].settings[name]=copy(value);if id=="HUD" and name=="Island Shadow Strength" then islandShadow=value end;if id=="HUD" and name=="Island Background Transparency" then islandBackgroundTransparency=value end;if id=="HUD" and name=="Island Animation Speed" then bridge.islandAnimationSpeed=value end;notify(id,name,value);return end end
   error("Unknown setting")
  end
  function api:SetTheme(name) assert(palettes[name],"Unknown palette");theme=name;customAccent=nil;themeEffect="Source";paletteCache=nil;if state.ClickGUI then state.ClickGUI.settings["Opai Color"]=name;notify("ClickGUI","Opai Color",name) end end
@@ -3278,7 +3343,7 @@ function UI.new(options)
    for _,name in ipairs({"scale","hudScale"}) do local value=incomingAppearance[name];if value~=nil and (type(value)~="number" or value~=value or value<.5 or value>4) then return false,"Invalid appearance scale" end end
    if incomingAppearance.effect~=nil and incomingAppearance.effect~="Source" and incomingAppearance.effect~="FlowingGlow" then return false,"Invalid theme effect" end
    if incomingAppearance.animations~=nil and type(incomingAppearance.animations)~="boolean" then return false,"Invalid animations" end
-   for name,range in pairs({animationSpeed={.5,3},glowStrength={0,1},islandShadow={0,100},islandBackgroundTransparency={0,100}}) do local v=incomingAppearance[name];if v~=nil and (type(v)~="number" or v~=v or v<range[1] or v>range[2]) then return false,"Invalid "..name end end
+   for name,range in pairs({animationSpeed={.5,3},glowStrength={0,1},islandShadow={0,100},islandBackgroundTransparency={0,100},islandAnimationSpeed={.25,3}}) do local v=incomingAppearance[name];if v~=nil and (type(v)~="number" or v~=v or v<range[1] or v>range[2]) then return false,"Invalid "..name end end
    if incomingAppearance.language~=nil and incomingAppearance.language~="English" and incomingAppearance.language~="中文" then return false,"Invalid language" end
     if incomingAppearance.accent~=nil and incomingAppearance.accent~=false and not parseAccent(incomingAppearance.accent) then return false,"Invalid accent" end
   end
@@ -3296,7 +3361,8 @@ function UI.new(options)
   if snapshot.theme then self:SetTheme(snapshot.theme) end
    if state.HUD and state.HUD.settings["Island Shadow Strength"]~=nil then islandShadow=state.HUD.settings["Island Shadow Strength"] end
    if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then islandBackgroundTransparency=state.HUD.settings["Island Background Transparency"] end
-   if incomingAppearance then if incomingAppearance.islandBackgroundTransparency~=nil then self:SetIslandBackgroundTransparency(incomingAppearance.islandBackgroundTransparency) end;self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
+   if state.HUD and state.HUD.settings["Island Animation Speed"]~=nil then bridge.islandAnimationSpeed=state.HUD.settings["Island Animation Speed"] end
+   if incomingAppearance then if incomingAppearance.islandAnimationSpeed~=nil then self:SetIslandAnimationSpeed(incomingAppearance.islandAnimationSpeed) end;if incomingAppearance.islandBackgroundTransparency~=nil then self:SetIslandBackgroundTransparency(incomingAppearance.islandBackgroundTransparency) end;self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
   for _,entry in ipairs(notifications) do notify(entry[1],entry[2],entry[3]) end
   dropdown=nil;return true
  end
@@ -3599,11 +3665,11 @@ function UI.new(options)
   if color then api:SetAccent(color);appearanceError="" else appearanceError="Use six hexadecimal digits: #RRGGBB" end
  end)
  local function appearancePoint(x,y,w,h) local a=appearanceGeometry;return rect(a.x+x*a.s,a.y+y*a.s,w*a.s,h*a.s) end
- local appearanceRanges={UI={.5,4},HUD={.5,4},Speed={.5,3},Glow={0,1},Island={0,100},IslandBackground={0,100}}
+ local appearanceRanges={UI={.5,4},HUD={.5,4},Speed={.5,3},Glow={0,1},Island={0,100},IslandBackground={0,100},IslandSpeed={.25,3}}
  local function appearanceSlide(x)
   if not appearanceSliding then return end;local kind=appearanceSliding;local a=appearanceGeometry;local range=appearanceRanges[kind]
   local f=math.clamp(((x-a.x)/a.s-12)/200,0,1);local value=math.round((range[1]+f*(range[2]-range[1]))*20)/20
-  if kind=="UI" then api:SetScale(value) elseif kind=="HUD" then api:SetHUDScale(value) elseif kind=="Speed" then api:SetAnimationSpeed(value) elseif kind=="Island" then api:SetIslandShadow(math.round(value)) elseif kind=="IslandBackground" then api:SetIslandBackgroundTransparency(math.round(value)) else api:SetGlowStrength(value) end
+  if kind=="UI" then api:SetScale(value) elseif kind=="HUD" then api:SetHUDScale(value) elseif kind=="Speed" then api:SetAnimationSpeed(value) elseif kind=="Island" then api:SetIslandShadow(math.round(value)) elseif kind=="IslandBackground" then api:SetIslandBackgroundTransparency(math.round(value)) elseif kind=="IslandSpeed" then api:SetIslandAnimationSpeed(value) else api:SetGlowStrength(value) end
  end
   local function drawAppearance(frameDelta)
    appearanceT=animations and ease(appearanceT,appearanceOpen and 1 or 0,math.min(frameDelta,.1),11) or (appearanceOpen and 1 or 0)
@@ -3611,7 +3677,7 @@ function UI.new(options)
    appearanceRoot.Visible=appearanceOpen or appearanceT>.01;accentBox.Visible=appearanceOpen
   if not appearanceRoot.Visible then return end
   searchBox.Visible=false;altName.Visible=false;editor.Visible=false;jsonEditor.Visible=false
-    local h=395;local base=math.max(.05,math.min(2/k,(width-8)/224,(height-8)/h));local s=base*(.94+.06*reveal);local x,y=(width-224*s)/2,(height-h*s)/2
+    local h=436;local base=math.max(.05,math.min(2/k,(width-8)/224,(height-8)/h));local s=base*(.94+.06*reveal);local x,y=(width-224*s)/2,(height-h*s)/2
    appearanceGeometry={x=x,y=y,s=s};appearanceRoot.Position=UDim2.fromOffset(x,y);appearanceRoot.Size=UDim2.fromOffset(224,h);appearanceScale.Scale=s
    local p=appearancePaint;p.alpha=reveal;p:begin();local pal=currentPalette();p:box(0,0,224,h,pal.header,1,9)
    p:stroke(0,0,224,h,pal.outline,.45,9,1)
@@ -3635,8 +3701,8 @@ function UI.new(options)
   button("Source colors",12,191,96,"appearanceReset",nil,themeEffect=="Source")
    button("Flowing colors",116,191,96,"appearanceEffect","FlowingGlow",themeEffect=="FlowingGlow")
   button("Animations: "..(animations and "On" or "Off"),12,221,200,"appearanceAnimations",nil,animations)
-   slider("Animation speed",animationSpeed,257,"Speed");slider("Island shadow",islandShadow,296,"Island");slider("Island background transparency",islandBackgroundTransparency,337,"IslandBackground")
-    if appearanceError~="" then p:text(appearanceError,12,381,6.5,200,0xFF8585) else p:text("F7 · appearance     Ctrl + wheel · UI scale",12,381,6.5,200,pal.line) end
+   slider("Animation speed",animationSpeed,257,"Speed");slider("Island shadow",islandShadow,296,"Island");slider("Island background transparency",islandBackgroundTransparency,337,"IslandBackground");slider("Island animation speed",bridge.islandAnimationSpeed,378,"IslandSpeed")
+    if appearanceError~="" then p:text(appearanceError,12,422,6.5,200,0xFF8585) else p:text("F7 · appearance     Ctrl + wheel · UI scale",12,422,6.5,200,pal.line) end
   p:finish()
  end
 
@@ -3651,14 +3717,34 @@ function UI.new(options)
  local function line(p,x,y,xx,yy,c,t)
   local dx,dy=xx-x,yy-y;local len=math.sqrt(dx*dx+dy*dy);local o=p:box((x+xx-len)/2,(y+yy-(t or 1))/2,len,t or 1,c,1,(t or 1)/2);if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
  end
+ -- Syntax Neverlose icons: native strokes, no font symbols or downloaded images.
  local function categoryIcon(p,index,x,y,size,c)
-  if index==1 or index==2 then
-   for i=0,15 do local a=i*math.pi/8;local b=(i+1)*math.pi/8;line(p,x+size/2+math.cos(a)*size*.3,y+size/2+math.sin(a)*size*.3,x+size/2+math.cos(b)*size*.3,y+size/2+math.sin(b)*size*.3,c,.8) end
-   line(p,x,y+size/2,x+size,y+size/2,c,.8);line(p,x+size/2,y,x+size/2,y+size,c,.8)
-  elseif index==3 then line(p,x,y,x+size*.45,y+size/2,c);line(p,x+size*.45,y+size/2,x,y+size,c);line(p,x+size*.55,y,x+size,y+size/2,c);line(p,x+size,y+size/2,x+size*.55,y+size,c)
-  elseif index==4 then p:box(x+size*.35,y,size*.3,size*.3,c,1,size*.15);p:box(x+size*.15,y+size*.45,size*.7,size*.5,c,1,size*.25)
-  elseif index==5 then p:box(x,y+size*.2,size,size*.6,c,1,size*.3);p:box(x+size*.35,y+size*.35,size*.3,size*.3,0x080808,1,size*.15)
-  else for i=0,2 do p:box(x+i*size*.33,y+size*.4,size*.15,size*.15,c,1,size*.08) end end
+  local u=size/24
+  local function segment(ax,ay,bx,by,w) line(p,x+ax*u,y+ay*u,x+bx*u,y+by*u,c,(w or 1.9)*u) end
+  local function ring(ax,ay,w,h,r) p:stroke(x+ax*u,y+ay*u,w*u,h*u,c,1,(r or w/2)*u,1.8*u) end
+  local function dot(ax,ay,r) p:box(x+(ax-r)*u,y+(ay-r)*u,2*r*u,2*r*u,c,1,r*u) end
+  if index==1 then -- Combat: paired blades.
+   segment(4,3,20,19);segment(20,3,4,19);segment(3,15,8,20);segment(16,20,21,15);segment(3,3,3,8);segment(3,3,8,3);segment(21,3,16,3);segment(21,3,21,8)
+  elseif index==2 then -- Targets: precise reticle.
+   ring(5,5,14,14,7);dot(12,12,1.6);segment(12,1,12,6);segment(12,18,12,23);segment(1,12,6,12);segment(18,12,23,12)
+  elseif index==3 then -- Movement.
+   segment(4,5,11,12,2.4);segment(11,12,4,19,2.4);segment(13,5,20,12,2.4);segment(20,12,13,19,2.4)
+  elseif index==4 then -- Player.
+   ring(8,2,8,8,4);segment(4,22,4,18);segment(4,18,8,14);segment(8,14,16,14);segment(16,14,20,18);segment(20,18,20,22);segment(4,22,20,22)
+  elseif index==5 then -- Visuals.
+   segment(1,12,6,6);segment(6,6,18,6);segment(18,6,23,12);segment(23,12,18,18);segment(18,18,6,18);segment(6,18,1,12);ring(8,8,8,8,4)
+  elseif index==6 then -- Misc: gear.
+   ring(5,5,14,14,7);ring(9,9,6,6,3)
+   for i=0,7 do local a=i*math.pi/4;segment(12+7*math.cos(a),12+7*math.sin(a),12+10.5*math.cos(a),12+10.5*math.sin(a),2.5) end
+  elseif index==7 then -- HUD editor.
+   ring(2,3,20,18,2);segment(9,3,9,21);segment(9,10,22,10);segment(13,16,18,16);segment(15.5,13.5,15.5,18.5)
+  elseif index==8 then -- Configurations.
+   segment(2,7,2,21);segment(2,7,9,7);segment(9,7,12,10);segment(12,10,22,10);segment(22,10,22,21);segment(22,21,2,21);segment(6,3,20,3);segment(20,3,20,7)
+  elseif index==9 then -- Search.
+   ring(3,3,13,13,6.5);segment(15,15,22,22,2.4)
+  elseif index==10 then -- Save.
+   ring(3,2,18,20,1.5);segment(7,2,7,9);segment(7,9,16,9);segment(16,9,16,2);ring(7,14,10,8,1)
+  end
  end
  local function checkbox(p,x,y,t,style,glass)
   if style=="Neverlose" then
@@ -3677,7 +3763,9 @@ function UI.new(options)
  end
  local function styleField(p,r,label,action,data,clip)
   p:stroke(r.x,r.y,r.w,r.h,0x202325,1,2,1);p:box(r.x+1,r.y+1,r.w-2,r.h-2,0x0E1011,1,1)
-  p:text(label,r.x+7,r.y+r.h/2,11.5,r.w-22,0xBDC3C7,true)
+  local inset=7
+  if action=="altSave" then categoryIcon(p,10,r.x+7,r.y+7,12,accentColor(0x3A85E2));inset=25 end
+  p:text(label,r.x+inset,r.y+r.h/2,11.5,r.w-inset-8,0xBDC3C7,true)
   if action=="altConfigs" then line(p,r.x+r.w-13,r.y+r.h/2-1.5,r.x+r.w-10,r.y+r.h/2+1.5,0x8B979F,1.4);line(p,r.x+r.w-10,r.y+r.h/2+1.5,r.x+r.w-7,r.y+r.h/2-1.5,0x8B979F,1.4) end
   if action then altHit(r,action,data,clip) end
  end
@@ -3696,7 +3784,7 @@ function UI.new(options)
    p:text(options.Username or Players.LocalPlayer.DisplayName or "Player",57,581,12,113,0xEDF3F5);p:text("Syntax",57,597,10.5,113,0x3A85E2)
   styleField(p,rect(202,19,330,27),"",nil,nil);styleField(p,rect(544,19,70,27),"Save","altSave");styleField(p,rect(626,19,112,27),config.selected or "Preset","altConfigs")
   searchBox.Visible=true;searchBox.PlaceholderText="Press CTRL+F to search within GUI";searchBox.TextSize=12*alt.s;searchBox.TextColor3=rgb(0xBDC3C7);searchBox.PlaceholderColor3=rgb(0x697277);searchBox.Position=UDim2.fromOffset(alt.x+232*alt.s,alt.y+21*alt.s);searchBox.Size=UDim2.fromOffset(291*alt.s,23*alt.s)
-  categoryIcon(p,1,211,26,11,0x677077)
+  categoryIcon(p,9,211,26,11,0x677077)
   local cr=rect(202,84,536,516);altBody.Position=UDim2.fromOffset(cr.x,cr.y);altBody.Size=UDim2.fromOffset(cr.w,cr.h)
   local content=altContent
   if alt.nav==8 then
@@ -3721,7 +3809,7 @@ function UI.new(options)
    for _,row in ipairs(members) do
     local st=state[row.def.id];local settings={};for _,s in ipairs(row.def.settings or {}) do if condition(s.when,st.settings) then settings[#settings+1]=s end end
     if row.nlExpanded==nil then row.nlExpanded=false;row.nlReveal=0 end
-    row.nlReveal=ease(row.nlReveal,row.nlExpanded and 1 or 0,dt,30)
+    row.nlReveal=ease(row.nlReveal or 0,row.nlExpanded and 1 or 0,dt,30)
     local height=28+(29*(#settings+(row.def.hidden and 0 or 1)))*row.nlReveal
     local col=alt.packing[row.def.id] or (ends[1]<=ends[2] and 1 or 2);alt.packing[row.def.id]=col;local xx=(col-1)*280;local yy=ends[col]-alt.scroll;ends[col]+=height+4
     local sectionClip=intersection(cr,rect(202+xx,84+yy,256,height))
@@ -3950,7 +4038,7 @@ function UI.new(options)
   elseif a=="altUpdate" then config.selected=d;config.values[d]=api:GetState();message("Saved");return
   elseif a=="altDelete" then config.values[d]=nil;if config.selected==d then config.selected=nil end;configNames();return
   elseif a=="nlHeader" then d.nlExpanded=not d.nlExpanded;dropdown=nil;return
-  elseif a=="bind" then binding=d;dropdown=nil;return
+  elseif a=="bind" then api:BeginKeybind(d.def.id);return
   elseif a=="altDrag" and button==0 then drag={kind="alternate",dx=x-alt.x,dy=y-alt.y};return
   elseif a=="altScrollbar" and button==0 then drag={kind="altScrollbar"};alt.target=math.clamp(((y-alt.y)/alt.s-84)/516,0,1)*alt.max;return
   elseif a=="modernDrag" and button==0 then local at=table.find(alt.windowOrder,d.id);if at then table.remove(alt.windowOrder,at) end;alt.windowOrder[#alt.windowOrder+1]=d.id;drag={kind="modern",win=d,dx=x-d.x,dy=y-d.y};return
@@ -4096,7 +4184,7 @@ function UI.new(options)
   local n;for _,v in ipairs(notices) do if v.key==key then n=v;break end end
   if not n then n={key=key,width=0,started=os.clock(),toggle=value and 0 or 1};notices[#notices+1]=n end
   n.title=tostring(title);n.detail=tostring(detail or "");n.kind=kind;n.value=value;n.untilTime=os.clock()+duration
-    if kind=="toggle" then n.started=os.clock();n.toggleFrom=n.toggle end
+    if kind=="toggle" then n.started=os.clock();n.animationStarted=islandState.animationTime or 0;n.toggleFrom=n.toggle end
     local detailText=kind=="toggle" and toggleDetail(n.detail,value) or n.detail
     local titleSize=kind=="breaking" and 9 or 10;local detailSize=kind=="breaking" and 8 or 9
     n.width=(kind=="toggle" and 54 or 46)+math.max(measure(n.title,titleSize),measure(detailText,detailSize))
@@ -4124,30 +4212,43 @@ function UI.new(options)
   return st.enabled and type(st.settings.Widgets)=="table" and table.find(st.settings.Widgets,name)~=nil
  end
  if state.HUD and options.HUD~=false then state.HUD.enabled=true;rows.HUD.enabled=1 end
- -- Syntax Vector V2: native rounded strokes, no image assets or raster glyph scaling.
+ -- Filled contours adapted from DynamicIslandNanoSurface.java; supersampled once at build time.
+local hudGlyphs={
+CHROME={{17,0,2,1,0.25},{19,0,1,1,0.5},{20,0,2,1,0.75},{22,0,5,1,1.0},{27,0,2,1,0.75},{29,0,1,1,0.5},{30,0,1,1,0.25},{14,1,1,1,0.25},{15,1,1,1,0.5},{16,1,1,1,0.75},{17,1,14,1,1.0},{31,1,1,1,0.75},{32,1,1,1,0.5},{12,2,1,1,0.25},{13,2,1,1,0.75},{14,2,20,1,1.0},{34,2,1,1,0.5},{35,2,1,1,0.25},{11,3,1,1,0.5},{12,3,24,1,1.0},{36,3,1,1,0.5},{9,4,1,1,0.25},{10,4,1,1,0.75},{11,4,26,1,1.0},{37,4,1,1,0.75},{38,4,1,1,0.25},{8,5,1,1,0.5},{9,5,30,1,1.0},{39,5,1,1,0.5},{7,6,1,1,0.5},{8,6,32,1,1.0},{40,6,1,1,0.5},{6,7,1,1,0.5},{7,7,34,1,1.0},{41,7,1,1,0.5},{5,8,1,1,0.25},{6,8,36,1,1.0},{42,8,1,1,0.5},{6,9,37,1,1.0},{43,9,1,1,0.25},{6,10,1,1,0.5},{7,10,36,1,1.0},{43,10,1,1,0.75},{7,11,1,1,0.75},{8,11,36,1,1.0},{44,11,1,1,0.5},{2,12,1,1,0.25},{3,12,1,1,0.75},{7,12,1,1,0.25},{8,12,11,1,1.0},{19,12,1,1,0.75},{20,12,1,1,0.5},{21,12,24,1,0.25},{2,13,1,1,0.5},{3,13,1,1,1.0},{4,13,1,1,0.25},{8,13,1,1,0.75},{9,13,9,1,1.0},{18,13,1,1,0.5},{2,14,3,2,1.0},{8,14,1,1,0.25},{9,14,7,1,1.0},{16,14,1,1,0.75},{1,15,1,1,0.5},{5,15,1,1,0.5},{9,15,1,1,0.5},{10,15,5,1,1.0},{15,15,1,1,0.5},{33,15,14,1,0.25},{1,16,1,1,0.75},{2,16,4,1,1.0},{6,16,1,1,0.25},{10,16,4,1,1.0},{14,16,1,1,0.75},{20,16,1,1,0.25},{21,16,1,1,0.5},{22,16,1,1,0.75},{23,16,2,1,1.0},{25,16,1,1,0.75},{26,16,1,1,0.5},{27,16,1,1,0.25},{33,16,1,1,0.75},{34,16,12,1,1.0},{46,16,1,1,0.75},{0,17,1,1,0.25},{1,17,5,1,1.0},{6,17,1,1,0.75},{10,17,1,1,0.25},{11,17,3,1,1.0},{19,17,1,1,0.5},{20,17,8,1,1.0},{28,17,1,1,0.75},{34,17,13,1,1.0},{47,17,1,1,0.25},{0,18,1,1,0.5},{1,18,6,2,1.0},{7,18,1,1,0.25},{11,18,1,1,0.75},{12,18,1,2,1.0},{13,18,1,1,0.5},{18,18,1,1,0.75},{19,18,10,1,1.0},{29,18,1,1,0.75},{34,18,1,1,0.5},{35,18,12,2,1.0},{47,18,1,1,0.5},{0,19,1,2,0.75},{7,19,1,1,0.75},{11,19,1,1,0.25},{17,19,1,1,0.5},{18,19,12,1,1.0},{30,19,1,1,0.75},{47,19,1,2,0.75},{1,20,7,1,1.0},{8,20,1,1,0.5},{12,20,1,1,0.25},{16,20,1,1,0.25},{17,20,14,2,1.0},{31,20,1,1,0.25},{35,20,1,1,0.75},{36,20,11,1,1.0},{0,21,9,2,1.0},{16,21,1,1,0.5},{31,21,1,1,0.75},{35,21,1,6,0.25},{36,21,12,6,1.0},{9,22,1,1,0.5},{16,22,1,1,0.75},{17,22,15,1,1.0},{0,23,10,2,1.0},{10,23,1,1,0.25},{16,23,16,2,1.0},{32,23,1,2,0.25},{10,24,1,1,0.75},{0,25,11,2,1.0},{11,25,1,1,0.25},{16,25,1,1,0.75},{17,25,15,1,1.0},{11,26,1,1,0.75},{16,26,1,1,0.5},{17,26,14,2,1.0},{31,26,1,1,0.75},{0,27,1,2,0.75},{1,27,11,1,1.0},{12,27,1,1,0.5},{16,27,1,1,0.25},{31,27,1,1,0.25},{35,27,1,1,0.5},{36,27,11,1,1.0},{47,27,1,2,0.75},{1,28,12,2,1.0},{17,28,1,1,0.75},{18,28,12,1,1.0},{30,28,1,1,0.75},{35,28,12,2,1.0},{0,29,1,1,0.5},{13,29,1,1,0.5},{18,29,1,1,0.75},{19,29,10,1,1.0},{29,29,1,1,0.75},{34,29,1,1,0.5},{47,29,1,1,0.5},{0,30,1,1,0.25},{1,30,13,1,1.0},{19,30,1,1,0.75},{20,30,8,1,1.0},{28,30,1,1,0.75},{34,30,13,1,1.0},{47,30,1,1,0.25},{1,31,1,1,0.75},{2,31,12,1,1.0},{14,31,1,1,0.75},{20,31,1,1,0.25},{21,31,1,1,0.75},{22,31,4,1,1.0},{26,31,1,1,0.75},{27,31,1,1,0.25},{33,31,1,1,0.75},{34,31,12,1,1.0},{46,31,1,1,0.75},{1,32,1,1,0.5},{2,32,13,1,1.0},{15,32,1,1,0.5},{23,32,2,1,0.25},{32,32,1,1,0.5},{33,32,13,1,1.0},{46,32,1,1,0.5},{1,33,1,1,0.25},{2,33,14,1,1.0},{16,33,1,1,0.75},{32,33,14,1,1.0},{2,34,1,1,0.75},{3,34,15,1,1.0},{18,34,1,1,0.5},{31,34,1,1,0.5},{32,34,13,1,1.0},{45,34,1,1,0.75},{2,35,1,1,0.25},{3,35,16,1,1.0},{19,35,1,1,0.75},{20,35,1,1,0.5},{21,35,6,1,0.25},{30,35,1,1,0.25},{31,35,14,1,1.0},{45,35,1,1,0.25},{3,36,1,1,0.5},{4,36,22,1,1.0},{26,36,1,1,0.5},{30,36,1,1,0.75},{31,36,13,1,1.0},{44,36,1,1,0.5},{4,37,1,1,0.75},{5,37,20,2,1.0},{25,37,1,1,0.75},{29,37,1,1,0.25},{30,37,13,2,1.0},{43,37,1,1,0.75},{4,38,1,1,0.25},{25,38,1,1,0.25},{29,38,1,1,0.75},{43,38,1,1,0.25},{5,39,1,1,0.5},{6,39,18,1,1.0},{24,39,1,1,0.75},{28,39,1,1,0.5},{29,39,13,1,1.0},{42,39,1,1,0.5},{6,40,1,1,0.5},{7,40,17,1,1.0},{24,40,1,1,0.25},{28,40,13,1,1.0},{41,40,1,1,0.5},{7,41,1,1,0.5},{8,41,15,1,1.0},{23,41,1,1,0.5},{27,41,1,1,0.75},{28,41,12,1,1.0},{40,41,1,1,0.5},{8,42,1,1,0.5},{9,42,14,1,1.0},{26,42,1,1,0.25},{27,42,12,1,1.0},{39,42,1,1,0.5},{9,43,1,1,0.25},{10,43,1,1,0.75},{11,43,11,1,1.0},{22,43,1,1,0.5},{26,43,1,1,0.75},{27,43,10,1,1.0},{37,43,1,1,0.75},{38,43,1,1,0.25},{11,44,1,1,0.5},{12,44,9,1,1.0},{21,44,1,1,0.75},{25,44,1,1,0.5},{26,44,10,1,1.0},{36,44,1,1,0.5},{12,45,1,1,0.25},{13,45,1,1,0.5},{14,45,7,1,1.0},{21,45,1,1,0.25},{25,45,9,1,1.0},{34,45,1,1,0.75},{35,45,1,1,0.25},{15,46,1,1,0.5},{16,46,1,1,0.75},{17,46,3,1,1.0},{20,46,1,1,0.75},{24,46,1,1,0.5},{25,46,6,1,1.0},{31,46,1,1,0.75},{32,46,1,1,0.5},{33,46,1,1,0.25},{17,47,2,1,0.25},{19,47,1,1,0.75},{20,47,1,1,0.25},{23,47,1,1,0.25},{24,47,2,1,1.0},{26,47,2,1,0.75},{28,47,1,1,0.5},{29,47,2,1,0.25}},
+USER={{20,5,1,1,0.25},{21,5,2,1,0.75},{23,5,2,1,1.0},{25,5,2,1,0.75},{27,5,1,1,0.5},{18,6,1,1,0.25},{19,6,1,1,0.75},{20,6,8,1,1.0},{28,6,1,1,0.75},{29,6,1,1,0.5},{17,7,1,1,0.5},{18,7,12,1,1.0},{30,7,1,1,0.5},{16,8,1,1,0.5},{17,8,14,1,1.0},{31,8,1,1,0.75},{15,9,1,1,0.25},{16,9,16,1,1.0},{32,9,1,1,0.5},{15,10,1,1,0.75},{16,10,17,1,1.0},{14,11,1,1,0.25},{15,11,18,2,1.0},{33,11,1,1,0.5},{14,12,1,2,0.75},{33,12,1,1,0.75},{15,13,19,1,1.0},{14,14,20,2,1.0},{34,14,1,2,0.25},{14,16,1,2,0.75},{15,16,19,1,1.0},{15,17,18,3,1.0},{33,17,1,1,0.75},{14,18,1,1,0.5},{33,18,1,1,0.5},{15,20,1,1,0.25},{16,20,16,1,1.0},{32,20,1,1,0.5},{16,21,1,1,0.75},{17,21,14,1,1.0},{31,21,1,1,0.75},{17,22,1,1,0.75},{18,22,12,1,1.0},{30,22,1,1,0.75},{18,23,1,1,0.5},{19,23,10,1,1.0},{29,23,1,1,0.5},{20,24,1,1,0.5},{21,24,1,1,0.75},{22,24,4,1,1.0},{26,24,1,1,0.75},{27,24,1,1,0.5},{28,24,1,1,0.25},{23,25,2,1,0.25},{15,29,1,1,0.25},{16,29,1,1,0.5},{17,29,1,1,0.75},{18,29,12,1,1.0},{30,29,1,1,0.75},{31,29,1,1,0.5},{32,29,1,1,0.25},{13,30,1,1,0.5},{14,30,1,1,0.75},{15,30,18,1,1.0},{33,30,1,1,0.75},{34,30,1,1,0.5},{11,31,1,1,0.25},{12,31,1,1,0.75},{13,31,22,1,1.0},{35,31,1,1,0.75},{36,31,1,1,0.25},{10,32,1,1,0.25},{11,32,26,1,1.0},{37,32,1,1,0.25},{9,33,1,1,0.25},{10,33,28,2,1.0},{38,33,1,1,0.25},{9,34,1,1,0.75},{38,34,1,1,0.75},{8,35,1,1,0.5},{9,35,30,1,1.0},{39,35,1,1,0.5},{8,36,32,4,1.0},{7,37,1,1,0.5},{40,37,1,1,0.5},{7,38,1,2,0.75},{40,38,1,2,0.75},{7,40,34,3,1.0},{7,43,1,1,0.5},{8,43,32,1,1.0},{40,43,1,1,0.5},{9,44,30,1,0.25}},
+LINK={{9,12,2,1,0.25},{11,12,11,1,0.5},{22,12,2,1,0.25},{31,12,2,1,0.5},{33,12,1,1,0.25},{34,12,3,1,0.5},{37,12,2,1,0.25},{7,13,1,1,0.25},{8,13,1,1,0.75},{9,13,15,1,1.0},{24,13,1,1,0.75},{25,13,1,1,0.25},{30,13,1,1,0.75},{31,13,8,1,1.0},{39,13,1,1,0.75},{40,13,1,1,0.25},{5,14,1,1,0.25},{6,14,1,1,0.75},{7,14,19,1,1.0},{26,14,1,1,0.75},{29,14,1,2,0.5},{30,14,11,1,1.0},{41,14,1,1,0.75},{42,14,1,1,0.25},{4,15,1,1,0.25},{5,15,22,1,1.0},{27,15,1,1,0.75},{30,15,13,2,1.0},{43,15,1,1,0.25},{4,16,1,1,0.75},{5,16,23,1,1.0},{28,16,1,1,0.75},{43,16,1,1,0.75},{3,17,1,1,0.5},{4,17,7,1,1.0},{11,17,3,1,0.75},{14,17,4,1,0.5},{18,17,1,1,0.75},{19,17,2,1,0.5},{21,17,1,1,0.75},{22,17,7,1,1.0},{29,17,1,1,0.25},{31,17,3,1,0.5},{34,17,3,1,0.75},{37,17,7,1,1.0},{44,17,1,1,0.5},{3,18,6,1,1.0},{9,18,1,1,0.5},{23,18,1,1,0.5},{24,18,5,1,1.0},{29,18,1,1,0.75},{38,18,1,1,0.5},{39,18,6,1,1.0},{2,19,1,1,0.5},{3,19,5,1,1.0},{8,19,1,1,0.25},{18,19,1,1,0.5},{19,19,2,1,1.0},{21,19,1,1,0.5},{24,19,1,1,0.5},{25,19,5,2,1.0},{39,19,1,1,0.25},{40,19,5,1,1.0},{45,19,1,1,0.5},{2,20,1,2,0.75},{3,20,4,2,1.0},{7,20,1,1,0.75},{17,20,1,1,0.25},{18,20,4,7,1.0},{22,20,1,1,0.5},{30,20,1,1,0.25},{40,20,1,1,0.75},{41,20,4,2,1.0},{45,20,1,2,0.75},{7,21,1,1,0.5},{17,21,1,6,0.5},{22,21,1,1,0.75},{25,21,1,1,0.75},{26,21,4,7,1.0},{30,21,1,3,0.5},{40,21,1,1,0.5},{2,22,5,4,1.0},{7,22,1,5,0.25},{22,22,1,2,0.5},{25,22,1,3,0.5},{40,22,1,5,0.25},{41,22,5,4,1.0},{22,24,1,1,0.75},{30,24,1,1,0.75},{46,24,1,1,0.25},{22,25,1,1,0.5},{25,25,1,1,0.25},{30,25,1,1,0.5},{2,26,1,2,0.75},{3,26,4,2,1.0},{22,26,1,1,0.75},{25,26,1,1,0.5},{30,26,1,1,0.75},{41,26,4,2,1.0},{45,26,1,2,0.75},{7,27,1,1,0.75},{17,27,1,1,0.25},{18,27,5,2,1.0},{25,27,1,1,0.25},{30,27,1,1,0.5},{40,27,1,1,0.75},{2,28,1,1,0.5},{3,28,5,1,1.0},{8,28,1,1,0.25},{23,28,1,1,0.5},{26,28,1,1,0.5},{27,28,2,1,1.0},{29,28,1,1,0.75},{39,28,1,1,0.25},{40,28,5,1,1.0},{45,28,1,1,0.5},{3,29,6,1,1.0},{9,29,1,1,0.25},{18,29,1,1,0.75},{19,29,5,1,1.0},{24,29,1,1,0.5},{38,29,1,1,0.5},{39,29,6,1,1.0},{3,30,1,1,0.5},{4,30,7,1,1.0},{11,30,1,1,0.75},{12,30,5,1,0.5},{18,30,1,1,0.25},{19,30,7,1,1.0},{26,30,1,1,0.75},{27,30,9,1,0.5},{36,30,1,1,0.75},{37,30,7,1,1.0},{44,30,1,1,0.5},{4,31,1,1,0.75},{5,31,13,2,1.0},{19,31,1,1,0.75},{20,31,23,1,1.0},{43,31,1,1,0.75},{4,32,1,1,0.25},{18,32,1,2,0.5},{20,32,1,1,0.75},{21,32,22,1,1.0},{43,32,1,1,0.25},{5,33,1,1,0.25},{6,33,1,1,0.75},{7,33,11,1,1.0},{21,33,1,1,0.75},{22,33,19,1,1.0},{41,33,1,1,0.75},{42,33,1,1,0.25},{7,34,1,1,0.5},{8,34,1,1,0.75},{9,34,9,1,1.0},{18,34,1,1,0.25},{22,34,1,1,0.5},{23,34,1,1,0.75},{24,34,15,1,1.0},{39,34,1,1,0.75},{40,34,1,1,0.5},{9,35,1,1,0.25},{10,35,7,1,0.5},{17,35,1,1,0.25},{24,35,1,1,0.25},{25,35,13,1,0.5},{38,35,1,1,0.25}},
+REFRESH={{24,2,1,1,0.5},{25,2,1,1,1.0},{22,3,1,1,0.25},{23,3,1,1,0.75},{24,3,2,1,1.0},{26,3,1,7,0.25},{21,4,1,1,0.5},{22,4,4,1,1.0},{19,5,1,1,0.25},{20,5,1,1,0.75},{21,5,5,1,1.0},{18,6,1,1,0.5},{19,6,7,1,1.0},{16,7,1,1,0.25},{17,7,1,1,0.75},{18,7,8,1,1.0},{15,8,1,1,0.5},{16,8,10,1,1.0},{14,9,1,1,0.75},{15,9,11,1,1.0},{12,10,1,1,0.25},{13,10,13,1,1.0},{26,10,3,1,0.75},{29,10,1,1,0.5},{30,10,1,1,0.25},{11,11,1,1,0.75},{12,11,20,1,1.0},{32,11,1,1,0.5},{33,11,1,1,0.25},{9,12,1,1,0.25},{10,12,24,1,1.0},{34,12,1,1,0.75},{35,12,1,1,0.25},{9,13,1,1,0.5},{10,13,26,1,1.0},{36,13,1,1,0.5},{10,14,1,1,0.25},{11,14,1,1,0.75},{12,14,25,1,1.0},{37,14,1,1,0.5},{12,15,1,1,0.5},{13,15,25,1,1.0},{38,15,1,1,0.5},{13,16,1,1,0.25},{14,16,1,1,0.75},{15,16,24,1,1.0},{39,16,1,1,0.25},{5,17,1,1,0.25},{15,17,1,1,0.5},{16,17,24,1,1.0},{4,18,1,1,0.25},{5,18,1,1,0.5},{16,18,1,1,0.25},{17,18,1,1,0.75},{18,18,8,1,1.0},{26,18,4,1,0.25},{30,18,1,1,0.5},{31,18,1,1,0.75},{32,18,8,1,1.0},{40,18,1,1,0.5},{5,19,1,1,0.75},{18,19,1,1,0.5},{19,19,7,1,1.0},{33,19,1,1,0.5},{34,19,1,1,0.75},{35,19,6,1,1.0},{41,19,1,1,0.25},{5,20,1,1,1.0},{6,20,1,1,0.25},{19,20,1,1,0.25},{20,20,6,1,1.0},{26,20,1,3,0.25},{35,20,1,1,0.5},{36,20,5,1,1.0},{41,20,1,1,0.5},{5,21,2,1,0.75},{21,21,1,1,0.75},{22,21,4,1,1.0},{36,21,1,1,0.25},{37,21,1,1,0.75},{38,21,3,1,1.0},{41,21,1,1,0.75},{5,22,1,1,0.75},{6,22,1,1,1.0},{7,22,1,1,0.25},{22,22,1,1,0.25},{23,22,3,1,1.0},{38,22,1,1,0.75},{39,22,3,1,1.0},{42,22,1,2,0.25},{5,23,1,1,0.5},{6,23,2,2,1.0},{24,23,1,1,0.75},{25,23,1,1,1.0},{39,23,1,1,0.75},{40,23,2,2,1.0},{5,24,1,2,0.25},{8,24,1,1,0.75},{22,24,1,1,1.0},{23,24,1,1,0.75},{42,24,1,1,0.5},{6,25,3,1,1.0},{9,25,1,1,0.75},{22,25,3,1,1.0},{25,25,1,1,0.25},{40,25,1,1,0.25},{41,25,1,1,1.0},{42,25,1,1,0.75},{6,26,1,1,0.75},{7,26,3,1,1.0},{10,26,1,1,0.75},{11,26,1,1,0.25},{22,26,4,1,1.0},{26,26,1,1,0.5},{41,26,2,1,0.75},{6,27,1,1,0.5},{7,27,5,1,1.0},{12,27,1,1,0.5},{22,27,5,1,1.0},{27,27,1,1,0.75},{28,27,1,1,0.25},{41,27,1,1,0.25},{42,27,1,1,1.0},{6,28,1,1,0.25},{7,28,6,1,1.0},{13,28,1,1,0.75},{14,28,1,1,0.5},{22,28,7,1,1.0},{29,28,1,1,0.5},{42,28,1,1,0.75},{7,29,1,1,0.5},{8,29,8,1,1.0},{16,29,1,1,0.75},{17,29,1,1,0.5},{18,29,4,1,0.25},{22,29,8,1,1.0},{30,29,1,1,0.75},{31,29,1,1,0.25},{42,29,1,1,0.5},{43,29,1,1,0.25},{8,30,24,1,1.0},{32,30,1,1,0.5},{42,30,2,1,0.25},{8,31,1,1,0.25},{9,31,24,1,1.0},{33,31,1,1,0.75},{34,31,1,1,0.25},{9,32,1,1,0.5},{10,32,25,1,1.0},{35,32,1,1,0.5},{10,33,1,1,0.5},{11,33,25,1,1.0},{36,33,1,1,0.75},{37,33,1,1,0.25},{11,34,1,1,0.5},{12,34,26,1,1.0},{38,34,1,2,0.5},{12,35,1,1,0.25},{13,35,1,1,0.75},{14,35,24,1,1.0},{14,36,1,1,0.25},{15,36,1,1,0.5},{16,36,20,1,1.0},{36,36,1,1,0.75},{37,36,1,1,0.25},{17,37,1,1,0.25},{18,37,1,1,0.5},{19,37,2,1,0.75},{21,37,14,1,1.0},{35,37,1,1,0.5},{22,38,11,1,1.0},{33,38,1,1,0.75},{34,38,1,1,0.25},{22,39,10,1,1.0},{32,39,1,1,0.5},{22,40,9,1,1.0},{31,40,1,1,0.25},{22,41,7,1,1.0},{29,41,1,1,0.75},{22,42,6,1,1.0},{28,42,1,1,0.5},{22,43,4,1,1.0},{26,43,1,1,0.75},{27,43,1,1,0.25},{22,44,3,1,1.0},{25,44,1,1,0.5},{22,45,1,1,1.0},{23,45,1,1,0.75},{24,45,1,1,0.25},{22,46,1,1,0.25}},
+BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{11,4,1,1,0.5},{12,4,1,1,0.75},{13,4,2,1,1.0},{15,4,1,1,0.75},{16,4,1,1,0.5},{10,5,1,1,0.75},{11,5,7,1,1.0},{18,5,1,1,0.25},{9,6,1,1,0.75},{10,6,9,1,1.0},{19,6,1,1,0.25},{21,6,1,11,0.5},{22,6,18,1,1.0},{40,6,1,1,0.75},{41,6,1,1,0.5},{42,6,1,1,0.25},{8,7,1,1,0.5},{9,7,10,1,1.0},{19,7,1,1,0.75},{22,7,22,1,1.0},{44,7,1,1,0.5},{8,8,1,1,0.75},{9,8,11,1,1.0},{22,8,23,1,1.0},{45,8,1,1,0.75},{8,9,12,3,1.0},{20,9,1,3,0.25},{22,9,24,1,1.0},{46,9,1,1,0.5},{7,10,1,1,0.25},{22,10,25,2,1.0},{47,10,1,1,0.25},{6,11,1,7,0.25},{47,11,1,1,0.75},{8,12,1,1,0.75},{9,12,11,1,1.0},{22,12,26,4,1.0},{8,13,1,1,0.25},{9,13,10,1,1.0},{19,13,1,1,0.5},{9,14,1,1,0.5},{10,14,8,1,1.0},{18,14,1,1,0.75},{10,15,1,1,0.5},{11,15,6,1,1.0},{17,15,1,1,0.5},{12,16,4,1,0.5},{16,16,1,1,0.25},{22,16,26,1,0.75},{0,18,48,6,1.0},{0,24,6,6,1.0},{6,24,36,1,0.25},{42,24,6,6,1.0},{6,26,1,4,0.25},{0,30,6,1,0.25},{42,30,6,1,0.25}},
+}
  local function hudIcon(p,name,x,y,size,color)
-  local u=size/24
-  local function line(ax,ay,bx,by,weight)
-   local dx,dy=(bx-ax)*u,(by-ay)*u;local length=math.sqrt(dx*dx+dy*dy);local h=(weight or 1.8)*u
-   local o=p:box(x+(ax+bx)*u/2-length/2,y+(ay+by)*u/2-h/2,length,h,color,1,h/2)
-   if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
-  end
-  local function arc(cx,cy,r,start,finish,weight)
-   local count=math.max(4,math.ceil(math.abs(finish-start)/22.5))
-   for i=0,count-1 do local a=math.rad(start+(finish-start)*i/count);local b=math.rad(start+(finish-start)*(i+1)/count);line(cx+r*math.cos(a),cy+r*math.sin(a),cx+r*math.cos(b),cy+r*math.sin(b),weight) end
-  end
-  local function dot(cx,cy,r) p:box(x+(cx-r)*u,y+(cy-r)*u,2*r*u,2*r*u,color,1,r*u) end
   if name=="SYNTAX" then
-   line(7,5,2,12,2.3);line(2,12,7,19,2.3);line(17,5,22,12,2.3);line(22,12,17,19,2.3);line(14,3,10,21,2.1)
-  elseif name=="USER" then arc(12,7,4,0,360);arc(12,21,8,195,345);line(4.3,19,4.3,21);line(19.7,19,19.7,21)
-  elseif name=="LINK" then arc(12,21,17,225,315);arc(12,21,11,225,315);arc(12,21,5.5,225,315);dot(12,20,1.5)
-  elseif name=="REFRESH" then arc(12,13,9,150,390);line(5,18,19,18,1.6);line(12,13,17,7,2.1);dot(12,13,2)
-  elseif name=="SUCCESS" then arc(12,12,10,0,360,1.4);line(6,12,10,16,2.1);line(10,16,18,8,2.1)
-  elseif name=="WARNING" then line(12,2,23,21);line(23,21,1,21);line(1,21,12,2);line(12,8,12,14,2.2);dot(12,18,1.2)
-  elseif name=="INFO" then arc(12,12,10,0,360,1.6);line(12,11,12,18,2.2);dot(12,6.5,1.3)
-  elseif name=="CUBE" then line(12,2,22,7);line(22,7,22,18);line(22,18,12,23);line(12,23,2,18);line(2,18,2,7);line(2,7,12,2);line(2,7,12,12);line(12,12,22,7);line(12,12,12,23)
-  elseif name=="BED" then line(2,5,2,21);line(22,11,22,21);line(2,12,22,12,2.4);line(2,18,22,18);p:stroke(x+5*u,y+6*u,6*u,5*u,color,1,1.2*u,1.6*u);line(12,9,21,9,3)
-  else arc(12,12,9,0,360);dot(12,12,2) end
+   local u=size/24
+   for _,segment in ipairs({{4,5,11,12},{11,12,4,19},{13,19,21,19}}) do
+    local ax,ay,bx,by=table.unpack(segment);local dx,dy=(bx-ax)*u,(by-ay)*u;local length=math.sqrt(dx*dx+dy*dy)
+    local o=p:box(x+(ax+bx)*u/2-length/2,y+(ay+by)*u/2-u,length,2*u,color,1,u)
+    if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
+   end
+   return
+  end
+  local glyph=hudGlyphs[name]
+  if glyph then p:glyph(name,glyph,x,y,size,color);return end
+  local unit=size/24
+  local function circle(cx,cy,r) p:box(x+(cx-r)*unit,y+(cy-r)*unit,r*2*unit,r*2*unit,color,1,r*unit) end
+  local function line(ax,ay,bx,by,weight)
+   local dx,dy=(bx-ax)*unit,(by-ay)*unit;local length=math.sqrt(dx*dx+dy*dy);local h=(weight or 2)*unit
+   local o=p:box(x+(ax+bx)*unit/2-length/2,y+(ay+by)*unit/2-h/2,length,h,color,1,h/2);if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
+  end
+  if name=="SYNTAX" then line(5,7,19,7,2.3);line(5,7,12,12,2.3);line(12,12,5,17,2.3);line(5,17,19,17,2.3);line(19,7,19,17,2.3)
+   elseif name=="USER" then circle(12,7,4);p:box(x+3*unit,y+14*unit,18*unit,8*unit,color,1,5*unit)
+  elseif name=="LINK" then
+   for _,cx in ipairs({7,17}) do for i=0,15 do local a=i*math.pi/8;local b=(i+1)*math.pi/8;line(cx+5*math.cos(a),12+5*math.sin(a),cx+5*math.cos(b),12+5*math.sin(b),1.6) end end;line(8,12,16,12,2)
+  elseif name=="CHROME" then circle(12,12,10);p:box(x+7*unit,y+7*unit,10*unit,10*unit,0x000000,1,5*unit);circle(12,12,3);line(13,3,20,15,1.8);line(4,14,17,14,1.8);line(8,20,13,7,1.8)
+  elseif name=="SUCCESS" then line(5,12,10,17,2);line(10,17,19,6,2)
+  elseif name=="WARNING" then line(12,5,12,14,2);circle(12,18,1)
+  elseif name=="INFO" then line(12,9,12,19,2);circle(12,5,1)
+  elseif name=="BED" then line(2,7,2,21,2);line(22,11,22,21,2);line(2,13,22,13,3);line(2,17,22,17,2);circle(7,8,3);line(11,10,22,10,3)
+  elseif name=="CUBE" then line(12,3,22,8);line(22,8,22,18);line(22,18,12,23);line(12,23,2,18);line(2,18,2,8);line(2,8,12,3);line(2,8,12,13);line(12,13,22,8);line(12,13,12,23)
+  end
  end
 
  local arrayEntries={}
@@ -4488,6 +4589,7 @@ local function drawArrayList(dt,view,factor,st,p)
  end
  local function renderHUD(dt,frameDelta)
   bridge.Sync()
+  bridge.RefreshBindings()
   expireNotices();local view=gui.AbsoluteSize
   if view.X<=36 or view.Y<=32 then island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;return end
   widgetRoot.Visible=true;hudControls.Visible=true
@@ -4496,8 +4598,10 @@ local function drawArrayList(dt,view,factor,st,p)
     -- Render the island in physical pixels so shell morphing does not scale text.
     shell.drawScale=scale;ink.drawScale=scale
    island.Visible=widgetEnabled("Dynamic Island");drawHUDWidgets(dt)
-  local delta=frameDelta or dt
-  if delta>0 then islandState.fps=ease(islandState.fps>0 and islandState.fps or 1/delta,1/delta,dt,3) end
+  local realDelta=frameDelta or dt
+  local delta=math.min(realDelta,.1)*bridge.islandAnimationSpeed
+  islandState.animationTime=(islandState.animationTime or 0)+delta
+  if realDelta>0 then islandState.fps=ease(islandState.fps>0 and islandState.fps or 1/realDelta,1/realDelta,math.min(realDelta,.1),3) end
   if os.clock()>=islandState.nextPing then islandState.nextPing=os.clock()+1;local ok,ping=pcall(function() return Players.LocalPlayer:GetNetworkPing() end);islandState.ping=ok and type(ping)=="number" and math.max(0,math.round(ping*1000)) or nil end
   if not island.Visible then return end
   local palette=currentPalette();local ping=islandState.ping
@@ -4580,7 +4684,7 @@ local function drawArrayList(dt,view,factor,st,p)
    for _,n in ipairs(notices) do
      local progress=n.kind=="breaking" or n.kind=="scaffold";local rowHeight=n.layout.rowHeight
     if n.kind=="toggle" then
-     local t=not animations and 1 or math.clamp((os.clock()-n.started)*animationSpeed/.2,0,1);if n.value then t=t==1 and 1 or 1-2^(-10*t) end
+     local t=not animations and 1 or math.clamp(((islandState.animationTime or 0)-(n.animationStarted or 0))/.2,0,1);if n.value then t=t==1 and 1 or 1-2^(-10*t) end
      n.toggle=(n.toggleFrom or 0)+((n.value and 1 or 0)-(n.toggleFrom or 0))*t
      local v=n.toggle;local outer=ink:box(3,y+10,26,16,palette.outline,1,8);outer.BackgroundColor3=rgb(palette.outline):Lerp(rgb(palette.accent),v)
      local inner=ink:box(4,y+11,24,14,0x36343B,1,7);inner.BackgroundColor3=rgb(0x36343B):Lerp(rgb(palette.accent),v)
@@ -4676,6 +4780,27 @@ local function drawArrayList(dt,view,factor,st,p)
   elseif drag.kind=="scrollbar" then local c=drag.c;c.scroll=math.clamp((y-c.y-H-2-drag.grab)/math.max(1,drag.travel)*c.maxScroll,0,c.maxScroll);c.target=c.scroll end
  end
  -- A renderer adapter: Syntax is the single owner of module values and callbacks.
+ function bridge.RefreshBindings()
+  for control,entry in pairs(bridge.bindings) do
+   if not control.Parent then bridge.bindings[control]=nil
+   else
+    entry.caption.Text=binding==rows[entry.id] and "PRESS KEY" or (state[entry.id].key=="Unknown" and "NONE" or state[entry.id].key)
+    entry.caption.TextColor3=rgb(binding==rows[entry.id] and currentPalette().accent or 0x77858E)
+   end
+  end
+ end
+ function bridge.CreateKeybind(id,parentObject,scope,height)
+  local control=new("TextButton",parentObject,{Name="SyntaxKeybind",BackgroundTransparency=1,Text="",AutoButtonColor=false,Size=UDim2.fromOffset(72,height),Active=true})
+  control:SetAttribute("Component","SyntaxKeybind")
+  local field=new("Frame",control,{Name="SyntaxKeybindField",BackgroundColor3=rgb(0x101314),Position=UDim2.new(.5,-24,.5,-9),Size=UDim2.fromOffset(48,18),Active=false})
+  new("UICorner",field,{CornerRadius=UDim.new(0,2)})
+  local caption=new("TextLabel",field,{Name="Value",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),Text="NONE",TextSize=9,Font=opaiFont(false),TextColor3=rgb(0x77858E),TextScaled=false,TextTruncate=Enum.TextTruncate.AtEnd})
+  bridge.bindings[control]={id=id,caption=caption}
+  scope:On(control.Activated,function() api:BeginKeybind(id);bridge.RefreshBindings() end)
+  scope:On(control.MouseButton2Click,function() api:SetKeybind(id,"Unknown") end)
+  scope.disposals[#scope.disposals+1]=function() if binding==rows[id] then binding=nil end;bridge.bindings[control]=nil end
+  bridge.RefreshBindings();return control
+ end
  function bridge.Mirror(id,key,value)
   local app=bridge.app;if not app or bridge.syncing then return end
   local group=app._byId[id];if not group then return end
@@ -4699,6 +4824,9 @@ local function drawArrayList(dt,view,factor,st,p)
    Layout=activeStyle=="Jackal Neverlose" and "Neverlose" or "Dropdown",Preset="Opai",
    Scale=k,Language=language,BindBuiltinComponents=false,DynamicIsland={Enabled=false},
    StyleOptions=copy(UI.Styles),StyleName=activeStyle,
+   SyntaxKeybind=bridge.CreateKeybind,
+   SyntaxBindingActive=function(input) return binding~=nil or bridge.consumedInput==input end,
+   CancelSyntaxBinding=function() api:CancelKeybind() end,
    OnSelectStyle=function(name) api:SetStyle(name) end,
    OnOpenAppearance=function() api:OpenAppearance() end,
    OnEditHUD=function() api:EditHUD() end,
@@ -4717,6 +4845,7 @@ local function drawArrayList(dt,view,factor,st,p)
   connect(changed.Event,bridge.Mirror)
  end
  function bridge.Sync()
+  bridge.RefreshBindings()
   local enabled=activeStyle:match("^Jackal ")~=nil
   if enabled then bridge.Create() end
   local app=bridge.app;if not app then return end
@@ -4748,6 +4877,7 @@ local function drawArrayList(dt,view,factor,st,p)
   if activeStyle~=nextStyle then activeStyle=nextStyle;dropdown=nil;sliding=nil;binding=nil;drag=nil;gesture=nil;touch=nil;config.open=false;alt.nav=1;alt.target=0;alt.scroll=0;searchBox:ReleaseFocus();searchBox.Text="";altName:ReleaseFocus() end
   renderHUD(dt,frameDelta)
   bridge.Sync()
+  bridge.RefreshBindings()
    if not root.Visible then updateRegionalBlur(blurPane,altGlass,false);appearanceRoot.Visible=false;accentBox.Visible=false;hits={};syncNativeHits();return end
   local elapsed=(os.clock()-opened)*animationSpeed;zoom=not animations and 1 or visible and (elapsed>=.32 and 1 or 1+.18*math.exp(-17*elapsed)*math.cos(23*elapsed)) or 1+.6*(1-opacity)
   offsetX=(gui.AbsoluteSize.X-width*k*zoom)/2;offsetY=(gui.AbsoluteSize.Y-height*k*zoom)/2
@@ -4779,8 +4909,12 @@ local function drawArrayList(dt,view,factor,st,p)
   local key=input.KeyCode;local kind=input.UserInputType
   if kind==Enum.UserInputType.Keyboard then
    if Input:GetFocusedTextBox() then return end
-   if bridge.app and bridge.app._binding then return end
-   if binding then state[binding.def.id].key=(key==Enum.KeyCode.Escape or key==Enum.KeyCode.Backspace) and "Unknown" or key.Name;notify(binding.def.id,"key",state[binding.def.id].key);binding=nil;return end
+   if binding then
+    local id=binding.def.id
+    bridge.consumedInput=input
+    api:SetKeybind(id,(key==Enum.KeyCode.Escape or key==Enum.KeyCode.Backspace or key==Enum.KeyCode.Delete) and "Unknown" or key.Name)
+    return
+   end
    if key==Enum.KeyCode.F7 then if visible then appearanceOpen=not appearanceOpen;dropdown=nil end;return end
    if key==Enum.KeyCode.F8 then api:SetDiagnostics(not diagnostic);return end
    if key==Enum.KeyCode.F and not activeStyle:match("^Jackal ") and activeStyle~="Opai" and (Input:IsKeyDown(Enum.KeyCode.LeftControl) or Input:IsKeyDown(Enum.KeyCode.RightControl)) then searchBox:CaptureFocus();return end
@@ -4855,7 +4989,7 @@ local function drawArrayList(dt,view,factor,st,p)
  fit();render(0)
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Camera.Value+1,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="SyntaxVectorV2",visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="SyntaxVectorsV2",arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  return api
 end
 return UI
