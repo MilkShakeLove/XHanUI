@@ -15,7 +15,7 @@ local TextService=game:GetService("TextService")
 local Stats=game:GetService("Stats")
 local Lighting=game:GetService("Lighting")
 local SoundService=game:GetService("SoundService")
-local UI={Version="2.1.1",SourceVersion="1.1.9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.2",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={Version="2.1.1",SourceVersion="1.1.9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local Window={};Window.__index=Window
 local Group={};Group.__index=Group
 local T={Window=0x151515,Header=0x1C1C1C,HeaderTop=0x191919,Divider=0x111111,Group=0x1C1C1C,Border=0x222222,Field=0x161616,Hover=0x191919,Selected=0x222222,Popup=0x1C1C1C,Title=0xEDEDED,Label=0xE4E4E4,LabelHover=0xF4F4F4,Muted=0x95909F,Icon=0x9C91A6,IconHover=0xD2D2D2,FieldText=0xD3CCD9,FieldTextHover=0xD8D8D8,Accent=0x34A5F8,AccentDim=0x315675,Privileged=0xF5A35D}
@@ -45,12 +45,35 @@ end
 local function icon(parent,name,size,hex)
  local root=create("Frame",parent,{Name="Icon_"..name,BackgroundTransparency=1,Size=UDim2.fromOffset(size,size),Active=false})
  local parts={};local tone=color(hex or T.Muted)
+-- Keep each icon's geometry, using Roblox's native Bezier stroke renderer.
+-- Older clients retain the existing rounded-frame fallback.
+ local function path(points,closed)
+  if not Path2DControlPoint then return false end
+  local object
+  local ok=pcall(function()
+   object=Instance.new("Path2D");object.Name="VectorStroke";object.Color3=tone;object.Thickness=math.max(1.2,size*.075);object.Closed=closed==true;object.ZIndex=1
+   local controls={}
+   for _,v in ipairs(points) do controls[#controls+1]=Path2DControlPoint.new(UDim2.fromScale(v[1]/24,v[2]/24),UDim2.fromScale((v[3] or 0)/24,(v[4] or 0)/24),UDim2.fromScale((v[5] or 0)/24,(v[6] or 0)/24)) end
+   object:SetControlPoints(controls);object.Parent=root
+   local opacity=create("UIGradient",object,{Name="VectorOpacity",Transparency=NumberSequence.new(0)})
+   opacity:SetAttribute("IconAlpha",1);parts[#parts+1]={object,"Color3","VectorOpacity",opacity}
+  end)
+  if not ok and object then object:Destroy() end
+  return ok
+ end
+
  local function line(x1,y1,x2,y2)
+  if path({{x1,y1},{x2,y2}},false) then return end
   local dx,dy=x2-x1,y2-y1
   local part=create("Frame",root,{BackgroundColor3=tone,AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale((x1+x2)/48,(y1+y2)/48),Size=UDim2.new(math.sqrt(dx*dx+dy*dy)/24,0,0,math.max(1.2,size*.075)),Rotation=math.deg(math.atan2(dy,dx))})
   corner(part,2);parts[#parts+1]={part,"BackgroundColor3","BackgroundTransparency"}
  end
  local function ring(x,y,w,h,r)
+  local radius=math.min(r or math.min(w,h)/2,w/2,h/2);local k=radius*.5522847498
+  local raw={{x+radius,y,-k,0,0,0},{x+w-radius,y,0,0,k,0},{x+w,y+radius,0,-k,0,0},{x+w,y+h-radius,0,0,0,k},{x+w-radius,y+h,k,0,0,0},{x+radius,y+h,0,0,-k,0},{x,y+h-radius,0,k,0,0},{x,y+radius,0,0,0,-k}}
+  local points={}
+  for _,v in ipairs(raw) do local last=points[#points];if last and last[1]==v[1] and last[2]==v[2] then last[5]=v[5];last[6]=v[6] else points[#points+1]=v end end
+  if path(points,true) then return end
   local part=create("Frame",root,{BackgroundTransparency=1,Position=UDim2.fromScale(x/24,y/24),Size=UDim2.fromScale(w/24,h/24)})
   corner(part,(r or math.min(w,h)/2)*size/24)
   local edge=create("UIStroke",part,{Color=tone,Thickness=math.max(1.2,size*.075),ApplyStrokeMode=Enum.ApplyStrokeMode.Border})
@@ -79,7 +102,7 @@ local function icon(parent,name,size,hex)
   ring(7,7,10,10,3)
   for i=0,7 do local a=i*math.pi/4;line(12+8*math.cos(a),12+8*math.sin(a),12+10*math.cos(a),12+10*math.sin(a)) end
  end
- return {Root=root,SetColor=function(_,v) local c=color(v);for _,part in ipairs(parts) do part[1][part[2]]=c end end,SetOpacity=function(_,alpha) for _,part in ipairs(parts) do part[1][part[3]]=1-alpha end end}
+ return {Root=root,SetColor=function(_,v) local c=color(v);for _,part in ipairs(parts) do part[1][part[2]]=c end end,SetOpacity=function(_,alpha) for _,part in ipairs(parts) do if part[3]=="VectorOpacity" then part[4]:SetAttribute("IconAlpha",alpha);part[4].Transparency=NumberSequence.new(1-alpha) else part[1][part[3]]=1-alpha end end end}
 end
 local Scope={};Scope.__index=Scope
 function Scope.new(parent)
@@ -357,6 +380,7 @@ function Window:_cancelTransition(root,restore)
  self._transitions[root]=nil
  if restore then
   for object,props in pairs(state.values) do if object.Parent then for key,value in pairs(props) do object[key]=value end end end
+  for gradient,alpha in pairs(state.pathValues or {}) do if gradient.Parent then gradient.Transparency=NumberSequence.new(1-alpha) end end
   if root.Parent then root.Position=state.position end
   if state.scaleObject and state.scaleObject.Parent then state.scaleObject.Scale=state.baseScale end
  end
@@ -370,7 +394,7 @@ function Window:_transition(root,from,to,duration,scope,done,motion)
  for _,entry in ipairs(overlaps) do self:_cancelTransition(entry[1],true);if entry[2].done then entry[2].done() end end
  local previous=self._transitions[root];local amount=previous and previous.amount or from
  self:_cancelTransition(root,true)
- local state={root=root,scope=scope,amount=amount,from=amount,to=to,time=0,duration=self.ReducedMotion and 0 or duration,values={},position=root.Position,done=done,motion=motion or {}}
+ local state={root=root,scope=scope,amount=amount,from=amount,to=to,time=0,duration=self.ReducedMotion and 0 or duration,values={},pathValues={},position=root.Position,done=done,motion=motion or {}}
  if motion and motion.Zoom and root==self.Main then state.scaleObject=self.ScaleObject;state.baseScale=self._scale end
  self._transitions[root]=state
  self._transitionOwners=self._transitionOwners or setmetatable({},{__mode="k"})
@@ -395,6 +419,10 @@ function Window:_tickTransitions(dt)
     end
     collect(root)
     for _,object in ipairs(nodes) do
+     if object:IsA("Path2D") then
+      local gradient=object:FindFirstChild("VectorOpacity")
+      if gradient then local sequence=gradient.Transparency;local points=sequence.Keypoints;state.pathValues[gradient]=points and (1-points[1].Value) or (type(sequence[1])=="number" and 1-sequence[1] or gradient:GetAttribute("IconAlpha") or 1) end
+     end
      local keys=FADE_PROPS[object.ClassName]
      if keys then
       local values={};for _,key in ipairs(keys) do local value=object[key];if value and value<1 then values[key]=value end end
@@ -403,6 +431,7 @@ function Window:_tickTransitions(dt)
     end
    end
    for object,values in pairs(state.values) do if object.Parent then for key,value in pairs(values) do object[key]=1-(1-value)*state.amount end end end
+   for gradient,alpha in pairs(state.pathValues or {}) do if gradient.Parent then gradient.Transparency=NumberSequence.new(1-alpha*state.amount) end end
    local offset=1-state.amount
    root.Position=state.position+UDim2.fromOffset((state.motion.X or 0)*offset,(state.motion.Y or 0)*offset)
    if state.scaleObject and state.scaleObject.Parent then
@@ -413,7 +442,8 @@ function Window:_tickTransitions(dt)
    if t>=1 then
     self._transitions[root]=nil
     for object,props in pairs(state.values) do if object.Parent then for key,value in pairs(props) do object[key]=value end end end
-    if root.Parent then root.Position=state.position end
+    for gradient,alpha in pairs(state.pathValues or {}) do if gradient.Parent then gradient.Transparency=NumberSequence.new(1-alpha) end end
+  if root.Parent then root.Position=state.position end
     if state.scaleObject and state.scaleObject.Parent then state.scaleObject.Scale=state.baseScale end
     if state.done then state.done() end
    end
@@ -1327,6 +1357,7 @@ function Window:_buildNeverlose()
  self.NLBody=create("Frame",self.NL,{Name="Cards",BackgroundTransparency=1,ClipsDescendants=true,Position=UDim2.fromOffset(208,100),Size=UDim2.fromOffset(850,510)})
  self:_buildNeverloseContents()
  self.NLStatus=text(self.NL,self.Options.Embedded and "SYNTAX" or "JACKAL  /  UI "..UI.Version,208,0,600,24,14,0xB399AD);self.NLStatus.Position=UDim2.new(0,208,1,-27)
+ self:_bindNeverloseDrag()
 end
 function Window:_buildImgui()
  self.IG=create("Frame",self.View,{Name="ImguiWindow",Active=true,BackgroundColor3=color(0x171717),Size=UDim2.fromOffset(840,560)});stroke(self.IG,0x696969,1)
@@ -1372,7 +1403,10 @@ function Window:_layoutModules()
   self.Canvas.CanvasSize=UDim2.fromOffset(right,maxY+12)
  elseif self.Layout=="Neverlose" then
   local width=math.min(1080,w-24);local height=math.min(640,h-14);local sidebar=width<650 and 64 or 188;local compact=height<380
-  self.NL.Size=UDim2.fromOffset(width,height);self.NL.Position=UDim2.fromOffset(math.round((w-width)/2),7);self.NLSide.Size=UDim2.fromOffset(sidebar,height);self.NLShadow.Position=self.NL.Position;self.NLShadow.Size=self.NL.Size
+  self.NL.Size=UDim2.fromOffset(width,height);local position=self:_clampNeverlosePosition(self._nlPosition or Vector2.new(math.round((w-width)/2),7),width,height,w,h)
+  if self._nlPosition then self._nlPosition=position end
+  self.NL.Position=UDim2.fromOffset(position.X,position.Y);self.NLSide.Size=UDim2.fromOffset(sidebar,height);self.NLShadow.Position=self.NL.Position;self.NLShadow.Size=self.NL.Size
+  self.NLDragStrip.Position=UDim2.fromOffset(sidebar,0);self.NLDragStrip.Size=UDim2.new(1,-sidebar,0,14)
   self.NLBrand.Text=sidebar<100 and "NL" or "NEVERLOSE";self.NLBrand.Size=UDim2.fromOffset(sidebar-28,46);self.NLBrand.TextSize=math.round((sidebar<100 and 20 or 23)*self:_activeScale())/self:_activeScale();self.NLFeatures.Visible=sidebar>=100 and not compact;self.NLUsername.Visible=sidebar>=100;self.NLAccountDetail.Visible=sidebar>=100
   self.NLAccount.Position=UDim2.new(0,sidebar<100 and 4 or 10,1,-78);self.NLAccount.Size=UDim2.new(1,sidebar<100 and -8 or -20,0,66)
   for _,category in ipairs(self.NLCategories) do category.Button.Size=UDim2.fromOffset(sidebar-24,38);category.Button.Text=sidebar<100 and "" or "         "..self:_tr(category.Name) end
@@ -1443,6 +1477,32 @@ function Window:_switchNeverloseCategory(value)
  if saved then for i,column in ipairs(self.NLColumns) do column.CanvasPosition=saved[i] end end
  self:_transition(self.NLCards,0,1,.28,self._nlContentScope,nil,{X=direction*20,Y=7})
  return self
+end
+
+-- Drag only the title, top empty strip or status label; controls keep their input.
+function Window:_clampNeverlosePosition(position,width,height,viewW,viewH)
+ local grip=math.min(96,width*.5)
+ return Vector2.new(math.clamp(position.X,-math.max(0,width-grip),math.max(0,viewW-grip)),math.clamp(position.Y,0,math.max(0,viewH-48)))
+end
+function Window:_bindNeverloseDrag()
+ local scope=self._viewScope
+ self.NLDragStrip=create("TextButton",self.NL,{Name="NeverloseDragStrip",Text="",BackgroundTransparency=1,AutoButtonColor=false,Active=true,Position=UDim2.fromOffset(188,0),Size=UDim2.new(1,-188,0,14),ZIndex=0})
+ local function start(input)
+  if not self.Visible or self._gesture or self._drag or self:_bindingBusy() then return end
+  if input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch then return end
+  self:_closePopups(nil,true)
+  local point=self:_inputPoint(input);local origin=self.View.AbsolutePosition-self.Gui.AbsolutePosition
+  local scale=self.NL.AbsoluteSize.X/math.max(1,self.NL.Size.X.Offset)
+  local grab=Vector2.new((point.X-origin.X)/scale-self.NL.Position.X.Offset,(point.Y-origin.Y)/scale-self.NL.Position.Y.Offset)
+  self._gesture={input=input,start=point,origin=Vector2.new(self.NL.Position.X.Offset,self.NL.Position.Y.Offset),grab=grab,neverlose=true}
+ end
+ self.NLBrand.Active=true;self.NLStatus.Active=true
+ self:_on(self.NLBrand.InputBegan,start,scope)
+ self:_on(self.NLDragStrip.InputBegan,start,scope)
+ self:_on(self.NLStatus.InputBegan,start,scope)
+end
+function Window:_bindingBusy()
+ return self._binding~=nil or (self.Options.SyntaxBindingActive and self.Options.SyntaxBindingActive(nil))
 end
 
 function Window:_optionsPage(group,title)
@@ -2155,7 +2215,7 @@ function Window:SelectCategory(value)
   for _,p in ipairs(self._panels) do if p.Name==value then self.Canvas.CanvasPosition=Vector2.new(p.Root.Position.X.Offset*self._scale,0) end end
  else self.Page="Modules";self:_invalidate() end;return self
 end
-function Window:ResetPositions() self._positions={};self._imguiPosition=nil;self:_layout();return self end
+function Window:ResetPositions() self._positions={};self._imguiPosition=nil;self._nlPosition=nil;self:_layout();return self end
 function Window:SetVisible(value)
  value=value==true
  if value==self.Visible and self.Main.Visible==value then return self end
@@ -2201,7 +2261,11 @@ function Window:_input()
   local g=self._gesture
   if g and (input==g.input or g.input.UserInputType==Enum.UserInputType.MouseButton1 and input.UserInputType==Enum.UserInputType.MouseMovement) then
    local delta=self:_inputPoint(input)-g.start;local target=g.origin+Vector2.new(delta.X/self._scale,delta.Y/self._scale)
-   if g.panel then self._positions[g.panel.Name]=Vector2.new(math.max(0,target.X),math.max(0,target.Y)) elseif g.imgui then self._imguiPosition=target end
+   if g.panel then self._positions[g.panel.Name]=Vector2.new(math.max(0,target.X),math.max(0,target.Y)) elseif g.imgui then self._imguiPosition=target elseif g.neverlose then
+    local point=self:_inputPoint(input);local origin=self.View.AbsolutePosition-self.Gui.AbsolutePosition
+    local scale=self.NL.AbsoluteSize.X/math.max(1,self.NL.Size.X.Offset)
+    self._nlPosition=Vector2.new((point.X-origin.X)/scale-g.grab.X,(point.Y-origin.Y)/scale-g.grab.Y)
+   end
    self:_layoutModules()
   end
  end)
@@ -2305,7 +2369,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.2",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -4825,7 +4889,7 @@ local function drawArrayList(dt,view,factor,st,p)
    Scale=k,Language=language,BindBuiltinComponents=false,DynamicIsland={Enabled=false},
    StyleOptions=copy(UI.Styles),StyleName=activeStyle,
    SyntaxKeybind=bridge.CreateKeybind,
-   SyntaxBindingActive=function(input) return binding~=nil or bridge.consumedInput==input end,
+   SyntaxBindingActive=function(input) return binding~=nil or (input~=nil and bridge.consumedInput==input) end,
    CancelSyntaxBinding=function() api:CancelKeybind() end,
    OnSelectStyle=function(name) api:SetStyle(name) end,
    OnOpenAppearance=function() api:OpenAppearance() end,
