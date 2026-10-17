@@ -1,6 +1,8 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
+local uiDiagnostics={Version="2026-10-17.V9.1",Stage="声明 Jackal UI"}
+_G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 -- Jackal UI Roblox port, based on supplied JackalClient 1.1.9 UI sources.
@@ -2359,6 +2361,7 @@ end
 return UI
 
 end)()
+uiDiagnostics.Stage="声明 Syntax UI 与模糊核心"
 local UI=(function()
 -- Syntax Roblox UI: Neverlose ClickGUI, Opai typography, independent XHan ArrayList.
 -- Shared layout coordinates for painting, clipping and hit testing.
@@ -2369,7 +2372,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-17.V9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-17.V9.1",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -3612,7 +3615,17 @@ function SmoothGlow.new(parent,options)
  return self
 end
 
+-- Private read-only layout/palette data lives outside the per-window constructor.
+local sourceThemes={Default={0xFFFFFF,0xFFFFFF},Flower={0xFFFFFF,0xFFFFFF},Gold={0xFFA500,0xFFFF00},Ocean={0x00C6FF,0x0072FF},Nova={0xFF64C8,0x1996FF},Emerald={0x00E676,0x164D2B},Inferno={0xFF5722,0x7A321F},Sakura={0xFF80AB,0xE040FB},Cherry={0xDD3D69,0xE0B3B7}}
+local flowPalettes={Starlight={0xE9A8BC,0x6EC8F1,0xFFFFFF},Aurora={0xFF78DC,0x8269FF,0x5FDCFF,0xD2FFF5},Rainbow={0xFF6978,0xFFBE5A,0x73F09B,0x5ABEFF,0xAF73FF}}
+local appearanceRanges={UI={.5,4},HUD={.5,4},Speed={.5,3},Glow={0,1},Island={0,100},IslandBackground={0,100},IslandSpeed={.25,3}}
+local navNames={"Combat","Targets","Movement","Player","Visuals","Misc","HUD Editor","Configs"}
+local navY={96,132,200,236,304,372,408,444}
+local modernNames={"Combat","Movement","Visuals","Player","Other"}
+local modernCats={"Combat","Movement","Visual","Player","Misc"}
+
 function UI.new(options)
+ uiDiagnostics.Stage="初始化 UI 设置"
  options=table.clone(options or {})
  options.Modules=copy(options.Modules or {})
  for _,m in ipairs(options.Modules) do
@@ -3637,8 +3650,11 @@ function UI.new(options)
  for _,name in ipairs({"Scale","HUDScale"}) do local value=options[name];assert(value==nil or (type(value)=="number" and value==value and value>=.5 and value<=4),name.." must be between 0.5 and 4") end
  local parent=options.Parent or Players.LocalPlayer:WaitForChild("PlayerGui")
  -- Shutdown is owned by this UI, so repeat execution also works without writable globals.
+ do
  local old=parent:FindFirstChild("SamsaraOpaiV2")
  if old then local shutdown=old:FindFirstChild("Shutdown");if shutdown and shutdown:IsA("BindableEvent") then shutdown:Fire() end;old:Destroy() end
+ end
+ uiDiagnostics.Stage="创建 UI 根容器"
  local gui=new("ScreenGui",parent,{Name="SamsaraOpaiV2",IgnoreGuiInset=true,ResetOnSpawn=false,DisplayOrder=90,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})
  -- Explicit full-screen coordinates: IgnoreGuiInset alone still leaves device safe insets.
  gui.ScreenInsets=Enum.ScreenInsets.None
@@ -3791,7 +3807,6 @@ function UI.new(options)
  local appearanceOpen=false
  local appearanceGeometry
  local appearanceSliding
- local sourceThemes={Default={0xFFFFFF,0xFFFFFF},Flower={0xFFFFFF,0xFFFFFF},Gold={0xFFA500,0xFFFF00},Ocean={0x00C6FF,0x0072FF},Nova={0xFF64C8,0x1996FF},Emerald={0x00E676,0x164D2B},Inferno={0xFF5722,0x7A321F},Sakura={0xFF80AB,0xE040FB},Cherry={0xDD3D69,0xE0B3B7}}
  local function mixColor(a,b,t)
   local r=math.round((math.floor(a/65536)%256)*(1-t)+(math.floor(b/65536)%256)*t)
   local g=math.round((math.floor(a/256)%256)*(1-t)+(math.floor(b/256)%256)*t)
@@ -3803,7 +3818,6 @@ function UI.new(options)
   if type(value)~="number" or value~=value or value<0 or value>0xFFFFFF or value%1~=0 then return nil end
   return value
  end
- local flowPalettes={Starlight={0xE9A8BC,0x6EC8F1,0xFFFFFF},Aurora={0xFF78DC,0x8269FF,0x5FDCFF,0xD2FFF5},Rainbow={0xFF6978,0xFFBE5A,0x73F09B,0x5ABEFF,0xAF73FF}}
  local function flowingColor(name,index,period,phase)
   local palette=flowPalettes[name] or flowPalettes.Starlight
    local cycle=(flowTime/math.max(.2,period or 3)+(index or 0)*.115+(phase or 0))%1
@@ -4258,7 +4272,6 @@ function UI.new(options)
   if color then api:SetAccent(color);appearanceError="" else appearanceError="Use six hexadecimal digits: #RRGGBB" end
  end)
  local function appearancePoint(x,y,w,h) local a=appearanceGeometry;return rect(a.x+x*a.s,a.y+y*a.s,w*a.s,h*a.s) end
- local appearanceRanges={UI={.5,4},HUD={.5,4},Speed={.5,3},Glow={0,1},Island={0,100},IslandBackground={0,100},IslandSpeed={.25,3}}
  local function appearanceSlide(x)
   if not appearanceSliding then return end;local kind=appearanceSliding;local a=appearanceGeometry;local range=appearanceRanges[kind]
   local f=math.clamp(((x-a.x)/a.s-12)/200,0,1);local value=math.round((range[1]+f*(range[2]-range[1]))*20)/20
@@ -4300,10 +4313,6 @@ function UI.new(options)
  end
 
  local alt={x=0,y=0,s=1,scroll=0,target=0,max=0,nav=1,positions={},windows={},windowOrder={},sectionOffsets={},selection=96}
- local navNames={"Combat","Targets","Movement","Player","Visuals","Misc","HUD Editor","Configs"}
- local navY={96,132,200,236,304,372,408,444}
- local modernNames={"Combat","Movement","Visuals","Player","Other"}
- local modernCats={"Combat","Movement","Visual","Player","Misc"}
  local function altRect(r) return rect(alt.x+r.x*alt.s,alt.y+r.y*alt.s,r.w*alt.s,r.h*alt.s) end
  local function altHit(r,action,data,clip) if clip then r=intersection(r,clip) end;hit(altRect(r),action,data) end
  local function textWidth(text,size) return TextService:GetTextSize(tostring(text),size,Enum.Font.GothamMedium,Vector2.new(10000,10000)).X end
@@ -4731,6 +4740,7 @@ function UI.new(options)
   x=math.clamp(at and at.x or x,2,math.max(2,view.X-w-2));y=math.clamp(at and at.y or y,2,math.max(2,view.Y-h-2))
   hudBounds[name]=rect(x,y,w,h);return x,y
  end
+ uiDiagnostics.Stage="创建 TargetHUD 与 V3 Smooth"
  local targetHUD=createSyntaxTargetHUD(hudRoot,SmoothGlow.new,{
   imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,
   onUnavailable=function(reason)
@@ -5218,6 +5228,7 @@ local function drawArrayList(dt,view,factor,st,p)
 
   widgets:finish();updateHUDControls()
  end
+ uiDiagnostics.Stage="创建三个 HUD 模糊区域"
  local hudEffects=(function()
  -- HUD blur panes share a 4ms cooperative work target, never one sampler per row.
  -- Merge validated HUD overrides onto the recording profile, not onto a new UI state.
@@ -5712,14 +5723,18 @@ local function drawArrayList(dt,view,factor,st,p)
  connect(shutdown.Event,function() api:Destroy() end)
    connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;hudEffects.Destroy();xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy() end end)
  if options.Accent~=nil then api:SetAccent(options.Accent) end
+ uiDiagnostics.Stage="执行 UI 首帧渲染"
  fit();render(0)
+ uiDiagnostics.Stage="绑定 UI 渲染回调"
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Camera.Value+1,render)
  -- Inspection is useful in Studio and automated renderer verification.
   function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+ uiDiagnostics.Stage="UI 就绪"
  return api
 end
 return UI
 
 end)()
+UI.Diagnostics=uiDiagnostics
 _G.SyntaxUILibrary=UI
 return UI
