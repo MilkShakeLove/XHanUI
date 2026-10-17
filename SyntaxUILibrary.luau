@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-17.V9.2",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-17.V9.3",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,10 +2372,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-17.V9.2",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-17.V9.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -3746,6 +3746,11 @@ function UI.new(options)
  options.Modules=copy(options.Modules or {})
  for _,m in ipairs(options.Modules) do
   if m.id=="ClickGUI" then for _,setting in ipairs(m.settings or {}) do if setting.name=="Style" then setting.options=copy(UI.Styles) end end end
+  if m.id=="ClickGUI" then
+   m.settings=m.settings or {}
+   local found=false;for _,setting in ipairs(m.settings) do if setting.name=="Local Blur radius" then found=true end end
+   if not found then m.settings[#m.settings+1]={name="Local Blur radius",type="slider",default=options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1} end
+  end
   if m.id=="HUD" then
    m.settings=m.settings or {};SmoothGlow.addSettings(m)
    local function addHUDSetting(def)
@@ -3753,6 +3758,9 @@ function UI.new(options)
     m.settings[#m.settings+1]=def
    end
    for _,name in ipairs({"Island Blur","BloomFlow Blur","TargetHUD Blur","TargetHUD Glow"}) do addHUDSetting({name=name,type="toggle",default=true}) end
+   for _,name in ipairs({"Island Blur radius","BloomFlow Blur radius","TargetHUD Blur radius"}) do
+    addHUDSetting({name=name,type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
+   end
    addHUDSetting({name="TargetHUD Glow strength",type="slider",default=.5,min=0,max=1.6,step=.05})
    addHUDSetting({name="TargetHUD Glow radius",type="slider",default=24,min=6,max=72,step=1})
    addHUDSetting({name="TargetHUD Glow layers",type="slider",default=2,min=1,max=4,step=1})
@@ -3771,7 +3779,7 @@ function UI.new(options)
  if old then local shutdown=old:FindFirstChild("Shutdown");if shutdown and shutdown:IsA("BindableEvent") then shutdown:Fire() end;old:Destroy() end
  end
  uiDiagnostics.Stage="创建 UI 根容器"
- local gui=new("ScreenGui",parent,{Name="SamsaraOpaiV2",IgnoreGuiInset=true,ResetOnSpawn=false,DisplayOrder=90,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})
+ local gui=new("ScreenGui",parent,{Name="SamsaraOpaiV2",IgnoreGuiInset=true,ResetOnSpawn=false,DisplayOrder=2147483647,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})
  -- Explicit full-screen coordinates: IgnoreGuiInset alone still leaves device safe insets.
  gui.ScreenInsets=Enum.ScreenInsets.None
  gui.ClipToDeviceSafeArea=false
@@ -4321,8 +4329,18 @@ function UI.new(options)
   local altSoftShadow
   pcall(function() altSoftShadow=new("UIShadow",altGlass,{Color=rgb(0x000000),BlurRadius=UDim.new(0,18),Spread=UDim2.fromOffset(4,4),Offset=UDim2.fromOffset(0,5),Transparency=.43}) end)
   local blurPane={active=false,unsupported=false,renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true})}
-  function api:GetLocalBlurConfig() return blurPane.renderer:GetConfig() end
-  function api:SetLocalBlurConfig(patch) blurPane.renderer:SetConfig(patch) end
+  function api:GetLocalBlurConfig()
+   local result=blurPane.renderer:GetConfig()
+   if state.ClickGUI and state.ClickGUI.settings["Local Blur radius"]~=nil then result.radius=state.ClickGUI.settings["Local Blur radius"] end
+   return result
+  end
+  function api:SetLocalBlurConfig(patch)
+   blurPane.renderer:SetConfig(patch)
+   if patch.radius~=nil then
+    blurPane.radius=patch.radius
+    if state.ClickGUI and state.ClickGUI.settings["Local Blur radius"]~=nil then self:SetSetting("ClickGUI","Local Blur radius",patch.radius) end
+   end
+  end
    local altPaint=pool(altRoot)
    altPaint.fontOverride=opaiFont(false)
  local altBody=new("Frame",altRoot,{Name="Content",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=100})
@@ -4830,7 +4848,8 @@ function UI.new(options)
 
  -- HUD lives outside the menu canvas: closing ClickGUI must not hide the island.
  local hudRoot=new("Frame",gui,{Name="HUD",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=1})
- local island=new("Frame",hudRoot,{Name="DynamicIsland",BackgroundTransparency=1,ZIndex=20})
+ api.HUDLayer=new("Frame",gui,{Name="HUDOverlay",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=3,Active=false})
+ local island=new("Frame",api.HUDLayer,{Name="DynamicIsland",BackgroundTransparency=1,ZIndex=20})
  local shell=pool(island,true)
   local islandBackdrop=new("Frame",island,{Name="Backdrop",BackgroundColor3=rgb(0x000000),BackgroundTransparency=1-0x98/255,BorderSizePixel=0,ZIndex=30})
   local islandCorner=new("UICorner",islandBackdrop,{CornerRadius=UDim.new(0,12)})
@@ -4838,7 +4857,7 @@ function UI.new(options)
  local islandClip=new("Frame",island,{Name="Content",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=100})
  local ink=pool(islandClip,true)
   ink.fixedText=true
- local widgetRoot=new("Frame",hudRoot,{Name="Widgets",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=10})
+ local widgetRoot=new("Frame",api.HUDLayer,{Name="Widgets",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=10})
  local widgets=pool(widgetRoot,true)
  local hudControls=new("Frame",hudRoot,{Name="HUDControls",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=5000})
   local hudHint=new("TextButton",hudControls,{Name="Done",Text="HUD Editor · drag / scroll to resize · click here to finish",Size=UDim2.fromOffset(430,32),Position=UDim2.new(.5,-215,1,-44),BackgroundColor3=rgb(0x1C1F29),TextColor3=rgb(0xE4E1E6),Font=opaiFont(false),TextSize=14,Visible=false,AutoButtonColor=false,ZIndex=100})
@@ -5064,7 +5083,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
   end
   return visibleRows,boundary-origin
  end
- xhan.root=new("Frame",hudRoot,{Name="StarlightArrayList",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=7000,Visible=false,Active=false})
+ xhan.root=new("Frame",api.HUDLayer,{Name="StarlightArrayList",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=7000,Visible=false,Active=false})
  xhan.smooth=SmoothGlow.new(xhan.root,{imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,onUnavailable=function(reason)
   if not dead then warn("[SyntaxUI Smooth Glow] "..reason);api:Notify("Smooth glow",reason,"warning",7) end
  end})
@@ -5357,7 +5376,13 @@ local function drawArrayList(dt,view,factor,st,p)
   BloomFlow={host=new("Frame",xhan.root,{Name="BloomFlowLocalBlur",BackgroundTransparency=1,ZIndex=0}),profile=table.clone(hudBlurProfile)},
   TargetHUD={host=new("Frame",targetHUD.Frame,{Name="TargetHUDLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0}),profile=table.clone(hudBlurProfile)},
  }
- function api:GetHUDBlurConfig(name) return table.clone(assert(hudBlurPanes[name],"Unknown HUD blur").profile) end
+ local radiusSettings={Island="Island Blur radius",BloomFlow="BloomFlow Blur radius",TargetHUD="TargetHUD Blur radius"}
+ function api:GetHUDBlurConfig(name)
+  local result=table.clone(assert(hudBlurPanes[name],"Unknown HUD blur").profile)
+  local value=state.HUD and state.HUD.settings[radiusSettings[name]]
+  if value~=nil then result.radius=value end
+  return result
+ end
  function api:SetHUDBlurConfig(name,patch)
   local pane=assert(hudBlurPanes[name],"Unknown HUD blur")
   local nextProfile=table.clone(pane.profile)
@@ -5366,6 +5391,7 @@ local function drawArrayList(dt,view,factor,st,p)
   for key in pairs(patch) do nextProfile[key]=validated[key] end
   pane.profile=nextProfile
   if pane.renderer then pane.renderer:SetConfig(patch) end
+  if patch.radius~=nil and state.HUD and state.HUD.settings[radiusSettings[name]]~=nil then self:SetSetting("HUD",radiusSettings[name],patch.radius) end
  end
  -- Use the positions/scales assigned this render frame. GUI Absolute* values can
  -- still describe the preceding layout while a HUD is being dragged or tweened.
@@ -5396,6 +5422,12 @@ local function drawArrayList(dt,view,factor,st,p)
   local jobs={}
   local function prepare(name,enabled,bounds,masks)
    local pane=hudBlurPanes[name]
+   local radius=st[radiusSettings[name]]
+   if radius~=nil and radius~=pane.profile.radius then
+    pane.profile.radius=radius
+    if pane.renderer then pane.renderer:SetConfig({radius=radius}) end
+   end
+   enabled=enabled and pane.profile.radius>0 and pane.profile.strength>0
    pane.host.Visible=enabled
    if enabled then
     if not pane.renderer then pane.renderer=SampledLocalBlur.new(pane.host,{Profile=pane.profile,ScreenCoordinates=true,Masked=true}) end
@@ -5735,6 +5767,8 @@ local function drawArrayList(dt,view,factor,st,p)
   dt=animations and motionDelta or 10
   opacity=animations and ease(opacity,visible and 1 or 0,dt,30) or (visible and 1 or 0);catcher.Visible=visible and not selectedStyle():match("^Jackal ");root.Visible=opacity>.005
   front:drawFixedToolbar(frameDelta)
+   local menuRadius=state.ClickGUI and state.ClickGUI.settings["Local Blur radius"]
+   if menuRadius~=nil and blurPane.radius~=menuRadius then blurPane.renderer:SetConfig({radius=menuRadius});blurPane.radius=menuRadius end
    local localBlur=state.ClickGUI and state.ClickGUI.settings["Local Blur"]~=false
    blur.Size=(options.Blur==false or state.ClickGUI) and 0 or 10*opacity
   local nextStyle=selectedStyle()
