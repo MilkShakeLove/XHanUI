@@ -2369,10 +2369,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-17.V9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -2409,79 +2409,476 @@ local function toggleDetail(detail,enabled)
  detail=tostring(detail):gsub("%s+$","")
  return (detail~="" and detail.." " or "")..(enabled and "Enabled" or "Disabled").."."
 end
--- GuiObject.AbsolutePosition uses CoreUISafeInsets coordinates. ScreenPointToRay
--- accepts that same coordinate system; ViewportPointToRay uses DeviceSafeInsets.
-local function updateRegionalBlur(pane,anchor,enabled,bounds)
- local function hide(reason)
-  pane.active=false;pane.bounds=nil;pane.reason=reason
-  if pane.part then pcall(function() pane.part.Transparency=1 end) end
-  if pane.effect then pcall(function() pane.effect.Enabled=false end) end
+local SampledLocalBlur=(function()
+-- Syntax sampled local blur V8. Shared by the library and standalone UI test.
+-- Base-color reconstruction, not a framebuffer capture. No independent render binding.
+local LocalBlur={Version="2026-10-17.V8"}
+LocalBlur.Defaults={refresh=120,radius=120,strength=100,edge=100,smooth=100,columns=25,sampleRows=19,
+ renderColumns=17,band=3,transparency=100,brightness=121,saturation=100,distance=3000,budget=8,idle=30,
+ nodes=768,skyR=107,skyG=143,skyB=184,frameSync=true,adaptive=true,guard=24}
+local ranges={refresh={5,120},radius={0,120},strength={0,100},edge={0,100},smooth={0,100},columns={25,81},
+ sampleRows={17,65},renderColumns={17,97},band={1,4},transparency={0,100},brightness={50,150},saturation={0,150},
+ distance={100,3000},budget={1,8},idle={1,30},nodes={128,768},skyR={0,255},skyG={0,255},skyB={0,255},guard={0,96}}
+local function validated(base,patch)
+ assert(type(patch)=="table","Local blur profile must be a table")
+ local result=table.clone(base)
+ for key,value in pairs(patch) do
+  local r=ranges[key]
+  if r then
+   assert(type(value)=="number" and value==value and value>=r[1] and value<=r[2],"Invalid local blur setting: "..key)
+   if key=="columns" or key=="sampleRows" or key=="renderColumns" or key=="nodes" then assert(value%1==0,"Expected whole number: "..key) end
+  else assert((key=="frameSync" or key=="adaptive") and type(value)=="boolean","Unknown local blur setting: "..tostring(key)) end
+  result[key]=value
  end
- local camera=workspace.CurrentCamera
- if not enabled or not anchor or not anchor.Parent or not anchor.Visible then hide("hidden");return end
- if not camera or camera.ViewportSize.X<=1 or camera.ViewportSize.Y<=1 then hide("camera-not-ready");return end
- if pane.unsupported then hide("unsupported");return end
- -- The renderer supplies its current transform so dragging, resizing and the
- -- opening animation do not depend on a previous-frame GUI layout readback.
- local position=bounds and Vector2.new(bounds.x,bounds.y) or anchor.AbsolutePosition
- local size=bounds and Vector2.new(bounds.w,bounds.h) or anchor.AbsoluteSize
- if position.X~=position.X or position.Y~=position.Y or size.X~=size.X or size.Y~=size.Y
-  or math.abs(position.X)==math.huge or math.abs(position.Y)==math.huge
-  or math.abs(size.X)==math.huge or math.abs(size.Y)==math.huge or size.X<=8 or size.Y<=8 then hide("invalid-bounds");return end
- position+=Vector2.new(4,4);size-=Vector2.new(8,8)
- if pane.part and (pane.camera~=camera or pane.part.Parent~=camera or not pane.mesh or pane.mesh.Parent~=pane.part or not pane.effect or pane.effect.Parent~=Lighting) then
-  pcall(function() pane.part:Destroy() end)
-  if pane.effect then pcall(function() pane.effect:Destroy() end) end
-  pane.part=nil;pane.mesh=nil;pane.effect=nil;pane.camera=nil
- end
- if not pane.part then
-  local effect,part
-  local ok=pcall(function()
-   effect=Instance.new("DepthOfFieldEffect")
-   effect.Name="SyntaxLocalBackdropBlur";effect.FarIntensity=0;effect.NearIntensity=.9;effect.InFocusRadius=0
-   part=Instance.new("Part")
-   part.Name="SyntaxLocalBackdropPlane";part.Size=Vector3.new(.01,.01,.01);part.Anchored=true
-   part.CanCollide=false;part.CanTouch=false;part.CanQuery=false;part.CastShadow=false
-   part.Material=Enum.Material.Glass;part.Transparency=1
-   local mesh=Instance.new("BlockMesh");mesh.Parent=part
-   part.Parent=camera;effect.Parent=Lighting
-   pane.part=part;pane.mesh=mesh;pane.effect=effect;pane.camera=camera
-  end)
-  if not ok then
-   if part then pcall(function() part:Destroy() end) end
-   if effect then pcall(function() effect:Destroy() end) end
-   pane.part=nil;pane.mesh=nil;pane.effect=nil;pane.camera=nil;pane.unsupported=true
-   hide("unsupported");return
-  end
- end
- local cameraFrame=camera.CFrame
- local normal=cameraFrame.LookVector
- local depth=.05-camera.NearPlaneZ
- local planePoint=cameraFrame.Position+normal*depth
- local function project(x,y)
-  local ray=camera:ScreenPointToRay(x,y,0)
-  local divisor=ray.Direction:Dot(normal)
-  if divisor~=divisor or math.abs(divisor)<.00001 then return nil end
-  local distance=(planePoint-ray.Origin):Dot(normal)/divisor
-  if distance~=distance or distance<=0 or distance==math.huge then return nil end
-  return cameraFrame:PointToObjectSpace(ray.Origin+ray.Direction*distance)
- end
- local upper=project(position.X,position.Y)
- local lower=project(position.X+size.X,position.Y+size.Y)
- if not upper or not lower then hide("projection-not-ready");return end
- pane.mesh.Offset=(upper+lower)*.5
- pane.mesh.Scale=Vector3.new(math.abs(lower.X-upper.X)/.01,math.abs(lower.Y-upper.Y)/.01,1)
- pane.part.CFrame=cameraFrame;pane.part.Transparency=1-1e-7
- pane.effect.FocusDistance=depth+.2;pane.effect.Enabled=true
- pane.bounds=rect(position.X,position.Y,size.X,size.Y);pane.reason=nil;pane.active=true
+ return result
 end
-local function destroyRegionalBlur(pane)
- if pane.part then pcall(function() pane.part:Destroy() end);pane.part=nil end
- if pane.effect then pcall(function() pane.effect:Destroy() end);pane.effect=nil end
- pane.mesh=nil;pane.camera=nil;pane.bounds=nil;pane.reason=nil;pane.active=false
+function LocalBlur.Profile(patch) return validated(LocalBlur.Defaults,patch or {}) end
+local function make(class,parent,properties)
+ local object=Instance.new(class)
+ for key,value in pairs(properties) do object[key]=value end
+ object.Parent=parent;return object
+end
+local function checkpoint() coroutine.yield() end
+local function finite(n) return type(n)=="number" and n==n and n>-math.huge and n<math.huge end
+local function validBounds(b) return type(b)=="table" and finite(b.x) and finite(b.y) and finite(b.w) and finite(b.h) and b.w>8 and b.h>8 end
+local function cloneBounds(b) return b and {x=b.x,y=b.y,w=b.w,h=b.h} or nil end
+local function cameraSnapshot(camera,screenCoordinates)
+ local size=camera.ViewportSize;local w,h=math.max(1,size.X),math.max(1,size.Y)
+ local function ray(x,y)
+  if screenCoordinates then return camera:ScreenPointToRay(x,y,0) end
+  return camera:ViewportPointToRay(x,y,0)
+ end
+ local center=ray(w*.5,h*.5)
+ local normal=camera.CFrame.LookVector or center.Direction.Unit
+ local function plane(x,y)
+  local direction=ray(x,y).Direction
+  return direction/math.max(.00001,direction:Dot(normal))
+ end
+ local a=plane(0,0)
+ return {origin=center.Origin,a=a,dx=plane(w,0)-a,dy=plane(0,h)-a,w=w,h=h}
 end
 
-local function createSyntaxTargetHUD(parent)
+local function horizontal(source,target,w,h,q)
+ local r=math.floor(q);local f=q-r;local n=2*r+1+2*f
+ for y=0,h-1 do
+  local row=y*w;local rr,gg,bb=0,0,0
+  for k=-r,r do local p=(row+math.clamp(k,0,w-1))*3;rr+=source[p+1];gg+=source[p+2];bb+=source[p+3] end
+  for x=0,w-1 do
+   local a=(row+math.clamp(x-r-1,0,w-1))*3;local b=(row+math.clamp(x+r+1,0,w-1))*3;local p=(row+x)*3
+   target[p+1]=(rr+f*(source[a+1]+source[b+1]))/n
+   target[p+2]=(gg+f*(source[a+2]+source[b+2]))/n
+   target[p+3]=(bb+f*(source[a+3]+source[b+3]))/n
+   a=(row+math.clamp(x-r,0,w-1))*3
+   rr+=source[b+1]-source[a+1];gg+=source[b+2]-source[a+2];bb+=source[b+3]-source[a+3]
+  end
+  if y%2==1 then checkpoint() end
+ end
+end
+local function vertical(source,target,w,h,q)
+ local r=math.floor(q);local f=q-r;local n=2*r+1+2*f
+ for x=0,w-1 do
+  local rr,gg,bb=0,0,0
+  for k=-r,r do local p=(math.clamp(k,0,h-1)*w+x)*3;rr+=source[p+1];gg+=source[p+2];bb+=source[p+3] end
+  for y=0,h-1 do
+   local a=(math.clamp(y-r-1,0,h-1)*w+x)*3;local b=(math.clamp(y+r+1,0,h-1)*w+x)*3;local p=(y*w+x)*3
+   target[p+1]=(rr+f*(source[a+1]+source[b+1]))/n
+   target[p+2]=(gg+f*(source[a+2]+source[b+2]))/n
+   target[p+3]=(bb+f*(source[a+3]+source[b+3]))/n
+   a=(math.clamp(y-r,0,h-1)*w+x)*3
+   rr+=source[b+1]-source[a+1];gg+=source[b+2]-source[a+2];bb+=source[b+3]-source[a+3]
+  end
+  if x%2==1 then checkpoint() end
+ end
+end
+local function mono(a,b,c,d,t)
+ local delta=c-b
+ if delta==0 or t==0 then return b end
+ local left=b-a;local right=d-c
+ local m0=left*delta<=0 and 0 or 2*left*delta/(left+delta)
+ local m1=right*delta<=0 and 0 or 2*right*delta/(right+delta)
+ local t2=t*t;local t3=t2*t
+ return math.clamp((2*t3-3*t2+1)*b+(t3-2*t2+t)*m0+(-2*t3+3*t2)*c+(t3-t2)*m1,math.min(b,c),math.max(b,c))
+end
+
+local function resolveEdges(base,target,w,h,originX,originY,stepX,stepY,amount,readAt)
+ local count=0
+ for y=0,h-1 do
+  for x=0,w-1 do
+   local p=(y*w+x)*3
+   local r,g,b=base[p+1],base[p+2],base[p+3]
+   local contrast=0
+   local left=(y*w+math.max(0,x-1))*3
+   local right=(y*w+math.min(w-1,x+1))*3
+   local up=(math.max(0,y-1)*w+x)*3
+   local down=(math.min(h-1,y+1)*w+x)*3
+   for channel=1,3 do
+    local value=base[p+channel]
+    contrast=math.max(contrast,math.abs(value-base[left+channel]),math.abs(value-base[right+channel]),math.abs(value-base[up+channel]),math.abs(value-base[down+channel]))
+   end
+   if contrast>.08 then
+    local px,py=originX+x*stepX,originY+y*stepY
+    local rr,gg,bb=r,g,b
+    for iy=-1,1,2 do
+     for ix=-1,1,2 do
+      local ar,ag,ab=readAt(px+ix*.35*stepX,py+iy*.35*stepY)
+      rr+=ar;gg+=ag;bb+=ab
+     end
+     checkpoint()
+    end
+    r+=(rr/5-r)*amount;g+=(gg/5-g)*amount;b+=(bb/5-b)*amount
+    count+=1
+   end
+   target[p+1]=r;target[p+2]=g;target[p+3]=b
+   if x%16==15 then checkpoint() end
+  end
+ end
+ return count
+end
+
+
+function LocalBlur.new(host,options)
+ options=options or {}
+ local profile=LocalBlur.Profile(options.Profile)
+ local player=game:GetService("Players").LocalPlayer
+ local root=make("Frame",host,{Name="SyntaxSampledLocalBlur",BackgroundTransparency=1,ClipsDescendants=true,
+  Position=UDim2.fromScale(0,0),Size=UDim2.fromScale(1,1),ZIndex=0,Visible=false})
+ local tint=make("Frame",root,{Name="LocalBlurTint",BorderSizePixel=0,Size=UDim2.fromScale(1,1),
+  BackgroundColor3=Color3.fromRGB(12,16,25),BackgroundTransparency=profile.transparency/100,ZIndex=1})
+ local function createBuffer(name)
+  return {layer=make("Frame",root,{Name=name,BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Visible=false}),entries={},count=0}
+ end
+ local new=make
+ local front,back=createBuffer("LocalBlurFront"),createBuffer("LocalBlurBack")
+ local source,temp,filtered,ping,refined={},{},{},{},{}
+ local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude;params.IgnoreWater=false
+ local job,frontInfo,current=nil,nil,nil
+ local active,dead,failed=false,false,false
+ local wasEnabled=false
+ local destroyConnection=nil
+ local version,completed,elapsed,slow=0,0,1,0
+ local quality=1
+ local force=true
+ local reason="warming"
+ local lastSlice,totalCPU=0,0
+ local opacityFactor=1
+ tint.Visible=not options.Masked
+ local api={Root=root,Version=LocalBlur.Version}
+ -- Optional HUD display masks share the sampled image; they never resample per row.
+ local masks=nil;local maskRevision=0
+ function api:SetMasks(rectangles)
+  local changed=not masks or #masks~=#rectangles
+  if not changed then
+   for i,a in ipairs(rectangles) do
+    local b=masks[i]
+    if a.x~=b.x or a.y~=b.y or a.w~=b.w or a.h~=b.h or a.radius~=b.radius or a.alpha~=b.alpha then changed=true;break end
+   end
+  end
+  masks=rectangles
+  if changed then maskRevision+=1 end
+ end
+ local function applyMasks(buffer,info,bounds)
+  if not options.Masked then return end
+  local lp,ls=buffer.layer.Position,buffer.layer.Size
+  local ox,oy=lp.X.Scale*bounds.w,lp.Y.Scale*bounds.h
+  local sw,sh=ls.X.Scale*bounds.w,ls.Y.Scale*bounds.h
+  local cached=buffer.maskCache
+  if cached and cached.info==info and cached.revision==maskRevision and cached.ox==ox and cached.oy==oy and cached.sw==sw and cached.sh==sh and cached.w==bounds.w and cached.h==bounds.h and cached.strength==profile.strength and cached.radius==profile.radius and cached.opacity==opacityFactor and cached.tint==profile.transparency then return end
+  buffer.maskCache={info=info,revision=maskRevision,ox=ox,oy=oy,sw=sw,sh=sh,w=bounds.w,h=bounds.h,strength=profile.strength,radius=profile.radius,opacity=opacityFactor,tint=profile.transparency}
+  for i=1,buffer.count do
+   local e=buffer.entries[i];local used=0
+   local x,y=e.x*sw+ox,e.y*sh+oy;local w,h=e.w*sw,e.h*sh
+   for _,mask in ipairs(masks or {}) do
+    local mx,my,mw,mh=mask.x*bounds.w,mask.y*bounds.h,mask.w*bounds.w,mask.h*bounds.h
+    local t,b=math.max(y,my,0),math.min(y+h,my+mh,bounds.h)
+    if b>t then
+     local radius=math.min((mask.radius or 0)*bounds.h,mw/2,mh/2)
+     local edge=0
+     if radius>0 then
+      local cy=(t+b)*.5-my;local d=math.max(radius-cy,cy-(mh-radius),0)
+      edge=radius-math.sqrt(math.max(0,radius*radius-d*d))
+     end
+     local l,r=math.max(x,mx+edge,0),math.min(x+w,mx+mw-edge,bounds.w)
+     if r>l and (mask.alpha or 1)>.001 then
+      used+=1
+      local slot=e.clips[used]
+      if not slot then
+       local crop=new("Frame",buffer.layer,{Name="LocalBlurMask",BackgroundTransparency=1,BorderSizePixel=0,ClipsDescendants=true,ZIndex=1})
+       local row=new("Frame",crop,{Name="LocalBlurBand",BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,ZIndex=1})
+       slot={crop=crop,row=row,gradient=new("UIGradient",row,{Rotation=0})};e.clips[used]=slot
+      end
+      slot.crop.Visible=true
+      slot.crop.Position=UDim2.fromScale((l-ox)/sw,(t-oy)/sh)
+      slot.crop.Size=UDim2.fromScale((r-l)/sw,(b-t)/sh)
+      slot.row.Position=UDim2.fromScale((x-l)/(r-l),(y-t)/(b-t))
+      slot.row.Size=UDim2.fromScale(w/(r-l),h/(b-t))
+      if slot.sequence~=e.gradient.Color then slot.sequence=e.gradient.Color;slot.gradient.Color=slot.sequence end
+      slot.row.BackgroundTransparency=1-(e.alpha or 1)*(mask.alpha or 1)
+      local tintAlpha=(1-profile.transparency/100)*opacityFactor*(mask.alpha or 1)
+      if tintAlpha>0 and not slot.tint then slot.tint=new("Frame",slot.crop,{Name="MaskedBlurTint",BackgroundColor3=Color3.fromRGB(12,16,25),BorderSizePixel=0,Size=UDim2.fromScale(1,1),ZIndex=2}) end
+      if slot.tint then slot.tint.Visible=tintAlpha>0;slot.tint.BackgroundTransparency=1-tintAlpha end
+     end
+    end
+   end
+   for j=used+1,#e.clips do e.clips[j].crop.Visible=false end
+   e.row.Visible=used>0
+  end
+ end
+ local function positionBuffer(buffer,info,bounds)
+  if not info then return end
+  -- Counter-translate within the pre-sampled margins. Larger movements clamp to
+  -- the filled texture edge, preserving coverage until a fresh result completes.
+  local scaleX,scaleY=bounds.w/info.bounds.w,bounds.h/info.bounds.h
+  local guardX,guardY=info.guardX*scaleX,info.guardY*scaleY
+  local dx=math.clamp(info.bounds.x-bounds.x,-guardX,guardX)
+  local dy=math.clamp(info.bounds.y-bounds.y,-guardY,guardY)
+  buffer.layer.Position=UDim2.fromScale((dx-guardX)/bounds.w,(dy-guardY)/bounds.h)
+  buffer.layer.Size=UDim2.fromScale(1+guardX*2/bounds.w,1+guardY*2/bounds.h)
+ end
+ local function updateOpacity()
+  tint.BackgroundTransparency=profile.transparency/100
+  if not frontInfo then return end
+  local alpha=profile.strength/100*math.min(1,profile.radius/math.max(1,math.max(frontInfo.stepX,frontInfo.stepY)*.6))*opacityFactor
+  for i=1,front.count do
+   local e=front.entries[i]
+   if e.alpha~=alpha then e.row.BackgroundTransparency=1-alpha;e.alpha=alpha end
+  end
+ end
+ local function buildFrame(j)
+  local c=j.config;local nx,ny=j.nx,j.ny
+  local stepX,stepY=j.stepX,j.stepY
+  local sx=math.max(c.radius/2.5/stepX,c.smooth/100*1.1)
+  local sy=math.max(c.radius/2.5/stepY,c.smooth/100*1.1)
+  local qx=math.min(16,(math.sqrt(1+4*sx*sx)-1)/2);local qy=math.min(16,(math.sqrt(1+4*sy*sy)-1)/2)
+  local padX,padY=3*math.ceil(qx),3*math.ceil(qy)
+  local w,h=nx+padX*2,ny+padY*2
+  local originX,originY=j.bounds.x-j.guardX,j.bounds.y-j.guardY
+  local sky=Color3.fromRGB(c.skyR,c.skyG,c.skyB)
+  params.FilterDescendantsInstances=player and player.Character and {player.Character} or {}
+  local function readAt(px,py)
+   local color=sky
+   if j.sampler then color=j.sampler(px,py)
+   else
+    local p=j.projection
+    local direction=(p.a+p.dx*(px/p.w)+p.dy*(py/p.h)).Unit
+    local hit=workspace:Raycast(p.origin,direction*c.distance,params)
+    if hit then
+     if hit.Instance:IsA("Terrain") then color=workspace.Terrain:GetMaterialColor(hit.Material)
+     elseif hit.Instance:IsA("BasePart") then color=hit.Instance.Color end
+    end
+   end
+   return color.R,color.G,color.B
+  end
+  local sampled=0
+  for y=0,h-1 do for x=0,w-1 do
+   local r,g,b=readAt(originX+(x-padX)*stepX,originY+(y-padY)*stepY)
+   local p=(y*w+x)*3;source[p+1]=r;source[p+2]=g;source[p+3]=b
+   sampled+=1;if sampled%8==0 then checkpoint() end
+  end end
+  local first=source;j.refinedPoints=0
+  if c.edge>0 then
+   j.refinedPoints=resolveEdges(source,refined,w,h,originX-padX*stepX,originY-padY*stepY,stepX,stepY,c.edge/100,readAt)
+   first=refined
+  end
+  horizontal(first,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
+  horizontal(filtered,temp,w,h,qx);vertical(temp,ping,w,h,qy)
+  horizontal(ping,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
+ local output=c.renderColumns;local segments=math.ceil((output-1)/16)
+ local rows=math.max(1,math.min(math.ceil(j.size.Y/c.band),math.floor(c.nodes/segments)))
+ local count=rows*segments
+ local buffer=back
+ local frameAlpha=1 -- opacity is updated on the visible buffer, independent of color work
+ j.renderRows,j.renderColumns,j.count=rows,output,count
+ local lineR,lineG,lineB,codes={},{},{},{}
+ local xlookup={}
+ for ix=0,output-1 do
+  local gx=ix/(output-1)*(nx-1);local x=math.floor(gx)
+  xlookup[ix+1]={math.max(0,x-1)+1,x+1,math.min(nx-1,x+1)+1,math.min(nx-1,x+2)+1,gx-x}
+ end
+ for i=1,rows do
+  local top=math.floor((i-1)*j.size.Y/rows);local bottom=i==rows and j.size.Y or math.floor(i*j.size.Y/rows)
+  local gy=(top+bottom)*.5/j.size.Y*(ny-1);local y=math.floor(gy);local ty=gy-y
+  local a=(math.max(0,y-1)+padY)*w+padX
+  local b=(y+padY)*w+padX
+  local d=(math.min(ny-1,y+1)+padY)*w+padX
+  local e=(math.min(ny-1,y+2)+padY)*w+padX
+  for x=0,nx-1 do
+   local p0=(a+x)*3;local p1=(b+x)*3;local p2=(d+x)*3;local p3=(e+x)*3
+   lineR[x+1]=mono(filtered[p0+1],filtered[p1+1],filtered[p2+1],filtered[p3+1],ty)
+   lineG[x+1]=mono(filtered[p0+2],filtered[p1+2],filtered[p2+2],filtered[p3+2],ty)
+   lineB[x+1]=mono(filtered[p0+3],filtered[p1+3],filtered[p2+3],filtered[p3+3],ty)
+  end
+  for ix=1,output do
+   local p=xlookup[ix];local x0,x1,x2,x3,t=p[1],p[2],p[3],p[4],p[5]
+   local r=mono(lineR[x0],lineR[x1],lineR[x2],lineR[x3],t)
+   local g=mono(lineG[x0],lineG[x1],lineG[x2],lineG[x3],t)
+   local bl=mono(lineB[x0],lineB[x1],lineB[x2],lineB[x3],t)
+   if c.saturation~=100 or c.brightness~=100 then
+    local l=r*.2126+g*.7152+bl*.0722;local sat=c.saturation/100;local br=c.brightness/100
+    r=(l+(r-l)*sat)*br;g=(l+(g-l)*sat)*br;bl=(l+(bl-l)*sat)*br
+   end
+   codes[ix]=math.round(math.clamp(r,0,1)*255)*65536+math.round(math.clamp(g,0,1)*255)*256+math.round(math.clamp(bl,0,1)*255)
+  end
+  for segment=1,segments do
+   local index=(i-1)*segments+segment
+   local entry=buffer.entries[index]
+   if not entry then
+    local row=new("Frame",buffer.layer,{Name="LocalBlurBand",BackgroundColor3=Color3.new(1,1,1),BorderSizePixel=0,ZIndex=1})
+    entry={row=row,gradient=new("UIGradient",row,{Rotation=0}),codes={}};buffer.entries[index]=entry
+   end
+   local first=(segment-1)*16;local last=math.min(output-1,segment*16)
+   local layoutKey=tostring(rows)..":"..tostring(output)..":"..tostring(j.size.Y)
+   if entry.layoutKey~=layoutKey then
+    entry.row.Position=UDim2.fromScale(first/(output-1),top/j.size.Y)
+    entry.row.Size=UDim2.fromScale((last-first)/(output-1),(bottom-top)/j.size.Y);entry.layoutKey=layoutKey
+   end
+   entry.x,entry.y,entry.w,entry.h=first/(output-1),top/j.size.Y,(last-first)/(output-1),(bottom-top)/j.size.Y
+   if options.Masked and not entry.clips then
+    local crop=new("Frame",buffer.layer,{Name="LocalBlurMask",BackgroundTransparency=1,BorderSizePixel=0,ClipsDescendants=true,ZIndex=1})
+    entry.row.Parent=crop
+    entry.clips={{crop=crop,row=entry.row,gradient=entry.gradient}}
+   end
+   entry.row.Visible=not options.Masked
+   local changed=entry.length~=last-first+1
+   for x=first,last do if entry.codes[x-first+1]~=codes[x+1] then changed=true;break end end
+   if changed then
+    local keys={}
+    for x=first,last do
+     local code=codes[x+1];entry.codes[x-first+1]=code
+     local r=math.floor(code/65536);local g=math.floor(code/256)%256;local bl=code%256
+     keys[#keys+1]=ColorSequenceKeypoint.new((x-first)/(last-first),Color3.fromRGB(r,g,bl))
+    end
+    entry.gradient.Color=ColorSequence.new(keys);entry.length=last-first+1
+   end
+   if entry.alpha~=frameAlpha then entry.row.BackgroundTransparency=1-frameAlpha;entry.alpha=frameAlpha end
+  end
+  checkpoint()
+ end
+ for i=count+1,#buffer.entries do
+  buffer.entries[i].row.Visible=false
+  if i%16==0 then checkpoint() end
+ end
+ if options.Masked then for i=count+1,#buffer.entries do for _,slot in ipairs(buffer.entries[i].clips or {}) do slot.crop.Visible=false end end end
+ buffer.count=count
+ end
+ local function startJob(camera)
+  local sampler=options.SampleFactory and options.SampleFactory() or nil
+  if not sampler and (not camera or camera.ViewportSize.X<=1 or camera.ViewportSize.Y<=1) then reason="camera-not-ready";return end
+  local visibleX=math.max(math.min(profile.columns,33),math.round(profile.columns*quality))
+  local visibleY=math.max(math.min(profile.sampleRows,25),math.round(profile.sampleRows*quality))
+  local stepX,stepY=current.w/(visibleX-1),current.h/(visibleY-1)
+  local gx,gy=math.min(4,math.ceil(profile.guard/stepX)),math.min(4,math.ceil(profile.guard/stepY))
+  local j={config=table.clone(profile),bounds=cloneBounds(current),nx=visibleX+gx*2,ny=visibleY+gy*2,
+   visibleX=visibleX,visibleY=visibleY,stepX=stepX,stepY=stepY,guardX=gx*stepX,guardY=gy*stepY,
+   size=Vector2.new(current.w+gx*stepX*2,current.h+gy*stepY*2),version=version,cpu=0,sampler=sampler,
+   camera=camera,pose=camera and camera.CFrame,fov=camera and camera.FieldOfView,viewport=camera and camera.ViewportSize}
+  if not sampler then j.projection=cameraSnapshot(camera,options.ScreenCoordinates~=false) end
+  j.co=coroutine.create(function() buildFrame(j) end)
+  job=j;force=false;elapsed=0;reason=frontInfo and nil or "warming"
+ end
+ function api:GetConfig() return table.clone(profile) end
+ function api:SetConfig(patch)
+  assert(not dead,"Local blur is destroyed")
+  local nextProfile=validated(profile,patch)
+  local changed=false
+  for k,v in pairs(nextProfile) do if profile[k]~=v then changed=true;break end end
+  if not changed then return end
+  local expensive=false
+  for k,v in pairs(nextProfile) do
+   if profile[k]~=v and k~="strength" and k~="transparency" and k~="budget" and k~="refresh" and k~="idle" and k~="frameSync" then expensive=true end
+  end
+  profile=nextProfile;quality=1;slow=0;failed=false
+  if expensive then version+=1;force=true end
+  updateOpacity()
+ end
+ function api:Invalidate(clear)
+  version+=1;force=true;failed=false
+  if clear then job=nil;frontInfo=nil;front.layer.Visible=false;back.layer.Visible=false;active=false;root.Visible=false end
+ end
+ function api:Step(bounds,enabled,dt,opacity,workBudget)
+  if dead then return end
+  local started=os.clock()
+  dt=type(dt)=="number" and math.clamp(dt,0,.25) or 1/60
+  opacityFactor=finite(opacity) and math.clamp(opacity,0,1) or 1
+  local valid=validBounds(bounds)
+  local inset=math.max(0,options.Inset or 0)
+  local canUse=enabled and valid and host.Parent and host.Visible and profile.strength>0 and profile.radius>0
+  if not canUse then wasEnabled=false;job=nil;active=false;root.Visible=false;reason=not enabled and "hidden" or "invalid-bounds";return end
+  local b={x=bounds.x+inset,y=bounds.y+inset,w=bounds.w-inset*2,h=bounds.h-inset*2}
+  if not validBounds(b) then job=nil;active=false;root.Visible=false;reason="invalid-bounds";return end
+  if not current or b.x~=current.x or b.y~=current.y or b.w~=current.w or b.h~=current.h then force=true end
+  if not wasEnabled then failed=false;force=true;wasEnabled=true end
+  current=b
+  root.Position=UDim2.fromScale(inset/bounds.w,inset/bounds.h)
+  root.Size=UDim2.fromScale(b.w/bounds.w,b.h/bounds.h)
+  root.Visible=true;elapsed+=dt
+  if frontInfo then positionBuffer(front,frontInfo,b);active=true end
+  updateOpacity()
+  if frontInfo then applyMasks(front,frontInfo,b) end
+  if failed then return end
+  local camera=workspace.CurrentCamera
+  local ref=job or frontInfo
+  local moving=not ref or ref.camera~=camera or (camera and (ref.pose~=camera.CFrame or ref.fov~=camera.FieldOfView or ref.viewport~=camera.ViewportSize))
+  local rate=profile.frameSync and 0 or profile.refresh
+  if profile.adaptive and not moving and not profile.frameSync then rate=math.min(rate,profile.idle) end
+  if not job and (force or rate==0 or elapsed+1e-6>=1/rate) then
+   local ok,err=pcall(startJob,camera)
+   if not ok then failed=true;reason="sampling-error: "..tostring(err) end
+  end
+  if job then
+   local work=job;local sliceStarted=os.clock();local resumes=0
+   local sliceBudget=finite(workBudget) and math.clamp(workBudget,0,profile.budget) or profile.budget
+   while job==work and resumes<256 and (os.clock()-started)*1000<sliceBudget do
+    resumes+=1
+    local ok,err=coroutine.resume(work.co)
+    if not ok then job=nil;failed=true;reason="sampling-error: "..tostring(err);break end
+    if coroutine.status(work.co)=="dead" then
+     front.layer.Visible=false;back.layer.Visible=true;front,back=back,front
+     frontInfo=work;job=nil;completed+=1;active=true;reason=nil
+     totalCPU=work.cpu+(os.clock()-sliceStarted)*1000
+     positionBuffer(front,work,current);updateOpacity();applyMasks(front,work,current)
+     if profile.adaptive and totalCPU>profile.budget*4 then slow+=1 else slow=0 end
+     if slow>=3 and quality>.75 then quality=math.max(.75,quality-.125);slow=0;force=true end
+     if work.version~=version or work.bounds.x~=current.x or work.bounds.y~=current.y or work.bounds.w~=current.w or work.bounds.h~=current.h then force=true end
+     break
+    end
+   end
+   work.cpu+=(os.clock()-sliceStarted)*1000
+  end
+  lastSlice=(os.clock()-started)*1000
+ end
+ function api:Inspect()
+  return {active=active,unsupported=false,renderer="SampledV8",version=LocalBlur.Version,bounds=cloneBounds(current),reason=reason,
+   pending=job~=nil,completed=completed,gradients=front.count,sliceMs=lastSlice,totalCpuMs=totalCPU,
+   sampleColumns=frontInfo and frontInfo.visibleX or profile.columns,sampleRows=frontInfo and frontInfo.visibleY or profile.sampleRows,
+   reusedWhileMoving=frontInfo and current and (frontInfo.bounds.x~=current.x or frontInfo.bounds.y~=current.y) or false,
+   refinedPoints=frontInfo and frontInfo.refinedPoints or 0,guard=profile.guard}
+ end
+ function api:Destroy()
+  if dead then return end
+  dead=true;job=nil;frontInfo=nil;active=false
+  if destroyConnection then destroyConnection:Disconnect();destroyConnection=nil end
+  table.clear(source);table.clear(temp);table.clear(filtered);table.clear(ping);table.clear(refined)
+  root:Destroy()
+ end
+ destroyConnection=host.Destroying:Connect(function() api:Destroy() end)
+ return api
+end
+
+return LocalBlur
+
+end)()
+local function updateRegionalBlur(pane,anchor,enabled,bounds,dt,opacity)
+ if not pane.renderer then return end
+ pane.renderer:Step(bounds,enabled and anchor and anchor.Parent and anchor.Visible,dt,opacity,pane.frameBudget)
+ local info=pane.renderer:Inspect()
+ pane.active=info.active;pane.unsupported=info.unsupported;pane.bounds=info.bounds;pane.reason=info.reason
+end
+local function destroyRegionalBlur(pane)
+ if pane.renderer then pane.renderer:Destroy();pane.renderer=nil end
+ pane.active=false;pane.bounds=nil;pane.reason=nil
+end
+
+local function createSyntaxTargetHUD(parent,glowFactory,glowOptions)
     local TweenService = game:GetService("TweenService")
     local host = new("Frame", parent, {Name="EditableTargetHUD", BackgroundTransparency=1,
         Size=UDim2.fromOffset(292,76), Visible=false, ZIndex=40})
@@ -2518,20 +2915,7 @@ TargetHudGradient.Rotation = 8
 TargetHudGradient.Transparency = NumberSequence.new(1)
 TargetHudGradient.Parent = TargetHud
 
--- Transparent TargetHUD body: only a soft shadow remains behind the content.
-local TargetHudShadow = Instance.new("ImageLabel")
-TargetHudShadow.Name = "Shadow"
-TargetHudShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-TargetHudShadow.Position = UDim2.fromScale(0.5, 0.5)
-TargetHudShadow.Size = UDim2.new(1, 54, 1, 48)
-TargetHudShadow.BackgroundTransparency = 1
-TargetHudShadow.Image = "rbxassetid://104482361987216"
-TargetHudShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-TargetHudShadow.ImageTransparency = 0.42
-TargetHudShadow.ScaleType = Enum.ScaleType.Stretch
-TargetHudShadow.ZIndex = 49
-TargetHudShadow.Parent = TargetHud
-
+-- TargetHUD old shadow removed; blur and V3 Smooth use separate layers.
 local TargetHudScale = Instance.new("UIScale")
 TargetHudScale.Scale = 0.94
 TargetHudScale.Parent = TargetHud
@@ -2611,44 +2995,6 @@ TargetHealthGlowHolder.BorderSizePixel = 0
 TargetHealthGlowHolder.ClipsDescendants = false
 TargetHealthGlowHolder.ZIndex = 50
 TargetHealthGlowHolder.Parent = TargetHud
-
-local TargetHealthGlowOuter = Instance.new("ImageLabel")
-TargetHealthGlowOuter.Name = "OuterGlow"
-TargetHealthGlowOuter.AnchorPoint = Vector2.new(0.5, 0.5)
-TargetHealthGlowOuter.Position = UDim2.fromScale(0.5, 0.5)
-TargetHealthGlowOuter.Size = UDim2.new(1, 26, 1, 24)
-TargetHealthGlowOuter.BackgroundTransparency = 1
-TargetHealthGlowOuter.Image = "rbxassetid://104490578391522"
-TargetHealthGlowOuter.ImageColor3 = Color3.fromRGB(255, 255, 255)
-TargetHealthGlowOuter.ImageTransparency = 0.34
-TargetHealthGlowOuter.ScaleType = Enum.ScaleType.Stretch
-TargetHealthGlowOuter.ZIndex = 50
-TargetHealthGlowOuter.Parent = TargetHealthGlowHolder
-
-local TargetHealthGlowOuterGradient = Instance.new("UIGradient")
-TargetHealthGlowOuterGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 239, 169)),
-    ColorSequenceKeypoint.new(0.52, Color3.fromRGB(199, 247, 199)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 229, 255)),
-})
-TargetHealthGlowOuterGradient.Parent = TargetHealthGlowOuter
-
-local TargetHealthGlowInner = Instance.new("ImageLabel")
-TargetHealthGlowInner.Name = "InnerGlow"
-TargetHealthGlowInner.AnchorPoint = Vector2.new(0.5, 0.5)
-TargetHealthGlowInner.Position = UDim2.fromScale(0.5, 0.5)
-TargetHealthGlowInner.Size = UDim2.new(1, 16, 1, 14)
-TargetHealthGlowInner.BackgroundTransparency = 1
-TargetHealthGlowInner.Image = "rbxassetid://102472648910048"
-TargetHealthGlowInner.ImageColor3 = Color3.fromRGB(255, 255, 255)
-TargetHealthGlowInner.ImageTransparency = 0.16
-TargetHealthGlowInner.ScaleType = Enum.ScaleType.Stretch
-TargetHealthGlowInner.ZIndex = 51
-TargetHealthGlowInner.Parent = TargetHealthGlowHolder
-
-local TargetHealthGlowInnerGradient = Instance.new("UIGradient")
-TargetHealthGlowInnerGradient.Color = TargetHealthGlowOuterGradient.Color
-TargetHealthGlowInnerGradient.Parent = TargetHealthGlowInner
 
 local TargetHealthTrack = Instance.new("Frame")
 TargetHealthTrack.Name = "HealthTrack"
@@ -2917,8 +3263,6 @@ local function SetHealthGradient(ratio)
     end
 
     TargetHealthGradient.Color = sequence
-    TargetHealthGlowOuterGradient.Color = sequence
-    TargetHealthGlowInnerGradient.Color = sequence
 end
 local function ShowTargetHudPreview()
     if TargetHudKey ~= TargetHudPreviewKey then
@@ -3091,6 +3435,34 @@ end
             HudAbsolutePosition=TargetHud.AbsolutePosition, HudAbsoluteSize=TargetHud.AbsoluteSize,
             HudText=TargetName.Text}
     end
+        local targetSmooth=glowFactory(TargetHud,glowOptions)
+    targetSmooth.root.ZIndex=1
+    local function effectReason(reason)
+        return reason and reason:gsub("Using original glow", "TargetHUD glow disabled")
+    end
+    function controller:RenderGlow(st,enabled)
+        targetSmooth:Begin(enabled and st["TargetHUD Glow"]~=false,st["TargetHUD Glow strength"] or .5,st["TargetHUD Glow layers"] or 2)
+        if enabled then
+            local width=math.max(0,292*TargetHealthGlowHolder.Size.X.Scale+TargetHealthGlowHolder.Size.X.Offset)
+            local keys=TargetHealthGradient.Color.Keypoints
+            -- Overlapping radial spots follow the animated CURRENT health width.
+            -- Split into gradient intervals so the latest mask preserves health colors.
+            for i=1,#keys-1 do
+                local a,b=keys[i],keys[i+1]
+                local color=a.Value:Lerp(b.Value,.5)
+                local packed=math.round(color.R*255)*65536+math.round(color.G*255)*256+math.round(color.B*255)
+                targetSmooth:Draw(76+width*a.Time,43,width*(b.Time-a.Time),11,packed,1,st["TargetHUD Glow radius"] or 24,1)
+            end
+        end
+        targetSmooth:Finish()
+    end
+    function controller:InspectGlow()
+        local info=targetSmooth:Inspect();info.reason=effectReason(info.reason)
+        info.renderer="V3 Smooth";info.healthWidth=math.max(0,292*TargetHealthGlowHolder.Size.X.Scale+TargetHealthGlowHolder.Size.X.Offset)
+        return info
+    end
+    function controller:DestroyEffects() targetSmooth:Destroy() end
+
     return controller
 end
 
@@ -3246,7 +3618,16 @@ function UI.new(options)
  for _,m in ipairs(options.Modules) do
   if m.id=="ClickGUI" then for _,setting in ipairs(m.settings or {}) do if setting.name=="Style" then setting.options=copy(UI.Styles) end end end
   if m.id=="HUD" then
-   m.settings=m.settings or {};SmoothGlow.addSettings(m);local found=false
+   m.settings=m.settings or {};SmoothGlow.addSettings(m)
+   local function addHUDSetting(def)
+    for _,old in ipairs(m.settings) do if old.name==def.name then return end end
+    m.settings[#m.settings+1]=def
+   end
+   for _,name in ipairs({"Island Blur","BloomFlow Blur","TargetHUD Blur","TargetHUD Glow"}) do addHUDSetting({name=name,type="toggle",default=true}) end
+   addHUDSetting({name="TargetHUD Glow strength",type="slider",default=.5,min=0,max=1.6,step=.05})
+   addHUDSetting({name="TargetHUD Glow radius",type="slider",default=24,min=6,max=72,step=1})
+   addHUDSetting({name="TargetHUD Glow layers",type="slider",default=2,min=1,max=4,step=1})
+   local found=false
    for _,setting in ipairs(m.settings) do if setting.name=="Island Background Transparency" then found=true end end
    if not found then m.settings[#m.settings+1]={name="Island Background Transparency",type="slider",default=options.IslandBackgroundTransparency or 40,min=0,max=100,step=1} end
    local speedFound=false;for _,setting in ipairs(m.settings) do if setting.name=="Island Animation Speed" then speedFound=true end end
@@ -3809,7 +4190,9 @@ function UI.new(options)
    new("UIGradient",altGlass,{Color=ColorSequence.new(rgb(0x1D2A37),rgb(0x090D11)),Rotation=26})
   local altSoftShadow
   pcall(function() altSoftShadow=new("UIShadow",altGlass,{Color=rgb(0x000000),BlurRadius=UDim.new(0,18),Spread=UDim2.fromOffset(4,4),Offset=UDim2.fromOffset(0,5),Transparency=.43}) end)
-  local blurPane={active=false,unsupported=false}
+  local blurPane={active=false,unsupported=false,renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true})}
+  function api:GetLocalBlurConfig() return blurPane.renderer:GetConfig() end
+  function api:SetLocalBlurConfig(patch) blurPane.renderer:SetConfig(patch) end
    local altPaint=pool(altRoot)
    altPaint.fontOverride=opaiFont(false)
  local altBody=new("Frame",altRoot,{Name="Content",BackgroundTransparency=1,ClipsDescendants=true,ZIndex=100})
@@ -4348,7 +4731,14 @@ function UI.new(options)
   x=math.clamp(at and at.x or x,2,math.max(2,view.X-w-2));y=math.clamp(at and at.y or y,2,math.max(2,view.Y-h-2))
   hudBounds[name]=rect(x,y,w,h);return x,y
  end
- local targetHUD=createSyntaxTargetHUD(hudRoot)
+ local targetHUD=createSyntaxTargetHUD(hudRoot,SmoothGlow.new,{
+  imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,
+  onUnavailable=function(reason)
+   if not dead then
+    reason=reason:gsub("Using original glow", "TargetHUD glow disabled")
+    warn("[SyntaxUI TargetHUD Glow] "..reason);api:Notify("TargetHUD glow",reason,"warning",7)
+   end
+  end})
  function api:SetTargetHUD(info)
   assert(info==nil or type(info)=="table","TargetHUD data must be a table or nil")
   targetHUD.Current=info and copy(info)
@@ -4828,11 +5218,105 @@ local function drawArrayList(dt,view,factor,st,p)
 
   widgets:finish();updateHUDControls()
  end
+ local hudEffects=(function()
+ -- HUD blur panes share a 4ms cooperative work target, never one sampler per row.
+ -- Merge validated HUD overrides onto the recording profile, not onto a new UI state.
+ local hudBlurProfile=SampledLocalBlur.Profile(options.LocalBlurOptions)
+ hudBlurProfile.band=1;hudBlurProfile.budget=4
+ for key,value in pairs(options.HUDBlurOptions or {}) do hudBlurProfile[key]=value end
+ hudBlurProfile=SampledLocalBlur.Profile(hudBlurProfile)
+ local hudBlurPanes={
+  Island={host=new("Frame",island,{Name="IslandLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=29}),profile=table.clone(hudBlurProfile)},
+  BloomFlow={host=new("Frame",xhan.root,{Name="BloomFlowLocalBlur",BackgroundTransparency=1,ZIndex=0}),profile=table.clone(hudBlurProfile)},
+  TargetHUD={host=new("Frame",targetHUD.Frame,{Name="TargetHUDLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0}),profile=table.clone(hudBlurProfile)},
+ }
+ function api:GetHUDBlurConfig(name) return table.clone(assert(hudBlurPanes[name],"Unknown HUD blur").profile) end
+ function api:SetHUDBlurConfig(name,patch)
+  local pane=assert(hudBlurPanes[name],"Unknown HUD blur")
+  local nextProfile=table.clone(pane.profile)
+  -- Use the same atomic validator as the ClickGUI/test renderer.
+  local validated=SampledLocalBlur.Profile(patch)
+  for key in pairs(patch) do nextProfile[key]=validated[key] end
+  pane.profile=nextProfile
+  if pane.renderer then pane.renderer:SetConfig(patch) end
+ end
+ local function absoluteRect(object)
+  local p,s=object.AbsolutePosition,object.AbsoluteSize
+  return rect(p.X,p.Y,s.X,s.Y)
+ end
+ local function destroyHUDEffects()
+  for _,pane in pairs(hudBlurPanes) do if pane.renderer then pane.renderer:Destroy();pane.renderer=nil end end
+  targetHUD:DestroyEffects()
+ end
+ local hudBlurRotation=0
+ local function renderHUDEffects(dt)
+  local st=state.HUD and state.HUD.settings or {}
+  local view=gui.AbsoluteSize
+  local drawable=view.X>36 and view.Y>32
+  local widgetsVisible=drawable and not (visible and activeStyle:match("^Jackal ") and not hudEditing)
+  local jobs={}
+  local function prepare(name,enabled,bounds,masks)
+   local pane=hudBlurPanes[name]
+   pane.host.Visible=enabled
+   if enabled then
+    if not pane.renderer then pane.renderer=SampledLocalBlur.new(pane.host,{Profile=pane.profile,ScreenCoordinates=true,Masked=true}) end
+    pane.renderer:SetMasks(masks)
+    jobs[#jobs+1]={pane=pane,bounds=bounds}
+   elseif pane.renderer then pane.renderer:Step(nil,false,dt) end
+  end
+  local ib=absoluteRect(island)
+  prepare("Island",drawable and island.Visible and st["Island Blur"]~=false,ib,
+   {{x=0,y=0,w=1,h=1,radius=islandCorner.CornerRadius.Offset/math.max(1,ib.h)}})
+  local bloom=widgetsVisible and xhan.root.Visible and arrayMetrics.mode=="BloomFlow" and st["BloomFlow Blur"]~=false
+  local left,top,right,bottom=math.huge,math.huge,-math.huge,-math.huge
+  local masks={}
+  if bloom then
+   for _,row in ipairs(arrayMetrics.rows or {}) do
+    if row.height>.5 and row.alpha>.001 then
+     left=math.min(left,row.x);top=math.min(top,row.y);right=math.max(right,row.x+row.width);bottom=math.max(bottom,row.y+row.height)
+    end
+   end
+  end
+  bloom=bloom and right>left and bottom>top
+  local bp=hudBlurPanes.BloomFlow
+  local bb=nil
+  if bloom then
+   bp.host.Position=UDim2.fromOffset(left,top);bp.host.Size=UDim2.fromOffset(right-left,bottom-top)
+   bb=absoluteRect(bp.host)
+   for _,row in ipairs(arrayMetrics.rows) do
+    if row.height>.5 and row.alpha>.001 then masks[#masks+1]={x=(row.x-left)/bb.w,y=(row.y-top)/bb.h,w=row.width/bb.w,h=row.height/bb.h,alpha=row.alpha} end
+   end
+  end
+  prepare("BloomFlow",bloom,bb,masks)
+  local targetVisible=widgetsVisible and targetHUD.Host.Visible and targetHUD.Frame.Visible
+  prepare("TargetHUD",targetVisible and st["TargetHUD Blur"]~=false,absoluteRect(targetHUD.Frame),
+   {{x=0,y=0,w=1,h=1,radius=18/76}})
+  targetHUD:RenderGlow(st,targetVisible)
+  blurPane.frameBudget=#jobs>0 and 4 or nil -- native menu + HUD work target <=8ms
+  local started=os.clock()
+  hudBlurRotation=hudBlurRotation+1
+  for i=1,#jobs do
+   local job=jobs[(i+hudBlurRotation-1)%#jobs+1]
+   local remaining=math.max(0,4-(os.clock()-started)*1000)
+   job.pane.renderer:Step(job.bounds,true,dt,1,remaining/(#jobs-i+1))
+  end
+ end
+ function api:GetHUDEffectsState()
+  local result={workBudgetMs=4,targetGlow=targetHUD:InspectGlow()}
+  for name,pane in pairs(hudBlurPanes) do
+   result[name]=pane.renderer and pane.renderer:Inspect() or {active=false,completed=0,reason="not-created"}
+  end
+  return result
+ end
+
+ return {Step=renderHUDEffects,Destroy=destroyHUDEffects}
+ end)()
+
  local function renderHUD(dt,frameDelta)
   bridge.Sync()
   bridge.RefreshBindings()
   expireNotices();local view=gui.AbsoluteSize
-  if view.X<=36 or view.Y<=32 then island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish();return end
+  if view.X<=36 or view.Y<=32 then targetHUD.Host.Visible=false;island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish();return end
   widgetRoot.Visible=true;hudControls.Visible=true
     local scale=math.min(hudScale,(view.X-8)/70)
     islandState.renderScale=scale
@@ -5117,6 +5601,7 @@ local function drawArrayList(dt,view,factor,st,p)
   local nextStyle=selectedStyle()
   if activeStyle~=nextStyle then activeStyle=nextStyle;dropdown=nil;sliding=nil;binding=nil;drag=nil;gesture=nil;touch=nil;config.open=false;alt.nav=1;alt.target=0;alt.scroll=0;searchBox:ReleaseFocus();searchBox.Text="";altName:ReleaseFocus() end
   renderHUD(dt,frameDelta)
+  hudEffects.Step(frameDelta)
   bridge.Sync()
   bridge.RefreshBindings()
    if not root.Visible then updateRegionalBlur(blurPane,altGlass,false);appearanceRoot.Visible=false;accentBox.Visible=false;hits={};syncNativeHits();return end
@@ -5131,7 +5616,7 @@ local function drawArrayList(dt,view,factor,st,p)
   altRoot.Visible=false
   if activeStyle:match("^Jackal ") then if config.open then drawConfig(dt) end elseif activeStyle=="Opai" then drawColumns(dt);drawConfig(dt) else drawAlternatives(dt);if activeStyle=="Modern" and config.open then drawModernConfigs() end end
    updateRegionalBlur(blurPane,altGlass,visible and options.Blur~=false and localBlur and activeStyle=="Neverlose",
-    rect(gui.AbsolutePosition.X+offsetX+alt.x*k*zoom,gui.AbsolutePosition.Y+offsetY+alt.y*k*zoom,760*alt.s*k*zoom,620*alt.s*k*zoom))
+    rect(gui.AbsolutePosition.X+offsetX+alt.x*k*zoom,gui.AbsolutePosition.Y+offsetY+alt.y*k*zoom,760*alt.s*k*zoom,620*alt.s*k*zoom),frameDelta,opacity)
   drawThemeGlow()
    drawDropdown(dt)
   if animations and ripple then local t=(os.clock()-ripple.start)*animationSpeed/.32;if t<1 then local r=4+18*(1-(1-t)^3);front:stroke(ripple.x-r,ripple.y-r,r*2,r*2,currentPalette().accent,.45*(1-t),r,1) else ripple=nil end end
@@ -5222,15 +5707,15 @@ local function drawArrayList(dt,view,factor,st,p)
  new("UICorner",mobile,{CornerRadius=UDim.new(0,17)})
  connect(mobile.Activated,function() api:SetVisible(not visible) end)
  function api:Destroy()
-    if dead then return end;dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy();gui:Destroy()
+    if dead then return end;dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;hudEffects.Destroy();xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy();gui:Destroy()
  end
  connect(shutdown.Event,function() api:Destroy() end)
-   connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy() end end)
+   connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;hudEffects.Destroy();xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy() end end)
  if options.Accent~=nil then api:SetAccent(options.Accent) end
  fit();render(0)
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Camera.Value+1,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  return api
 end
 return UI
