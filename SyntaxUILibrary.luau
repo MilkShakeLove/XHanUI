@@ -3781,8 +3781,26 @@ function UI.new(options)
  local function line(p,x,y,xx,yy,c,t)
   local dx,dy=xx-x,yy-y;local len=math.sqrt(dx*dx+dy*dy);local o=p:box((x+xx-len)/2,(y+yy-(t or 1))/2,len,t or 1,c,1,(t or 1)/2);if o then o.Rotation=math.deg(math.atan2(dy,dx)) end
  end
- -- Syntax Neverlose icons: native strokes, no font symbols or downloaded images.
- local function categoryIcon(p,index,x,y,size,c)
+ -- Neverlose image assets from Barlas/Neverlose (MIT; see LICENSE-Neverlose).
+ local categoryIcon=(function()
+ local neverloseIcons={
+  [1]="rbxassetid://96677288280405", -- Combat: crosshairs
+  [2]="rbxassetid://95400397758754", -- Targets: ghost
+  [3]="rbxassetid://74350468513068", -- Movement: mouse
+  [4]="rbxassetid://97066657594742", -- Player: user
+  [5]="rbxassetid://83365140694071", -- Visuals: pallet
+  [6]="rbxassetid://118512898552101", -- Misc: hammer
+  [7]="rbxassetid://100793810819046", -- HUD editor: code
+  [8]="rbxassetid://136566823798983", -- Configurations: save
+  [10]="rbxassetid://136566823798983", -- Save
+ }
+ return function(p,index,x,y,size,c)
+  local asset=activeStyle=="Neverlose" and neverloseIcons[index]
+  if asset then
+   local image=p:image(asset,x,y,size,size,0,c,1)
+   if image then image.ScaleType=Enum.ScaleType.Fit end
+   return
+  end
   local u=size/24
   local function segment(ax,ay,bx,by,w) line(p,x+ax*u,y+ay*u,x+bx*u,y+by*u,c,(w or 1.9)*u) end
   local function ring(ax,ay,w,h,r) p:stroke(x+ax*u,y+ay*u,w*u,h*u,c,1,(r or w/2)*u,1.8*u) end
@@ -3810,6 +3828,8 @@ function UI.new(options)
    ring(3,2,18,20,1.5);segment(7,2,7,9);segment(7,9,16,9);segment(16,9,16,2);ring(7,14,10,8,1)
   end
  end
+ end)()
+
  local function checkbox(p,x,y,t,style,glass)
   if style=="Neverlose" then
    local outer=p:box(x,y,28,12,0x111518,1,6);outer.BackgroundColor3=rgb(0x111518):Lerp(rgb(mixColor(accentColor(0x3A85E2),0x000000,.84)),t)
@@ -5053,7 +5073,7 @@ local function drawArrayList(dt,view,factor,st,p)
  fit();render(0)
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Camera.Value+1,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="SyntaxVectorsV2",arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  return api
 end
 return UI
