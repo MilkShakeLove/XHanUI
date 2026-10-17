@@ -2372,7 +2372,7 @@ local TextService=game:GetService("TextService")
 local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-11.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -3094,13 +3094,159 @@ end
     return controller
 end
 
+-- V3 Smooth: continuous radial alpha, shared texture and pooled ImageLabels.
+local SmoothGlow={Size=256}
+UI.SmoothGlowImageId="" -- Optional uploaded V3Smooth_DefaultMask.png image ID.
+function SmoothGlow.alpha(distance,power,layers)
+ if distance>=1 then return 0 end
+ local transmission=1
+ for layer=1,layers do
+  local t=layers==1 and 1 or (layer-1)/(layers-1)
+  local sigma=.25+.75*t;local edge=math.exp(-4/(sigma*sigma))
+  local falloff=(math.exp(-4*distance*distance/(sigma*sigma))-edge)/(1-edge)
+  transmission*=1-math.clamp(power*(1-.5*t)*.26,0,.65)*falloff
+ end
+ return 1-transmission
+end
+function SmoothGlow.pixels(power,layers)
+ local size=SmoothGlow.Size
+ local pixels=buffer.create(size*size*4)
+ local bayer={0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5}
+ local lut=table.create(4097)
+ for i=0,4096 do lut[i+1]=SmoothGlow.alpha(i/4096,power,layers) end
+ if not SmoothGlow.distances then
+  SmoothGlow.distances=table.create(size*size)
+  for y=0,size-1 do for x=0,size-1 do
+   local nx=(x+.5-size/2)/(size/2-2);local ny=(y+.5-size/2)/(size/2-2)
+   SmoothGlow.distances[y*size+x+1]=math.sqrt(nx*nx+ny*ny)
+  end end
+ end
+ for y=0,size-1 do for x=0,size-1 do
+  local index=y*size+x;local distance=SmoothGlow.distances[index+1];local alpha=0
+  if distance<1 then
+   local scaled=distance*4096;local base=math.floor(scaled)
+   alpha=lut[base+1]+(lut[base+2]-lut[base+1])*(scaled-base)
+  end
+  local noise=(bayer[(y%4)*4+x%4+1]+.5)/16
+  buffer.writeu8(pixels,index*4,255);buffer.writeu8(pixels,index*4+1,255);buffer.writeu8(pixels,index*4+2,255)
+  buffer.writeu8(pixels,index*4+3,math.clamp(math.floor(alpha*255+noise),0,255))
+ end end
+ return pixels
+end
+function SmoothGlow.addSettings(module)
+ local settings=module.settings
+ local function add(def)
+  for _,existing in ipairs(settings) do if existing.name==def.name then return end end
+  settings[#settings+1]=def
+ end
+ add({name="XHan Glow",type="toggle",default=true})
+ add({name="Glow renderer",type="select",default="V3 Smooth",options={"Original","V3 Smooth"}})
+ add({name="Smooth Glow strength",type="slider",default=.5,min=0,max=1.6,step=.05})
+ add({name="Smooth Glow radius",type="slider",default=30,min=6,max=72,step=1})
+ add({name="Smooth Glow layers",type="slider",default=2,min=1,max=4,step=1})
+end
+function SmoothGlow.new(parent,options)
+ local self={images={},used=0,state="idle",ready=false,busy=false,dead=false,revision=0,options=options,updates=0}
+ self.root=new("Frame",parent,{Name="V3SmoothGlow",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,ClipsDescendants=false,Active=false,Visible=false})
+ function self:Report(text)
+  self.reason=text
+  if not self.reported then self.reported=true;if self.options.onUnavailable then self.options.onUnavailable(text) end end
+ end
+ function self:Request(power,layers)
+  local key=string.format("%.4f:%d",power,layers)
+  if self.busy or self.state=="unavailable" or self.state=="uploaded" or self.key==key then return end
+  self.key=key;self.busy=true
+  local revision=self.revision
+  task.defer(function()
+   if self.dead or self.revision~=revision then return end
+   local ok=pcall(function()
+    if not self.image then
+     self.image=game:GetService("AssetService"):CreateEditableImage({Size=Vector2.new(SmoothGlow.Size,SmoothGlow.Size)})
+     assert(self.image,"EditableImage unavailable")
+     self.content=Content.fromObject(self.image)
+    end
+    self.image:WritePixelsBuffer(Vector2.new(0,0),Vector2.new(SmoothGlow.Size,SmoothGlow.Size),SmoothGlow.pixels(power,layers))
+   end)
+   if self.dead or self.revision~=revision then return end
+   if ok then
+    self.ready=true;self.state="dynamic";self.power=power;self.layers=layers;self.reason=nil;self.updates+=1
+   elseif self.ready then
+    self:Report("Smooth texture update failed; retaining the previous texture.")
+   else
+    if self.image then self.image:Destroy();self.image=nil;self.content=nil end
+    local id=self.options.imageId
+    if type(id)=="string" and id~="" then
+     local uri=id:match("^rbxassetid://") and id or "rbxassetid://"..id
+     local loaded=true
+     local fetched=pcall(function()
+      game:GetService("ContentProvider"):PreloadAsync({uri},function(_,result) if result~=Enum.AssetFetchStatus.Success then loaded=false end end)
+     end)
+     if self.dead or self.revision~=revision then return end
+     if fetched and loaded then
+      self.uri=uri;self.ready=true;self.state="uploaded";self.power=.5;self.layers=2
+      self:Report("Uploaded smooth mask active: layers fixed at 2; strength adjusts image opacity.")
+     else self.state="unavailable";self:Report("Smooth glow image could not load. Using original glow; check the image ID and permissions.") end
+    else
+     self.state="unavailable"
+     self:Report("Smooth glow needs Mesh / Image API access or SmoothGlowImageId. Using original glow.")
+    end
+   end
+   self.busy=false
+  end)
+ end
+ function self:Begin(enabled,power,layers)
+  self.used=0
+  self.enabled=enabled and power>0
+  self.requestedPower=math.clamp(power,0,1.6)
+  if self.enabled then self:Request(self.requestedPower,math.clamp(math.round(layers),1,4)) end
+  self.root.Visible=self.enabled and self.ready
+  return self.enabled and self.ready
+ end
+ function self:Draw(x,y,w,h,color,fade,radius,scale)
+  if not self.enabled or not self.ready or w<=0 or h<=0 or fade<=.001 then return end
+  scale=math.max(.05,scale or 1)
+  local vertical=h>w;local length=math.max(w,h);local short=math.min(w,h)
+  local count=math.clamp(math.ceil(length/(18*scale)),1,24)
+  local spacing=length/count;local outer=radius*scale+short*.4
+  local overlap=math.max(1,outer/math.max(spacing,scale))
+  local extent=outer*SmoothGlow.Size/(SmoothGlow.Size-4)
+  local powerScale=self.state=="uploaded" and self.requestedPower/.5 or 1
+  for point=1,count do
+   self.used+=1
+   local image=self.images[self.used]
+   if not image then
+    image=new("ImageLabel",self.root,{Name="SmoothRadialGlow",BackgroundTransparency=1,BorderSizePixel=0,Active=false,ScaleType=Enum.ScaleType.Stretch,ResampleMode=Enum.ResamplerMode.Default,ZIndex=1})
+    self.images[self.used]=image
+   end
+   if self.content then image.ImageContent=self.content else image.Image=self.uri end
+   local offset=(point-.5)*spacing
+   local cx=x+(vertical and w/2 or offset);local cy=y+(vertical and offset or h/2)
+   image.Visible=true;image.Position=UDim2.fromOffset(cx-extent,cy-extent);image.Size=UDim2.fromOffset(extent*2,extent*2)
+   image.ImageColor3=rgb(color);image.ImageTransparency=1-math.clamp(fade*powerScale/overlap,0,1)
+  end
+ end
+ function self:Finish()
+  for i=self.used+1,#self.images do self.images[i].Visible=false end
+ end
+ function self:Inspect()
+  return {state=self.state,reason=self.reason,active=self.root.Visible,points=self.used,textureUpdates=self.updates,power=self.power,layers=self.layers}
+ end
+ function self:Destroy()
+  if self.dead then return end
+  self.dead=true;self.revision+=1;self.root:Destroy();table.clear(self.images)
+  if self.image then self.image:Destroy();self.image=nil end
+  self.content=nil
+ end
+ return self
+end
+
 function UI.new(options)
  options=table.clone(options or {})
  options.Modules=copy(options.Modules or {})
  for _,m in ipairs(options.Modules) do
   if m.id=="ClickGUI" then for _,setting in ipairs(m.settings or {}) do if setting.name=="Style" then setting.options=copy(UI.Styles) end end end
   if m.id=="HUD" then
-   m.settings=m.settings or {};local found=false
+   m.settings=m.settings or {};SmoothGlow.addSettings(m);local found=false
    for _,setting in ipairs(m.settings) do if setting.name=="Island Background Transparency" then found=true end end
    if not found then m.settings[#m.settings+1]={name="Island Background Transparency",type="slider",default=options.IslandBackgroundTransparency or 40,min=0,max=100,step=1} end
    local speedFound=false;for _,setting in ipairs(m.settings) do if setting.name=="Island Animation Speed" then speedFound=true end end
@@ -3829,7 +3975,6 @@ function UI.new(options)
   end
  end
  end)()
-
  local function checkbox(p,x,y,t,style,glass)
   if style=="Neverlose" then
    local outer=p:box(x,y,28,12,0x111518,1,6);outer.BackgroundColor3=rgb(0x111518):Lerp(rgb(mixColor(accentColor(0x3A85E2),0x000000,.84)),t)
@@ -4404,6 +4549,9 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
   return visibleRows,boundary-origin
  end
  xhan.root=new("Frame",hudRoot,{Name="StarlightArrayList",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=7000,Visible=false,Active=false})
+ xhan.smooth=SmoothGlow.new(xhan.root,{imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,onUnavailable=function(reason)
+  if not dead then warn("[SyntaxUI Smooth Glow] "..reason);api:Notify("Smooth glow",reason,"warning",7) end
+ end})
  xhan.paint=pool(xhan.root,true)
  xhan.controls=new("Frame",xhan.root,{Name="Rows",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=5000})
  pcall(function() xhan.font=Font.new("rbxassetid://12187365364",Enum.FontWeight.Medium) end)
@@ -4468,7 +4616,11 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    local pixelHeight
    candidates,pixelHeight=xhan.stackRows(candidates,rowH,q,top)
    top=xhan.pixel(top)
-   arrayMetrics={mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,width=widest*q,height=pixelHeight,rows={}}
+   local smoothRequested=(st["Glow renderer"] or "V3 Smooth")=="V3 Smooth"
+   local smoothPower=st["Smooth Glow strength"] or .5
+   xhan.smooth:Begin(smoothRequested and st["XHan Glow"]~=false and #candidates>0,smoothPower,st["Smooth Glow layers"] or 2)
+   local smooth=smoothRequested and xhan.smooth.state~="unavailable"
+   arrayMetrics={mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,glowRenderer=smoothRequested and "V3 Smooth" or "Original",width=widest*q,height=pixelHeight,rows={}}
   if #candidates>0 then hudBounds.ArrayList=rect(right-widest*q,top,widest*q,pixelHeight) end
   local p=xhan.paint
   for _,item in pairs(xhan.entries) do if item.clip then item.clip.Visible=false end end
@@ -4499,7 +4651,9 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
       local x,y,w,h=item.drawX,item.drawY,item.drawW,item.edgeH
      if h>.5 and item.alpha>.001 then
       local fade=item.alpha
-      if st["XHan Glow"]~=false then
+      if st["XHan Glow"]~=false and smooth then
+       xhan.smooth:Draw(x,y,w,h,item.color,fade,st["Smooth Glow radius"] or 30,q)
+      elseif st["XHan Glow"]~=false then
        p:image("rbxassetid://104490578391522",x-19*q,y-13*q,w+38*q,h+26*q,0,item.color,.22*strength*fade,true)
        p:image("rbxassetid://102472648910048",x-11*q,y-8*q,w+22*q,h+16*q,0,item.color,.34*strength*fade,true)
       end
@@ -4509,7 +4663,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     end
     local function edge(x,y,w,h,first,last,fade)
      if w<=0 or h<=0 or fade<=.001 then return end
-     if st["XHan Glow"]~=false then
+     if st["XHan Glow"]~=false and not smooth then
       p:gradient(x-5*q,y-5*q,w+10*q,h+10*q,first,last,.045*strength*fade,2*q)
       p:gradient(x-2*q,y-2*q,w+4*q,h+4*q,first,last,.11*strength*fade,q)
      end
@@ -4541,7 +4695,8 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     item.clip.Visible=true;item.clip.Position=UDim2.fromOffset(x-2*q,y);item.clip.Size=UDim2.fromOffset(w+4*q,h)
     textClip=item.clip
     if not bloom and st["XHan Glow"]~=false then
-     local alpha=1-math.clamp(.94-.78*strength,.12,.94);p:glow(x-18*q,y-5*q,w+36*q,h+10*q,color,alpha*fade)
+     if smooth then xhan.smooth:Draw(x,y,w,h,color,fade,st["Smooth Glow radius"] or 30,q)
+     else local alpha=1-math.clamp(.94-.78*strength,.12,.94);p:glow(x-18*q,y-5*q,w+36*q,h+10*q,color,alpha*fade) end
     end
     local rightPad=5+extra;local modeX=x+(item.width-rightPad-item.modeWidth)*q;local nameX=modeX-item.nameWidth*q
     local cy=y+h/2
@@ -4562,9 +4717,11 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     slot.id=item.id;slot.button.Name=item.id;slot.button.Visible=item.enabled and fade>.03 and not visible and not hudEditing and not appearanceOpen;slot.button.Position=UDim2.fromOffset(x,y);slot.button.Size=UDim2.fromOffset(w,h);slot.button.ZIndex=i
   end
   for i=#candidates+1,#xhan.buttons do xhan.buttons[i].id=nil;xhan.buttons[i].button.Visible=false end
+  xhan.smooth:Finish()
   p:finish()
  end
 local function drawArrayList(dt,view,factor,st,p)
+  xhan.smooth:Begin(false,0,2);xhan.smooth:Finish()
    local mode=st["ArrayList mode"] or "XHan";local opai=mode=="Opai";xhan.root.Visible=false
   if not widgetEnabled("ArrayList") then clearArrayEntries(arrayEntries);clearArrayEntries(xhan.entries);arrayMode=nil;arrayMetrics={};return end
   if arrayMode~=mode then clearArrayEntries(arrayEntries);clearArrayEntries(xhan.entries);arrayMode=mode end
@@ -4643,7 +4800,7 @@ local function drawArrayList(dt,view,factor,st,p)
  local function drawHUDWidgets(dt)
    widgets:begin();hudBounds={};local view=gui.AbsoluteSize;local factor=hudScale
   if visible and activeStyle:match("^Jackal ") and not hudEditing then
-   widgetRoot.Visible=false;xhan.root.Visible=false;targetHUD.Host.Visible=false;hudControls.Visible=false
+   widgetRoot.Visible=false;xhan.root.Visible=false;targetHUD.Host.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish()
    widgets:finish();return
   end
   local p=currentPalette();local st=state.HUD and state.HUD.settings or {}
@@ -4675,7 +4832,7 @@ local function drawArrayList(dt,view,factor,st,p)
   bridge.Sync()
   bridge.RefreshBindings()
   expireNotices();local view=gui.AbsoluteSize
-  if view.X<=36 or view.Y<=32 then island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;return end
+  if view.X<=36 or view.Y<=32 then island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish();return end
   widgetRoot.Visible=true;hudControls.Visible=true
     local scale=math.min(hudScale,(view.X-8)/70)
     islandState.renderScale=scale
@@ -5065,15 +5222,15 @@ local function drawArrayList(dt,view,factor,st,p)
  new("UICorner",mobile,{CornerRadius=UDim.new(0,17)})
  connect(mobile.Activated,function() api:SetVisible(not visible) end)
  function api:Destroy()
-    if dead then return end;dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;destroyRegionalBlur(blurPane);blur:Destroy();gui:Destroy()
+    if dead then return end;dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy();gui:Destroy()
  end
  connect(shutdown.Event,function() api:Destroy() end)
-   connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;destroyRegionalBlur(blurPane);blur:Destroy() end end)
+   connect(gui.Destroying,function() if not dead then dead=true;Run:UnbindFromRenderStep(api.renderStepName);for _,c in ipairs(conns) do c:Disconnect() end;if bridge.app then bridge.app:Destroy();bridge.app=nil end;xhan.smooth:Destroy();destroyRegionalBlur(blurPane);blur:Destroy() end end)
  if options.Accent~=nil then api:SetAccent(options.Accent) end
  fit();render(0)
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Camera.Value+1,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur={active=blurPane.active,unsupported=blurPane.unsupported,bounds=copy(blurPane.bounds),reason=blurPane.reason},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  return api
 end
 return UI
