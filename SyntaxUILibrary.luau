@@ -2454,7 +2454,7 @@ end
 local SampledLocalBlur=(function()
 -- Syntax sampled local blur V9.2. Shared by the library and standalone UI test.
 -- Base-color reconstruction, not a framebuffer capture. No independent render binding.
-local LocalBlur={Version="2026-10-18.RecordedLiveRefresh"}
+local LocalBlur={Version="2026-10-18.HUDBoundsRefresh"}
 LocalBlur.Defaults={refresh=120,radius=1,strength=100,edge=100,smooth=100,columns=81,sampleRows=65,
  renderColumns=97,band=1,transparency=100,brightness=100,saturation=100,distance=100,budget=6.5,idle=30,
  nodes=768,skyR=107,skyG=143,skyB=184,frameSync=true,adaptive=true,guard=24}
@@ -2504,25 +2504,40 @@ end
 -- One continuous, opaque RGB texture removes per-band raster seams when image APIs are available.
 -- Permission/size/write failures fall back once to the borderless gradient renderer.
 local TEX_W,TEX_H=256,128
+local pixelLength=buffer.len
 local TextureSurface={Width=TEX_W,Height=TEX_H}
-function TextureSurface.new()
- local self={ready=false,reason=nil,image=nil,content=nil}
+function TextureSurface.new(width,height,atlas,slot)
+ width,height=width or TEX_W,height or TEX_H
+ local self={ready=false,reason=nil,image=nil,content=nil,Width=width,Height=height}
  local ok,err=pcall(function()
-  self.image=game:GetService("AssetService"):CreateEditableImage({Size=Vector2.new(TEX_W,TEX_H)})
-  assert(self.image,"EditableImage unavailable")
-  self.content=Content.fromObject(self.image)
+  if atlas then
+   assert(atlas:Ensure(),atlas.reason or "Shared blur atlas unavailable")
+   local offset=assert(atlas.slots[slot],"Unknown blur atlas slot")
+   self.atlas=atlas;self.OffsetX=offset.x;self.OffsetY=offset.y
+   self.image=atlas.image;self.content=atlas.content
+  else
+   self.image=game:GetService("AssetService"):CreateEditableImage({Size=Vector2.new(width,height)})
+   assert(self.image,"EditableImage unavailable")
+   self.content=Content.fromObject(self.image)
+  end
  end)
  if ok then self.ready=true else
   self.reason=tostring(err)
-  if self.image then self.image:Destroy();self.image=nil end
+  if self.image and not self.atlas then self.image:Destroy() end;self.image=nil
  end
  function self:Commit(pixels)
-  local success,message=pcall(function() self.image:WritePixelsBuffer(Vector2.new(0,0),Vector2.new(TEX_W,TEX_H),pixels) end)
+  if self.atlas then
+   local ok,message=self.atlas:Stage(self.OffsetX,self.OffsetY,self.Width,self.Height,pixels)
+   if not ok then self.ready=false;self.reason=message end
+   return ok
+  end
+  local success,message=pcall(function() self.image:WritePixelsBuffer(Vector2.new(0,0),Vector2.new(self.Width,self.Height),pixels) end)
   if not success then self.ready=false;self.reason=tostring(message) end
   return success
  end
  function self:Present(view,info,bounds,profile,opacity,masks,masked)
   if not info.texture or not self.content then return false end
+  local offsetX,offsetY=self.OffsetX or 0,self.OffsetY or 0
   local lp,ls=view.layer.Position,view.layer.Size
   local ox,oy=lp.X.Scale*bounds.w,lp.Y.Scale*bounds.h
   local sw,sh=ls.X.Scale*bounds.w,ls.Y.Scale*bounds.h
@@ -2543,8 +2558,8 @@ function TextureSurface.new()
     if not mask.band then
      slot.image.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh)
      slot.image.Size=UDim2.fromScale(w/sw,h/sh)
-     slot.image.ImageRectOffset=Vector2.new((x-ox)/sw*TEX_W,(y-oy)/sh*TEX_H)
-     slot.image.ImageRectSize=Vector2.new(w/sw*TEX_W,h/sh*TEX_H)
+     slot.image.ImageRectOffset=Vector2.new(offsetX+(x-ox)/sw*self.Width,offsetY+(y-oy)/sh*self.Height)
+     slot.image.ImageRectSize=Vector2.new(w/sw*self.Width,h/sh*self.Height)
     end
     slot.image.ImageTransparency=1-alpha
     -- Per-corner list contour clips reuse the SAME sampled texture. Four
@@ -2594,11 +2609,11 @@ function TextureSurface.new()
      slot.image.Visible=right>left and bottom>top
      slot.image.Position=UDim2.fromOffset(left-ox,top-oy)
      slot.image.Size=UDim2.fromOffset(math.max(0,right-left),math.max(0,bottom-top))
-     local sx=math.clamp(math.floor((left-ox)/sw*TEX_W),0,TEX_W-1)
-     local sy=math.clamp(math.floor((top-oy)/sh*TEX_H),0,TEX_H-1)
-     local ex=math.clamp(math.ceil((right-ox)/sw*TEX_W),sx+1,TEX_W)
-     local ey=math.clamp(math.ceil((bottom-oy)/sh*TEX_H),sy+1,TEX_H)
-     slot.image.ImageRectOffset=Vector2.new(sx,sy)
+     local sx=math.clamp(math.floor((left-ox)/sw*self.Width),0,self.Width-1)
+     local sy=math.clamp(math.floor((top-oy)/sh*self.Height),0,self.Height-1)
+     local ex=math.clamp(math.ceil((right-ox)/sw*self.Width),sx+1,self.Width)
+     local ey=math.clamp(math.ceil((bottom-oy)/sh*self.Height),sy+1,self.Height)
+     slot.image.ImageRectOffset=Vector2.new(offsetX+sx,offsetY+sy)
      slot.image.ImageRectSize=Vector2.new(ex-sx,ey-sy)
     end
    end
@@ -2606,15 +2621,70 @@ function TextureSurface.new()
   for i=used+1,#view.imageViews do local slot=view.imageViews[i];slot.image.Visible=false;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end
   return true
  end
- function self:Destroy() if self.image then self.image:Destroy();self.image=nil end;self.content=nil;self.ready=false end
+ function self:Destroy() if self.image and not self.atlas then self.image:Destroy() end;self.image=nil;self.content=nil;self.ready=false end
  return self
 end
+-- Roblox displays updates to only one EditableImage per frame. Share one
+-- image across menu + HUDs, and flush once after all panes have stepped.
+-- A duplicate edge gutter keeps linear filtering away from adjacent slots.
+function LocalBlur.newAtlas()
+ local width,height=516,390
+ local self={ready=false,attempted=false,dead=false,dirty=false,image=nil,content=nil,pixels=nil,flushes=0,stages=0,slots={}}
+ for index,name in ipairs({"Island","ArrayList","TargetHUD","WaterMark","Menu"}) do
+  self.slots[name]={x=(index-1)%2*258+1,y=math.floor((index-1)/2)*130+1}
+ end
+ function self:Ensure()
+  if self.dead or self.attempted then return self.ready end
+  self.attempted=true
+  local ok,err=pcall(function()
+   self.image=game:GetService("AssetService"):CreateEditableImage({Size=Vector2.new(width,height)})
+   assert(self.image,"Shared blur atlas unavailable")
+   self.content=Content.fromObject(self.image);self.pixels=buffer.create(width*height*4)
+  end)
+  if ok then self.ready=true else
+   self.reason=tostring(err)
+   if self.image then self.image:Destroy();self.image=nil end
+  end
+  return self.ready
+ end
+ function self:Stage(x,y,w,h,pixels)
+  if not self.ready or self.dead then return false,self.reason or "Atlas unavailable" end
+  if buffer.len(pixels)~=w*h*4 then return false,"Atlas pixel size mismatch" end
+  local stride=width*4;local bytes=w*4
+  for row=0,h-1 do
+   local at=(y+row)*stride+x*4
+   buffer.copy(self.pixels,at,pixels,row*bytes,bytes)
+   buffer.copy(self.pixels,at-4,pixels,row*bytes,4)
+   buffer.copy(self.pixels,at+bytes,pixels,(row+1)*bytes-4,4)
+  end
+  buffer.copy(self.pixels,(y-1)*stride+(x-1)*4,self.pixels,y*stride+(x-1)*4,bytes+8)
+  buffer.copy(self.pixels,(y+h)*stride+(x-1)*4,self.pixels,(y+h-1)*stride+(x-1)*4,bytes+8)
+  self.dirty=true;self.stages+=1
+  return true
+ end
+ function self:Flush()
+  if not self.dirty or not self.ready or self.dead then return false end
+  self.dirty=false
+  local ok,err=pcall(function() self.image:WritePixelsBuffer(Vector2.new(0,0),Vector2.new(width,height),self.pixels) end)
+  if ok then self.flushes+=1 else self.reason=tostring(err);self.ready=false end
+  return ok
+ end
+ function self:Inspect() return {shared=true,ready=self.ready,reason=self.reason,width=width,height=height,flushes=self.flushes,stages=self.stages,dirty=self.dirty} end
+ function self:Destroy()
+  if self.dead then return end
+  self.dead=true;self.ready=false;self.dirty=false;self.pixels=nil;self.content=nil
+  if self.image then self.image:Destroy();self.image=nil end
+ end
+ return self
+end
+
 -- Reuse a normalized horizontal lookup; unpack colors once per control point,
 -- instead of repeating integer channel extraction for every output texel.
-function TextureSurface.newPixels() return buffer.create(TEX_W*TEX_H*4) end
+function TextureSurface.newPixels(width,height) return buffer.create((width or TEX_W)*(height or TEX_H)*4) end
 local rowLookup={}
 local channelR,channelG,channelB={},{},{}
-function TextureSurface.row(pixels,y,codes,count,state)
+function TextureSurface.row(pixels,y,codes,count,state,width)
+ local TEX_W=width or TEX_W
  if state then
   local same=state.row==y-1 and state.count==count
   if same then for i=1,count do if state.codes[i]~=codes[i] then same=false;break end end end
@@ -2623,14 +2693,15 @@ function TextureSurface.row(pixels,y,codes,count,state)
   for i=1,count do state.codes[i]=codes[i] end
   state.row=y;state.count=count
  end
- local lookup=rowLookup[count]
+ local lookupKey=TEX_W*128+count
+ local lookup=rowLookup[lookupKey]
  if not lookup then
   lookup={}
   for x=0,TEX_W-1 do
    local gx=x/(TEX_W-1)*(count-1);local ix=math.min(count-2,math.floor(gx))
    lookup[x+1]={ix+1,gx-ix}
   end
-  rowLookup[count]=lookup
+  rowLookup[lookupKey]=lookup
  end
  local same=true
  for i=2,count do if codes[i]~=codes[1] then same=false;break end end
@@ -2774,6 +2845,14 @@ function LocalBlur.new(host,options)
  local lastSlice,totalCPU=0,0
  local opacityFactor=1
  local texture=nil
+ local resizeBlocked=false
+ local function textureSize(bounds)
+  if not options.FitToBounds or not profile.adaptive then return TEX_W,TEX_H end
+  local w,h=64,16
+  while w<bounds.w*.5 and w<TEX_W do w*=2 end
+  while h<bounds.h*.5 and h<TEX_H do h*=2 end
+  return w,h
+ end
  tint.Visible=not options.Masked
  local api={Root=root,Version=LocalBlur.Version}
  -- Optional HUD display masks share the sampled image; they never resample per row.
@@ -2917,7 +2996,7 @@ function LocalBlur.new(host,options)
    j.refinedPoints=resolveEdges(source,refined,w,h,originX-padX*stepX,originY-padY*stepY,stepX,stepY,c.edge/100,readAt)
    first=refined
   end
-  j.cacheKey=table.concat({j.version,w,h,j.stepX,j.stepY,j.halo,j.size.X,j.size.Y},":")
+  j.cacheKey=table.concat({j.version,w,h,j.stepX,j.stepY,j.halo,j.size.X,j.size.Y,j.textureWidth,j.textureHeight},":")
   local same=j.texture and frontInfo and frontInfo.texture and cacheKey==j.cacheKey
   if same then for i=1,w*h*3 do if cachedInput[i]~=first[i] then same=false;break end end end
   if same then
@@ -2929,13 +3008,18 @@ function LocalBlur.new(host,options)
   horizontal(first,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
   horizontal(filtered,temp,w,h,qx);vertical(temp,ping,w,h,qy)
   horizontal(ping,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
- local output=c.renderColumns;local segments=math.ceil((output-1)/16)
- local rows=j.texture and TextureSurface.Height or math.max(1,math.min(math.ceil(j.size.Y/c.band),math.floor(c.nodes/segments)))
+ local output=c.renderColumns
+ if options.FitToBounds and c.adaptive then output=math.min(output,math.max(17,math.ceil(j.size.X/660*(output-1))+1)) end
+ local segments=math.ceil((output-1)/16)
+ local rows=j.texture and j.textureHeight or math.max(1,math.min(math.ceil(j.size.Y/c.band),math.floor(c.nodes/segments)))
  local count=rows*segments
  local buffer=back
  local frameAlpha=1 -- opacity is updated on the visible buffer, independent of color work
  j.renderRows,j.renderColumns,j.count=rows,output,j.texture and 0 or count
- if j.texture then buffer.pixelData=buffer.pixelData or TextureSurface.newPixels();j.pixels=buffer.pixelData end
+ if j.texture then
+  if not buffer.pixelData or pixelLength(buffer.pixelData)~=j.textureWidth*j.textureHeight*4 then buffer.pixelData=TextureSurface.newPixels(j.textureWidth,j.textureHeight) end
+  j.pixels=buffer.pixelData
+ end
  -- The same monotone cubic interpolation, with neighbouring slopes and
  -- cubic weights computed once instead of recomputed for every output channel.
  for y=0,ny-1 do
@@ -3007,7 +3091,7 @@ function LocalBlur.new(host,options)
    codes[ix]=math.round(math.clamp(r,0,1)*255)*65536+math.round(math.clamp(g,0,1)*255)*256+math.round(math.clamp(bl,0,1)*255)
   end
   end
-  if j.texture then TextureSurface.row(j.pixels,i-1,codes,output,pixelRowState)
+  if j.texture then TextureSurface.row(j.pixels,i-1,codes,output,pixelRowState,j.textureWidth)
   else
   for segment=1,segments do
    local index=(i-1)*segments+segment
@@ -3060,10 +3144,20 @@ function LocalBlur.new(host,options)
   if not sampler and (not camera or camera.ViewportSize.X<=1 or camera.ViewportSize.Y<=1) then reason="camera-not-ready";return end
   if not texture then
    if options.Texture==false then texture={ready=false,reason="disabled",Present=function() return false end,Destroy=function() end}
-   else texture=TextureSurface.new() end
+   else local tw,th=textureSize(current);texture=TextureSurface.new(tw,th,options.Atlas,options.Slot) end
   end
-  local visibleX=math.max(math.min(profile.columns,25),math.round(profile.columns*quality))
-  local visibleY=math.max(math.min(profile.sampleRows,19),math.round(profile.sampleRows*quality))
+  if texture.atlas and not texture.atlas.ready then texture.ready=false;texture.reason=texture.atlas.reason end
+  local columns,rows=profile.columns,profile.sampleRows
+  local minX,minY=25,19
+  if options.FitToBounds and profile.adaptive then
+   -- Match the recording's sample spacing, rather than its entire large-window
+   -- grid, on small HUDs. Guard samples and the same smooth interpolation remain.
+   minX,minY=9,5
+   columns=math.min(columns,math.max(minX,math.ceil(current.w/660*(columns-1))+1))
+   rows=math.min(rows,math.max(minY,math.ceil(current.h/680*(rows-1))+1))
+  end
+  local visibleX=math.max(math.min(columns,minX),math.round(columns*quality))
+  local visibleY=math.max(math.min(rows,minY),math.round(rows*quality))
   local stepX,stepY=current.w/(visibleX-1),current.h/(visibleY-1)
   local gx,gy=math.min(4,math.ceil(profile.guard/stepX)),math.min(4,math.ceil(profile.guard/stepY))
   local j={config=table.clone(profile),bounds=cloneBounds(current),nx=visibleX+gx*2,ny=visibleY+gy*2,
@@ -3073,6 +3167,13 @@ function LocalBlur.new(host,options)
   j.halo=profile.radius*1.5
   j.stepX=(j.size.X+2*j.halo)/(j.nx-1);j.stepY=(j.size.Y+2*j.halo)/(j.ny-1)
   j.steps=0;j.age=0;j.createdAt=os.clock();j.texture=texture.ready
+  if j.texture then
+   local tw,th=textureSize(current)
+   -- Grow on publication only; never destroy the currently displayed image
+   -- while the replacement is still being sampled or interpolated.
+   j.textureWidth=resizeBlocked and texture.Width or math.max(texture.Width,tw)
+   j.textureHeight=resizeBlocked and texture.Height or math.max(texture.Height,th)
+  end
   if not sampler then j.projection=cameraSnapshot(camera,options.ScreenCoordinates~=false) end
   j.co=coroutine.create(function() buildFrame(j) end)
   job=j;force=false;elapsed=0;reason=frontInfo and nil or "warming"
@@ -3137,7 +3238,18 @@ function LocalBlur.new(host,options)
     if coroutine.status(work.co)=="dead" then
      if work.version~=version then cacheKey=nil;job=nil;force=true;break end
      if not work.reuse then
-      if work.texture and not texture:Commit(work.pixels) then cacheKey=nil;job=nil;force=true;reason="texture-write-failed; gradient fallback";break end
+      if work.texture then
+       local target=texture
+       if work.textureWidth~=texture.Width or work.textureHeight~=texture.Height then
+        target=TextureSurface.new(work.textureWidth,work.textureHeight,options.Atlas,options.Slot)
+        if not target.ready then target:Destroy();resizeBlocked=true;cacheKey=nil;job=nil;force=true;reason="texture-resize-unavailable; retained last image";break end
+       end
+       if not target:Commit(work.pixels) then
+        if target~=texture then target:Destroy();resizeBlocked=true end
+        cacheKey=nil;job=nil;force=true;reason="texture-write-failed; retained last image";break
+       end
+       if target~=texture then work.retiredTexture=texture;texture=target end
+      end
       front.layer.Visible=false;back.layer.Visible=true;front,back=back,front
       if work.texture then uploadedFrames+=1;cacheKey=work.cacheKey end
      else reusedFrames+=1 end
@@ -3145,6 +3257,7 @@ function LocalBlur.new(host,options)
      frontInfo=work;job=nil;completed+=1;active=true;reason=nil
      totalCPU=work.cpu+(os.clock()-sliceStarted)*1000
      positionBuffer(front,work,current);updateOpacity();applyMasks(front,work,current)
+     if work.retiredTexture then work.retiredTexture:Destroy();work.retiredTexture=nil end
      if profile.adaptive and (work.steps>2 or totalCPU>profile.budget*2) then slow+=1 else slow=0 end
      if profile.adaptive and work.steps>2 and quality>.5 then quality=.5;slow=0;force=true
      elseif slow>=2 and quality>.5 then quality=math.max(.5,quality-.125);slow=0;force=true end
@@ -3166,13 +3279,13 @@ function LocalBlur.new(host,options)
    samplePoints=frontInfo and frontInfo.nx*frontInfo.ny or 0,
    surface=frontInfo and frontInfo.texture and "ContinuousTexture" or "GradientFallback",
    textureReason=texture and texture.reason or nil,
-   textureWidth=frontInfo and frontInfo.texture and TextureSurface.Width or 0,
-   textureHeight=frontInfo and frontInfo.texture and TextureSurface.Height or 0,
+   textureWidth=frontInfo and frontInfo.texture and frontInfo.textureWidth or 0,
+   textureHeight=frontInfo and frontInfo.texture and frontInfo.textureHeight or 0,
    renderColumns=frontInfo and frontInfo.renderColumns or profile.renderColumns,
    uploads=uploadedFrames,reused=reusedFrames,filterBuilds=filteredFrames,
    displayedDataAgeMs=frontInfo and math.max(0,(os.clock()-frontInfo.createdAt)*1000) or nil,
    publishedAgeMs=frontInfo and math.max(0,(os.clock()-frontInfo.publishedAt)*1000) or nil,
-   adaptiveQuality=quality}
+   fitToBounds=options.FitToBounds==true,sharedAtlas=texture and texture.atlas~=nil or false,adaptiveQuality=quality}
  end
  function api:Destroy()
   if dead then return end
@@ -3198,6 +3311,7 @@ local function updateRegionalBlur(pane,anchor,enabled,bounds,dt,opacity)
 end
 local function destroyRegionalBlur(pane)
  if pane.renderer then pane.renderer:Destroy();pane.renderer=nil end
+ if pane.atlas then pane.atlas:Destroy();pane.atlas=nil end
  pane.active=false;pane.bounds=nil;pane.reason=nil
 end
 
@@ -4786,7 +4900,8 @@ function UI.new(options)
    new("UIGradient",altGlass,{Color=ColorSequence.new(rgb(0x1D2A37),rgb(0x090D11)),Rotation=26})
   local altSoftShadow
   pcall(function() altSoftShadow=new("UIShadow",altGlass,{Color=rgb(0x000000),BlurRadius=UDim.new(0,18),Spread=UDim2.fromOffset(4,4),Offset=UDim2.fromOffset(0,5),Transparency=.43}) end)
-  local blurPane={active=false,unsupported=false,renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true})}
+  local blurPane={active=false,unsupported=false,atlas=SampledLocalBlur.newAtlas()}
+  blurPane.renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true,Atlas=blurPane.atlas,Slot="Menu"})
   function api:GetLocalBlurConfig()
    local result=blurPane.renderer:GetConfig()
    for key,name in pairs({radius="Local Blur radius",strength="Local Blur strength",smooth="Local Blur softness"}) do
@@ -5922,7 +6037,7 @@ local function drawArrayList(dt,view,factor,st,p)
    enabled=enabled and pane.profile.radius>0 and pane.profile.strength>0
    pane.host.Visible=enabled
    if enabled then
-    if not pane.renderer then pane.renderer=SampledLocalBlur.new(pane.host,{Profile=pane.profile,ScreenCoordinates=true,Masked=true}) end
+    if not pane.renderer then pane.renderer=SampledLocalBlur.new(pane.host,{Profile=pane.profile,ScreenCoordinates=true,Masked=true,FitToBounds=true,Atlas=blurPane.atlas,Slot=name}) end
     pane.renderer:SetMasks(masks)
     jobs[#jobs+1]={pane=pane,bounds=bounds}
    elseif pane.renderer then pane.renderer:Step(nil,false,dt) end
@@ -5984,7 +6099,7 @@ local function drawArrayList(dt,view,factor,st,p)
   blurPane.frameBudget=math.max(0,totalBudget-(os.clock()-started)*1000)
  end
  function api:GetHUDEffectsState()
-  local result={workBudgetMs=api:GetLocalBlurConfig().budget,targetGlow=targetHUD:InspectGlow()}
+  local result={atlas=blurPane.atlas:Inspect(),workBudgetMs=api:GetLocalBlurConfig().budget,targetGlow=targetHUD:InspectGlow()}
   for name,pane in pairs(hudBlurPanes) do
    result[name]=pane.renderer and pane.renderer:Inspect() or {active=false,completed=0,reason="not-created"}
   end
@@ -6305,7 +6420,7 @@ local function drawArrayList(dt,view,factor,st,p)
   hudEffects.Step(frameDelta)
   bridge.Sync()
   bridge.RefreshBindings()
-   if not root.Visible then updateRegionalBlur(blurPane,altGlass,false);appearanceRoot.Visible=false;accentBox.Visible=false;hits={};syncNativeHits();return end
+   if not root.Visible then updateRegionalBlur(blurPane,altGlass,false);blurPane.atlas:Flush();appearanceRoot.Visible=false;accentBox.Visible=false;hits={};syncNativeHits();return end
   local elapsed=(os.clock()-opened)*animationSpeed;zoom=not animations and 1 or visible and (elapsed>=.32 and 1 or 1+.18*math.exp(-17*elapsed)*math.cos(23*elapsed)) or 1+.6*(1-opacity)
   offsetX=(gui.AbsoluteSize.X-width*k*zoom)/2;offsetY=(gui.AbsoluteSize.Y-height*k*zoom)/2
   root.Position=UDim2.fromOffset(offsetX,offsetY);root.Size=UDim2.fromOffset(width,height);scaling.Scale=k*zoom
@@ -6318,6 +6433,7 @@ local function drawArrayList(dt,view,factor,st,p)
   if activeStyle:match("^Jackal ") then if config.open then drawConfig(dt) end elseif activeStyle=="Opai" then drawColumns(dt);drawConfig(dt) else drawAlternatives(dt);if activeStyle=="Modern" and config.open then drawModernConfigs() end end
    updateRegionalBlur(blurPane,altGlass,visible and options.Blur~=false and localBlur and activeStyle=="Neverlose",
     rect(gui.AbsolutePosition.X+offsetX+alt.x*k*zoom,gui.AbsolutePosition.Y+offsetY+alt.y*k*zoom,760*alt.s*k*zoom,620*alt.s*k*zoom),frameDelta,opacity)
+  blurPane.atlas:Flush()
   drawThemeGlow()
    drawDropdown(dt)
   if animations and ripple then local t=(os.clock()-ripple.start)*animationSpeed/.32;if t<1 then local r=4+18*(1-(1-t)^3);front:stroke(ripple.x-r,ripple.y-r,r*2,r*2,currentPalette().accent,.45*(1-t),r,1) else ripple=nil end end
