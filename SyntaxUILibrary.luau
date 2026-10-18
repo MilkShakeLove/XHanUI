@@ -2454,7 +2454,7 @@ end
 local SampledLocalBlur=(function()
 -- Syntax sampled local blur V9.2. Shared by the library and standalone UI test.
 -- Base-color reconstruction, not a framebuffer capture. No independent render binding.
-local LocalBlur={Version="2026-10-18.HUDBoundsRefresh"}
+local LocalBlur={Version="2026-10-18.MenuRefresh"}
 LocalBlur.Defaults={refresh=120,radius=1,strength=100,edge=100,smooth=100,columns=81,sampleRows=65,
  renderColumns=97,band=1,transparency=100,brightness=100,saturation=100,distance=100,budget=6.5,idle=30,
  nodes=768,skyR=107,skyG=143,skyB=184,frameSync=true,adaptive=true,guard=24}
@@ -2839,7 +2839,7 @@ function LocalBlur.new(host,options)
  local wasEnabled=false
  local destroyConnection=nil
  local version,completed,elapsed,slow=0,0,1,0
- local quality=1
+ local quality=options.MenuRefresh and profile.adaptive and .5 or 1
  local force=true
  local reason="warming"
  local lastSlice,totalCPU=0,0
@@ -2847,6 +2847,7 @@ function LocalBlur.new(host,options)
  local texture=nil
  local resizeBlocked=false
  local function textureSize(bounds)
+  if options.MenuRefresh and profile.adaptive then return 128,64 end
   if not options.FitToBounds or not profile.adaptive then return TEX_W,TEX_H end
   local w,h=64,16
   while w<bounds.w*.5 and w<TEX_W do w*=2 end
@@ -3009,9 +3010,11 @@ function LocalBlur.new(host,options)
   horizontal(filtered,temp,w,h,qx);vertical(temp,ping,w,h,qy)
   horizontal(ping,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
  local output=c.renderColumns
+ if options.MenuRefresh and c.adaptive then output=math.min(output,49) end
  if options.FitToBounds and c.adaptive then output=math.min(output,math.max(17,math.ceil(j.size.X/660*(output-1))+1)) end
  local segments=math.ceil((output-1)/16)
  local rows=j.texture and j.textureHeight or math.max(1,math.min(math.ceil(j.size.Y/c.band),math.floor(c.nodes/segments)))
+ if options.MenuRefresh and c.adaptive and not j.texture then rows=math.min(rows,128) end
  local count=rows*segments
  local buffer=back
  local frameAlpha=1 -- opacity is updated on the visible buffer, independent of color work
@@ -3171,8 +3174,8 @@ function LocalBlur.new(host,options)
    local tw,th=textureSize(current)
    -- Grow on publication only; never destroy the currently displayed image
    -- while the replacement is still being sampled or interpolated.
-   j.textureWidth=resizeBlocked and texture.Width or math.max(texture.Width,tw)
-   j.textureHeight=resizeBlocked and texture.Height or math.max(texture.Height,th)
+   j.textureWidth=resizeBlocked and texture.Width or (options.MenuRefresh and tw or math.max(texture.Width,tw))
+   j.textureHeight=resizeBlocked and texture.Height or (options.MenuRefresh and th or math.max(texture.Height,th))
   end
   if not sampler then j.projection=cameraSnapshot(camera,options.ScreenCoordinates~=false) end
   j.co=coroutine.create(function() buildFrame(j) end)
@@ -3189,7 +3192,7 @@ function LocalBlur.new(host,options)
   for k,v in pairs(nextProfile) do
    if profile[k]~=v and k~="strength" and k~="transparency" and k~="budget" and k~="refresh" and k~="idle" and k~="frameSync" then expensive=true end
   end
-  profile=nextProfile;quality=1;slow=0;failed=false
+  profile=nextProfile;quality=options.MenuRefresh and profile.adaptive and .5 or 1;slow=0;failed=false
   if expensive then version+=1;force=true;job=nil;cacheKey=nil end
   updateOpacity()
  end
@@ -3258,9 +3261,16 @@ function LocalBlur.new(host,options)
      totalCPU=work.cpu+(os.clock()-sliceStarted)*1000
      positionBuffer(front,work,current);updateOpacity();applyMasks(front,work,current)
      if work.retiredTexture then work.retiredTexture:Destroy();work.retiredTexture=nil end
-     if profile.adaptive and (work.steps>2 or totalCPU>profile.budget*2) then slow+=1 else slow=0 end
-     if profile.adaptive and work.steps>2 and quality>.5 then quality=.5;slow=0;force=true
-     elseif slow>=2 and quality>.5 then quality=math.max(.5,quality-.125);slow=0;force=true end
+     if options.MenuRefresh and profile.adaptive then
+      -- The menu receives the remaining shared slice, not the full configured
+      -- budget. Start at the recorded adaptive grid; trim only if work still
+      -- spans several steps. Never cancel a moving camera's pending picture.
+      if work.steps>2 and quality>.25 then quality=math.max(.25,quality*.75);force=true end
+     else
+      if profile.adaptive and (work.steps>2 or totalCPU>profile.budget*2) then slow+=1 else slow=0 end
+      if profile.adaptive and work.steps>2 and quality>.5 then quality=.5;slow=0;force=true
+      elseif slow>=2 and quality>.5 then quality=math.max(.5,quality-.125);slow=0;force=true end
+     end
      if work.version~=version or work.bounds.x~=current.x or work.bounds.y~=current.y or work.bounds.w~=current.w or work.bounds.h~=current.h then force=true end
      break
     end
@@ -3285,7 +3295,7 @@ function LocalBlur.new(host,options)
    uploads=uploadedFrames,reused=reusedFrames,filterBuilds=filteredFrames,
    displayedDataAgeMs=frontInfo and math.max(0,(os.clock()-frontInfo.createdAt)*1000) or nil,
    publishedAgeMs=frontInfo and math.max(0,(os.clock()-frontInfo.publishedAt)*1000) or nil,
-   fitToBounds=options.FitToBounds==true,sharedAtlas=texture and texture.atlas~=nil or false,adaptiveQuality=quality}
+   menuRefresh=options.MenuRefresh==true,fitToBounds=options.FitToBounds==true,sharedAtlas=texture and texture.atlas~=nil or false,adaptiveQuality=quality}
  end
  function api:Destroy()
   if dead then return end
@@ -4901,7 +4911,7 @@ function UI.new(options)
   local altSoftShadow
   pcall(function() altSoftShadow=new("UIShadow",altGlass,{Color=rgb(0x000000),BlurRadius=UDim.new(0,18),Spread=UDim2.fromOffset(4,4),Offset=UDim2.fromOffset(0,5),Transparency=.43}) end)
   local blurPane={active=false,unsupported=false,atlas=SampledLocalBlur.newAtlas()}
-  blurPane.renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true,Atlas=blurPane.atlas,Slot="Menu"})
+  blurPane.renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true,MenuRefresh=true,Atlas=blurPane.atlas,Slot="Menu"})
   function api:GetLocalBlurConfig()
    local result=blurPane.renderer:GetConfig()
    for key,name in pairs({radius="Local Blur radius",strength="Local Blur strength",smooth="Local Blur softness"}) do
