@@ -2454,7 +2454,7 @@ end
 local SampledLocalBlur=(function()
 -- Syntax sampled local blur V9.2. Shared by the library and standalone UI test.
 -- Base-color reconstruction, not a framebuffer capture. No independent render binding.
-local LocalBlur={Version="2026-10-18.RecordedLightDetail"}
+local LocalBlur={Version="2026-10-18.RecordedLightDetailSync"}
 LocalBlur.Defaults={refresh=120,radius=1,strength=100,edge=100,smooth=100,columns=81,sampleRows=65,
  renderColumns=97,band=1,transparency=100,brightness=100,saturation=100,distance=100,budget=6.5,idle=30,
  nodes=768,skyR=107,skyG=143,skyB=184,frameSync=true,adaptive=true,guard=24}
@@ -2481,7 +2481,13 @@ local function make(class,parent,properties)
  for key,value in pairs(properties) do object[key]=value end
  object.Parent=parent;return object
 end
-local function checkpoint() coroutine.yield() end
+-- A checkpoint yields only at the current frame deadline. The old unconditional
+-- yield + 512-resume cap added multiple frames even when CPU time remained.
+local deadlines=setmetatable({},{__mode="k"})
+local function checkpoint()
+ local deadline=deadlines[coroutine.running()]
+ if not deadline or os.clock()>=deadline then coroutine.yield() end
+end
 local function finite(n) return type(n)=="number" and n==n and n>-math.huge and n<math.huge end
 local function validBounds(b) return type(b)=="table" and finite(b.x) and finite(b.y) and finite(b.w) and finite(b.h) and b.w>8 and b.h>8 end
 local function cloneBounds(b) return b and {x=b.x,y=b.y,w=b.w,h=b.h} or nil end
@@ -2498,7 +2504,7 @@ local function cameraSnapshot(camera,screenCoordinates)
   return direction/math.max(.00001,direction:Dot(normal))
  end
  local a=plane(0,0)
- return {origin=center.Origin,a=a,dx=plane(w,0)-a,dy=plane(0,h)-a,w=w,h=h}
+ return {origin=center.Origin,normal=normal,a=a,dx=plane(w,0)-a,dy=plane(0,h)-a,w=w,h=h}
 end
 
 -- One continuous, opaque RGB texture removes per-band raster seams when image APIs are available.
@@ -2739,6 +2745,7 @@ function LocalBlur.new(host,options)
  local force=true
  local reason="warming"
  local lastSlice,totalCPU=0,0
+ local discarded=0;local lastDiscard=nil;local frameSerial=0
  local opacityFactor=1
  local texture=nil
  tint.Visible=not options.Masked
@@ -2828,16 +2835,62 @@ function LocalBlur.new(host,options)
    e.row.Visible=used>0
   end
  end
+ -- Reproject the cached colour plane to the camera used THIS render step.
+ -- Sampling is still a base-colour approximation. The representative depth
+ -- compensates translation; camera rotation/FOV use the real ray projections.
+ local displayProjection,displayPose,displayCamera,displayFov,displayViewport,displayFovMode
  local function positionBuffer(buffer,info,bounds)
   if not info then return end
-  -- Counter-translate within the pre-sampled margins. Larger movements clamp to
-  -- the filled texture edge, preserving coverage until a fresh result completes.
   local scaleX,scaleY=bounds.w/info.bounds.w,bounds.h/info.bounds.h
   local guardX,guardY=info.guardX*scaleX,info.guardY*scaleY
   local dx=math.clamp(info.bounds.x-bounds.x,-guardX,guardX)
   local dy=math.clamp(info.bounds.y-bounds.y,-guardY,guardY)
-  buffer.layer.Position=UDim2.fromScale((dx-guardX)/bounds.w,(dy-guardY)/bounds.h)
-  buffer.layer.Size=UDim2.fromScale(1+guardX*2/bounds.w,1+guardY*2/bounds.h)
+  local x,y,w,h=dx-guardX,dy-guardY,bounds.w+guardX*2,bounds.h+guardY*2
+  info.reprojected=false;info.reprojectionClamped=false;info.cacheValid=true
+  local camera=workspace.CurrentCamera
+  if info.camera~=camera then info.cacheValid=false end
+  if profile.frameSync and info.projection and camera and info.camera==camera and
+   (info.pose~=camera.CFrame or info.fov~=camera.FieldOfView or info.viewport~=camera.ViewportSize or info.fovMode~=camera.FieldOfViewMode) then
+   if displayCamera~=camera or displayPose~=camera.CFrame or displayFov~=camera.FieldOfView or displayViewport~=camera.ViewportSize or displayFovMode~=camera.FieldOfViewMode then
+    displayProjection=cameraSnapshot(camera,options.ScreenCoordinates~=false)
+    displayCamera,displayPose,displayFov,displayViewport,displayFovMode=camera,camera.CFrame,camera.FieldOfView,camera.ViewportSize,camera.FieldOfViewMode
+   end
+   info.cacheValid=false
+   local old,now=info.projection,displayProjection
+   local depth=math.max(1,info.depth or info.config.distance)
+   local aa,bb,ab=old.dx:Dot(old.dx),old.dy:Dot(old.dy),old.dx:Dot(old.dy)
+   local determinant=aa*bb-ab*ab
+   local function project(px,py)
+    local direction=now.a+now.dx*(px/now.w)+now.dy*(py/now.h)
+    local denominator=direction:Dot(old.normal)
+    if denominator<=.01 or determinant<1e-10 then return nil end
+    local distance=(depth+(old.origin-now.origin):Dot(old.normal))/denominator
+    if distance<=0 then return nil end
+    local v=((now.origin-old.origin)+direction*distance)/depth-old.a
+    local u,d=v:Dot(old.dx),v:Dot(old.dy)
+    return (u*bb-d*ab)/determinant*old.w,(d*aa-u*ab)/determinant*old.h
+   end
+   local cx,cy=bounds.x+bounds.w/2,bounds.y+bounds.h/2
+   local mx,my=project(cx,cy)
+   local lx=project(bounds.x,cy);local rx=project(bounds.x+bounds.w,cy)
+   local _,ty=project(cx,bounds.y);local _,by=project(cx,bounds.y+bounds.h)
+   if mx and lx and rx and ty and by then
+    local sx,sy=(rx-lx)/bounds.w,(by-ty)/bounds.h
+    if sx>.125 and sy>.125 and sx<8 and sy<8 then
+     local nw,nh=info.size.X/sx,info.size.Y/sy
+     local nx=(info.bounds.x-info.guardX-mx)/sx+bounds.w/2
+     local ny=(info.bounds.y-info.guardY-my)/sy+bounds.h/2
+     w,h=math.max(bounds.w,nw),math.max(bounds.h,nh)
+     x,y=math.clamp(nx,bounds.w-w,0),math.clamp(ny,bounds.h-h,0)
+     info.reprojected=true;info.cacheValid=true
+     info.reprojectionClamped=math.abs(x-nx)>.5 or math.abs(y-ny)>.5 or nw<bounds.w or nh<bounds.h
+     info.reprojectionX,info.reprojectionY=x,y
+    end
+   end
+  end
+  buffer.layer.Visible=info.cacheValid
+  buffer.layer.Position=UDim2.fromScale(x/bounds.w,y/bounds.h)
+  buffer.layer.Size=UDim2.fromScale(w/bounds.w,h/bounds.h)
  end
  local function updateOpacity()
   tint.BackgroundTransparency=profile.transparency/100
@@ -2869,6 +2922,8 @@ function LocalBlur.new(host,options)
     if hit then
      if hit.Instance:IsA("Terrain") then color=workspace.Terrain:GetMaterialColor(hit.Material)
      elseif hit.Instance:IsA("BasePart") then color=hit.Instance.Color end
+     local depth=hit.Distance and hit.Distance*direction:Dot(p.normal)
+     if depth and depth>0 then j.depthTotal=(j.depthTotal or 0)+depth;j.depthCount=(j.depthCount or 0)+1 end
     end
    end
    return color.R,color.G,color.B
@@ -2879,6 +2934,7 @@ function LocalBlur.new(host,options)
    local p=(y*w+x)*3;source[p+1]=r;source[p+2]=g;source[p+3]=b
    sampled+=1;if sampled%32==0 then checkpoint() end
   end end
+  j.depth=j.depthCount and j.depthTotal/j.depthCount or (not j.sampler and 1000000 or c.distance)
   local first=source;j.refinedPoints=0
   if c.edge>0 then
    j.refinedPoints=resolveEdges(source,refined,w,h,originX-padX*stepX,originY-padY*stepY,stepX,stepY,c.edge/100,readAt)
@@ -2963,7 +3019,8 @@ function LocalBlur.new(host,options)
   if i%2==0 then checkpoint() end
  end
  if j.texture then
-  j.discard=not texture:Commit(j.pixels)
+  -- Upload only after the scheduler validates the camera/config generation.
+  -- A cancelled coroutine must never overwrite the image currently on screen.
   buffer.count=0
   return
  end
@@ -2988,10 +3045,10 @@ function LocalBlur.new(host,options)
   local j={config=table.clone(profile),bounds=cloneBounds(current),nx=visibleX+gx*2,ny=visibleY+gy*2,
    visibleX=visibleX,visibleY=visibleY,stepX=stepX,stepY=stepY,guardX=gx*stepX,guardY=gy*stepY,
    size=Vector2.new(current.w+gx*stepX*2,current.h+gy*stepY*2),version=version,cpu=0,sampler=sampler,
-   camera=camera,pose=camera and camera.CFrame,fov=camera and camera.FieldOfView,viewport=camera and camera.ViewportSize}
+   camera=camera,pose=camera and camera.CFrame,fov=camera and camera.FieldOfView,fovMode=camera and camera.FieldOfViewMode,viewport=camera and camera.ViewportSize}
   j.halo=profile.radius*1.5
   j.stepX=(j.size.X+2*j.halo)/(j.nx-1);j.stepY=(j.size.Y+2*j.halo)/(j.ny-1)
-  j.steps=0;j.age=0;j.texture=texture.ready
+  j.steps=0;j.age=0;j.createdAt=os.clock();j.texture=texture.ready
   if not sampler then j.projection=cameraSnapshot(camera,options.ScreenCoordinates~=false) end
   j.co=coroutine.create(function() buildFrame(j) end)
   job=j;force=false;elapsed=0;reason=frontInfo and nil or "warming"
@@ -3008,7 +3065,7 @@ function LocalBlur.new(host,options)
    if profile[k]~=v and k~="strength" and k~="transparency" and k~="budget" and k~="refresh" and k~="idle" and k~="frameSync" then expensive=true end
   end
   profile=nextProfile;quality=1;slow=0;failed=false
-  if expensive then version+=1;force=true end
+  if expensive then version+=1;force=true;job=nil end
   updateOpacity()
  end
  function api:Invalidate(clear)
@@ -3032,13 +3089,40 @@ function LocalBlur.new(host,options)
   root.Position=UDim2.fromScale(inset/bounds.w,inset/bounds.h)
   root.Size=UDim2.fromScale(b.w/bounds.w,b.h/bounds.h)
   root.Visible=true;elapsed+=dt
-  if frontInfo then positionBuffer(front,frontInfo,b);active=true end
+  if frontInfo then positionBuffer(front,frontInfo,b);active=frontInfo.cacheValid~=false end
   updateOpacity()
   if frontInfo then applyMasks(front,frontInfo,b) end
   if failed then return end
   local camera=workspace.CurrentCamera
+  frameSerial+=1
+  local sliceBudget=finite(workBudget) and math.clamp(workBudget,0,profile.budget) or profile.budget
+  if sliceBudget<=0 then lastSlice=(os.clock()-started)*1000;return end
+  local function obsolete(work)
+   local latestCamera=workspace.CurrentCamera
+   if work.version~=version then return "config-changed" end
+   if work.camera~=latestCamera then return "camera-replaced" end
+   if latestCamera and (work.viewport~=latestCamera.ViewportSize or work.fov~=latestCamera.FieldOfView or work.fovMode~=latestCamera.FieldOfViewMode) then return "projection-changed" end
+   if work.bounds.w~=current.w or work.bounds.h~=current.h then return "bounds-resized" end
+   if latestCamera and work.pose~=latestCamera.CFrame then
+    if work.pose.LookVector:Dot(latestCamera.CFrame.LookVector)<.8 or
+     (work.pose.Position-latestCamera.CFrame.Position).Magnitude>math.max(5,(work.depth or work.config.distance)*.25) then return "camera-jump" end
+   end
+   local viewChanged=latestCamera and work.pose~=latestCamera.CFrame or work.bounds.x~=current.x or work.bounds.y~=current.y
+   if profile.frameSync and viewChanged and os.clock()-work.createdAt>math.max(1/30,dt*2) then return "frame-expired" end
+   return nil
+  end
+  if job then
+   local why=obsolete(job)
+   if why then
+    deadlines[job.co]=nil;job=nil;discarded+=1;lastDiscard=why;force=true
+    if profile.adaptive and why=="frame-expired" then quality=math.max(.5,quality*.75);slow=0 end
+   end
+  end
+  if frontInfo and camera~=frontInfo.camera then
+   frontInfo=nil;front.layer.Visible=false;active=false;force=true
+  end
   local ref=job or frontInfo
-  local moving=not ref or ref.camera~=camera or (camera and (ref.pose~=camera.CFrame or ref.fov~=camera.FieldOfView or ref.viewport~=camera.ViewportSize))
+  local moving=not ref or ref.camera~=camera or (camera and (ref.pose~=camera.CFrame or ref.fov~=camera.FieldOfView or ref.viewport~=camera.ViewportSize or ref.fovMode~=camera.FieldOfViewMode))
   local rate=profile.frameSync and 0 or profile.refresh
   if profile.adaptive and not moving and not profile.frameSync then rate=math.min(rate,profile.idle) end
   if not job and (force or rate==0 or elapsed+1e-6>=1/rate) then
@@ -3047,14 +3131,19 @@ function LocalBlur.new(host,options)
   end
   if job then
    local work=job;work.steps+=1;work.age+=dt
-   local sliceStarted=os.clock();local resumes=0
-   local sliceBudget=finite(workBudget) and math.clamp(workBudget,0,profile.budget) or profile.budget
-   while job==work and resumes<512 and (os.clock()-started)*1000<sliceBudget do
-    resumes+=1
+   local sliceStarted=os.clock()
+   deadlines[work.co]=started+sliceBudget/1000
+   while job==work and (os.clock()-started)*1000<sliceBudget do
     local ok,err=coroutine.resume(work.co)
-    if not ok then job=nil;failed=true;reason="sampling-error: "..tostring(err);break end
+    if not ok then deadlines[work.co]=nil;job=nil;failed=true;reason="sampling-error: "..tostring(err);break end
     if coroutine.status(work.co)=="dead" then
-     if work.discard then job=nil;force=true;reason="texture-write-failed; gradient fallback";break end
+     deadlines[work.co]=nil
+     local why=obsolete(work)
+     if why then job=nil;discarded+=1;lastDiscard=why;force=true;reason="resampling-"..why;break end
+     if work.texture and not texture:Commit(work.pixels) then
+      job=nil;force=true;reason="texture-write-failed; gradient fallback";break
+     end
+     work.publishedAt=os.clock();work.frame=frameSerial
      front.layer.Visible=false;back.layer.Visible=true;front,back=back,front
      frontInfo=work;job=nil;completed+=1;active=true;reason=nil
      totalCPU=work.cpu+(os.clock()-sliceStarted)*1000
@@ -3081,7 +3170,16 @@ function LocalBlur.new(host,options)
    textureReason=texture and texture.reason or nil,
    textureWidth=frontInfo and frontInfo.texture and TextureSurface.Width or 0,
    textureHeight=frontInfo and frontInfo.texture and TextureSurface.Height or 0,
-   renderColumns=frontInfo and frontInfo.renderColumns or profile.renderColumns}
+   renderColumns=frontInfo and frontInfo.renderColumns or profile.renderColumns,
+   discarded=discarded,lastDiscard=lastDiscard,
+   contentAge=frontInfo and math.max(0,os.clock()-frontInfo.createdAt) or nil,
+   publishedAge=frontInfo and math.max(0,os.clock()-(frontInfo.publishedAt or frontInfo.createdAt)) or nil,
+   cacheValid=frontInfo and frontInfo.cacheValid or false,
+   reprojected=frontInfo and frontInfo.reprojected or false,
+   reprojectionClamped=frontInfo and frontInfo.reprojectionClamped or false,
+   reprojectionX=frontInfo and frontInfo.reprojectionX or nil,reprojectionY=frontInfo and frontInfo.reprojectionY or nil,
+   sourcePose=frontInfo and frontInfo.pose or nil,
+   frame=frontInfo and frontInfo.frame or nil}
  end
  function api:Destroy()
   if dead then return end
@@ -5887,7 +5985,7 @@ local function drawArrayList(dt,view,factor,st,p)
   for i=1,#jobs do
    local job=jobs[(i+hudBlurRotation-1)%#jobs+1]
    local remaining=math.max(0,hudBudget-(os.clock()-started)*1000)
-   job.pane.renderer:Step(job.bounds,true,dt,1,remaining/(#jobs-i+1))
+   job.pane.renderer:Step(job.bounds,true,dt,1,remaining)
   end
   blurPane.frameBudget=math.max(0,totalBudget-(os.clock()-started)*1000)
  end
