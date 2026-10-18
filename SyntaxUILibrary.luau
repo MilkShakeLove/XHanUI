@@ -2454,7 +2454,7 @@ end
 local SampledLocalBlur=(function()
 -- Syntax sampled local blur V9.2. Shared by the library and standalone UI test.
 -- Base-color reconstruction, not a framebuffer capture. No independent render binding.
-local LocalBlur={Version="2026-10-18.RecordedLightDetailSync"}
+local LocalBlur={Version="2026-10-18.RecordedLiveRefresh"}
 LocalBlur.Defaults={refresh=120,radius=1,strength=100,edge=100,smooth=100,columns=81,sampleRows=65,
  renderColumns=97,band=1,transparency=100,brightness=100,saturation=100,distance=100,budget=6.5,idle=30,
  nodes=768,skyR=107,skyG=143,skyB=184,frameSync=true,adaptive=true,guard=24}
@@ -2481,13 +2481,7 @@ local function make(class,parent,properties)
  for key,value in pairs(properties) do object[key]=value end
  object.Parent=parent;return object
 end
--- A checkpoint yields only at the current frame deadline. The old unconditional
--- yield + 512-resume cap added multiple frames even when CPU time remained.
-local deadlines=setmetatable({},{__mode="k"})
-local function checkpoint()
- local deadline=deadlines[coroutine.running()]
- if not deadline or os.clock()>=deadline then coroutine.yield() end
-end
+local function checkpoint() coroutine.yield() end
 local function finite(n) return type(n)=="number" and n==n and n>-math.huge and n<math.huge end
 local function validBounds(b) return type(b)=="table" and finite(b.x) and finite(b.y) and finite(b.w) and finite(b.h) and b.w>8 and b.h>8 end
 local function cloneBounds(b) return b and {x=b.x,y=b.y,w=b.w,h=b.h} or nil end
@@ -2504,7 +2498,7 @@ local function cameraSnapshot(camera,screenCoordinates)
   return direction/math.max(.00001,direction:Dot(normal))
  end
  local a=plane(0,0)
- return {origin=center.Origin,normal=normal,a=a,dx=plane(w,0)-a,dy=plane(0,h)-a,w=w,h=h}
+ return {origin=center.Origin,a=a,dx=plane(w,0)-a,dy=plane(0,h)-a,w=w,h=h}
 end
 
 -- One continuous, opaque RGB texture removes per-band raster seams when image APIs are available.
@@ -2620,7 +2614,15 @@ end
 function TextureSurface.newPixels() return buffer.create(TEX_W*TEX_H*4) end
 local rowLookup={}
 local channelR,channelG,channelB={},{},{}
-function TextureSurface.row(pixels,y,codes,count)
+function TextureSurface.row(pixels,y,codes,count,state)
+ if state then
+  local same=state.row==y-1 and state.count==count
+  if same then for i=1,count do if state.codes[i]~=codes[i] then same=false;break end end end
+  if same then buffer.copy(pixels,y*TEX_W*4,pixels,(y-1)*TEX_W*4,TEX_W*4);state.row=y;return end
+  state.codes=state.codes or {}
+  for i=1,count do state.codes[i]=codes[i] end
+  state.row=y;state.count=count
+ end
  local lookup=rowLookup[count]
  if not lookup then
   lookup={}
@@ -2629,6 +2631,16 @@ function TextureSurface.row(pixels,y,codes,count)
    lookup[x+1]={ix+1,gx-ix}
   end
   rowLookup[count]=lookup
+ end
+ local same=true
+ for i=2,count do if codes[i]~=codes[1] then same=false;break end end
+ if same then
+  local code=codes[1];local r=math.floor(code/65536);local g=math.floor(code/256)%256;local b=code%256
+  local start=y*TEX_W*4;local bytes=TEX_W*4
+  buffer.writeu32(pixels,start,r+g*256+b*65536+4278190080)
+  local copied=4
+  while copied<bytes do local n=math.min(copied,bytes-copied);buffer.copy(pixels,start+copied,pixels,start,n);copied+=n end
+  return
  end
  for i=1,count do
   local code=codes[i]
@@ -2674,6 +2686,19 @@ local function vertical(source,target,w,h,q)
   end
   if x%2==1 then checkpoint() end
  end
+end
+local function slope(left,center,right)
+ local a,b=center-left,right-center
+ return a*b<=0 and 0 or 2*a*b/(a+b)
+end
+local function weights(t)
+ local t2=t*t;local t3=t2*t
+ return 2*t3-3*t2+1,t3-2*t2+t,-2*t3+3*t2,t3-t2
+end
+local function interpolate(b,c,m0,m1,h00,h10,h01,h11)
+ if b==c then return b end
+ if h10==0 and h11==0 then return h01==1 and c or b end
+ return math.clamp(h00*b+h10*m0+h01*c+h11*m1,math.min(b,c),math.max(b,c))
 end
 local function mono(a,b,c,d,t)
  local delta=c-b
@@ -2735,6 +2760,8 @@ function LocalBlur.new(host,options)
  local new=make
  local front,back=createBuffer("LocalBlurFront"),createBuffer("LocalBlurBack")
  local source,temp,filtered,ping,refined={},{},{},{},{}
+ local cachedInput,verticalSlopes,lineSlopeR,lineSlopeG,lineSlopeB={},{},{},{},{},{}
+ local cacheKey=nil;local reusedFrames,uploadedFrames,filteredFrames=0,0,0
  local params=RaycastParams.new();params.FilterType=Enum.RaycastFilterType.Exclude;params.IgnoreWater=false
  local job,frontInfo,current=nil,nil,nil
  local active,dead,failed=false,false,false
@@ -2745,7 +2772,6 @@ function LocalBlur.new(host,options)
  local force=true
  local reason="warming"
  local lastSlice,totalCPU=0,0
- local discarded=0;local lastDiscard=nil;local frameSerial=0
  local opacityFactor=1
  local texture=nil
  tint.Visible=not options.Masked
@@ -2835,62 +2861,16 @@ function LocalBlur.new(host,options)
    e.row.Visible=used>0
   end
  end
- -- Reproject the cached colour plane to the camera used THIS render step.
- -- Sampling is still a base-colour approximation. The representative depth
- -- compensates translation; camera rotation/FOV use the real ray projections.
- local displayProjection,displayPose,displayCamera,displayFov,displayViewport,displayFovMode
  local function positionBuffer(buffer,info,bounds)
   if not info then return end
+  -- Counter-translate within the pre-sampled margins. Larger movements clamp to
+  -- the filled texture edge, preserving coverage until a fresh result completes.
   local scaleX,scaleY=bounds.w/info.bounds.w,bounds.h/info.bounds.h
   local guardX,guardY=info.guardX*scaleX,info.guardY*scaleY
   local dx=math.clamp(info.bounds.x-bounds.x,-guardX,guardX)
   local dy=math.clamp(info.bounds.y-bounds.y,-guardY,guardY)
-  local x,y,w,h=dx-guardX,dy-guardY,bounds.w+guardX*2,bounds.h+guardY*2
-  info.reprojected=false;info.reprojectionClamped=false;info.cacheValid=true
-  local camera=workspace.CurrentCamera
-  if info.camera~=camera then info.cacheValid=false end
-  if profile.frameSync and info.projection and camera and info.camera==camera and
-   (info.pose~=camera.CFrame or info.fov~=camera.FieldOfView or info.viewport~=camera.ViewportSize or info.fovMode~=camera.FieldOfViewMode) then
-   if displayCamera~=camera or displayPose~=camera.CFrame or displayFov~=camera.FieldOfView or displayViewport~=camera.ViewportSize or displayFovMode~=camera.FieldOfViewMode then
-    displayProjection=cameraSnapshot(camera,options.ScreenCoordinates~=false)
-    displayCamera,displayPose,displayFov,displayViewport,displayFovMode=camera,camera.CFrame,camera.FieldOfView,camera.ViewportSize,camera.FieldOfViewMode
-   end
-   info.cacheValid=false
-   local old,now=info.projection,displayProjection
-   local depth=math.max(1,info.depth or info.config.distance)
-   local aa,bb,ab=old.dx:Dot(old.dx),old.dy:Dot(old.dy),old.dx:Dot(old.dy)
-   local determinant=aa*bb-ab*ab
-   local function project(px,py)
-    local direction=now.a+now.dx*(px/now.w)+now.dy*(py/now.h)
-    local denominator=direction:Dot(old.normal)
-    if denominator<=.01 or determinant<1e-10 then return nil end
-    local distance=(depth+(old.origin-now.origin):Dot(old.normal))/denominator
-    if distance<=0 then return nil end
-    local v=((now.origin-old.origin)+direction*distance)/depth-old.a
-    local u,d=v:Dot(old.dx),v:Dot(old.dy)
-    return (u*bb-d*ab)/determinant*old.w,(d*aa-u*ab)/determinant*old.h
-   end
-   local cx,cy=bounds.x+bounds.w/2,bounds.y+bounds.h/2
-   local mx,my=project(cx,cy)
-   local lx=project(bounds.x,cy);local rx=project(bounds.x+bounds.w,cy)
-   local _,ty=project(cx,bounds.y);local _,by=project(cx,bounds.y+bounds.h)
-   if mx and lx and rx and ty and by then
-    local sx,sy=(rx-lx)/bounds.w,(by-ty)/bounds.h
-    if sx>.125 and sy>.125 and sx<8 and sy<8 then
-     local nw,nh=info.size.X/sx,info.size.Y/sy
-     local nx=(info.bounds.x-info.guardX-mx)/sx+bounds.w/2
-     local ny=(info.bounds.y-info.guardY-my)/sy+bounds.h/2
-     w,h=math.max(bounds.w,nw),math.max(bounds.h,nh)
-     x,y=math.clamp(nx,bounds.w-w,0),math.clamp(ny,bounds.h-h,0)
-     info.reprojected=true;info.cacheValid=true
-     info.reprojectionClamped=math.abs(x-nx)>.5 or math.abs(y-ny)>.5 or nw<bounds.w or nh<bounds.h
-     info.reprojectionX,info.reprojectionY=x,y
-    end
-   end
-  end
-  buffer.layer.Visible=info.cacheValid
-  buffer.layer.Position=UDim2.fromScale(x/bounds.w,y/bounds.h)
-  buffer.layer.Size=UDim2.fromScale(w/bounds.w,h/bounds.h)
+  buffer.layer.Position=UDim2.fromScale((dx-guardX)/bounds.w,(dy-guardY)/bounds.h)
+  buffer.layer.Size=UDim2.fromScale(1+guardX*2/bounds.w,1+guardY*2/bounds.h)
  end
  local function updateOpacity()
   tint.BackgroundTransparency=profile.transparency/100
@@ -2922,8 +2902,6 @@ function LocalBlur.new(host,options)
     if hit then
      if hit.Instance:IsA("Terrain") then color=workspace.Terrain:GetMaterialColor(hit.Material)
      elseif hit.Instance:IsA("BasePart") then color=hit.Instance.Color end
-     local depth=hit.Distance and hit.Distance*direction:Dot(p.normal)
-     if depth and depth>0 then j.depthTotal=(j.depthTotal or 0)+depth;j.depthCount=(j.depthCount or 0)+1 end
     end
    end
    return color.R,color.G,color.B
@@ -2934,12 +2912,20 @@ function LocalBlur.new(host,options)
    local p=(y*w+x)*3;source[p+1]=r;source[p+2]=g;source[p+3]=b
    sampled+=1;if sampled%32==0 then checkpoint() end
   end end
-  j.depth=j.depthCount and j.depthTotal/j.depthCount or (not j.sampler and 1000000 or c.distance)
   local first=source;j.refinedPoints=0
   if c.edge>0 then
    j.refinedPoints=resolveEdges(source,refined,w,h,originX-padX*stepX,originY-padY*stepY,stepX,stepY,c.edge/100,readAt)
    first=refined
   end
+  j.cacheKey=table.concat({j.version,w,h,j.stepX,j.stepY,j.halo,j.size.X,j.size.Y},":")
+  local same=j.texture and frontInfo and frontInfo.texture and cacheKey==j.cacheKey
+  if same then for i=1,w*h*3 do if cachedInput[i]~=first[i] then same=false;break end end end
+  if same then
+   j.reuse=true;j.renderRows=frontInfo.renderRows;j.renderColumns=frontInfo.renderColumns;j.count=0
+   return
+  end
+  if j.texture then for i=1,w*h*3 do cachedInput[i]=first[i] end end
+  cacheKey=nil;filteredFrames+=1
   horizontal(first,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
   horizontal(filtered,temp,w,h,qx);vertical(temp,ping,w,h,qy)
   horizontal(ping,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
@@ -2950,38 +2936,78 @@ function LocalBlur.new(host,options)
  local frameAlpha=1 -- opacity is updated on the visible buffer, independent of color work
  j.renderRows,j.renderColumns,j.count=rows,output,j.texture and 0 or count
  if j.texture then buffer.pixelData=buffer.pixelData or TextureSurface.newPixels();j.pixels=buffer.pixelData end
+ -- The same monotone cubic interpolation, with neighbouring slopes and
+ -- cubic weights computed once instead of recomputed for every output channel.
+ for y=0,ny-1 do
+  for x=0,nx-1 do
+   local at=(y*w+x)*3;local lo=(math.max(0,y-1)*w+x)*3;local hi=(math.min(ny-1,y+1)*w+x)*3
+   for channel=1,3 do
+    local dl,dr=filtered[at+channel]-filtered[lo+channel],filtered[hi+channel]-filtered[at+channel]
+    verticalSlopes[at+channel]=dl*dr<=0 and 0 or 2*dl*dr/(dl+dr)
+   end
+  end
+  if y%2==1 then checkpoint() end
+ end
  local lineR,lineG,lineB,codes={},{},{},{}
+ local pixelRowState={}
  local xlookup={}
  for ix=0,output-1 do
   local gx=(j.halo+ix/(output-1)*j.size.X)/stepX;local x=math.floor(gx)
-  xlookup[ix+1]={math.max(0,x-1)+1,x+1,math.min(nx-1,x+1)+1,math.min(nx-1,x+2)+1,gx-x}
+  local h00,h10,h01,h11=weights(gx-x)
+  xlookup[ix+1]={x+1,math.min(nx-1,x+1)+1,h00,h10,h01,h11}
  end
  for i=1,rows do
   local top=math.floor((i-1)*j.size.Y/rows);local bottom=i==rows and j.size.Y or math.floor(i*j.size.Y/rows)
   local sampleY=j.texture and (i-.5)/rows*j.size.Y or (top+bottom)*.5
   local gy=(j.halo+sampleY)/stepY;local y=math.floor(gy);local ty=gy-y
-  local a=(math.max(0,y-1)+padY)*w+padX
   local b=(y+padY)*w+padX
   local d=(math.min(ny-1,y+1)+padY)*w+padX
-  local e=(math.min(ny-1,y+2)+padY)*w+padX
+  local h00,h10,h01,h11=weights(ty)
   for x=0,nx-1 do
-   local p0=(a+x)*3;local p1=(b+x)*3;local p2=(d+x)*3;local p3=(e+x)*3
-   lineR[x+1]=mono(filtered[p0+1],filtered[p1+1],filtered[p2+1],filtered[p3+1],ty)
-   lineG[x+1]=mono(filtered[p0+2],filtered[p1+2],filtered[p2+2],filtered[p3+2],ty)
-   lineB[x+1]=mono(filtered[p0+3],filtered[p1+3],filtered[p2+3],filtered[p3+3],ty)
+   local p1=(b+x)*3;local p2=(d+x)*3
+   local r0,r1=filtered[p1+1],filtered[p2+1]
+   lineR[x+1]=(r0==r1 or h01==0) and r0 or math.clamp(h00*r0+h10*verticalSlopes[p1+1]+h01*r1+h11*verticalSlopes[p2+1],math.min(r0,r1),math.max(r0,r1))
+   local g0,g1=filtered[p1+2],filtered[p2+2]
+   lineG[x+1]=(g0==g1 or h01==0) and g0 or math.clamp(h00*g0+h10*verticalSlopes[p1+2]+h01*g1+h11*verticalSlopes[p2+2],math.min(g0,g1),math.max(g0,g1))
+   local b0,b1=filtered[p1+3],filtered[p2+3]
+   lineB[x+1]=(b0==b1 or h01==0) and b0 or math.clamp(h00*b0+h10*verticalSlopes[p1+3]+h01*b1+h11*verticalSlopes[p2+3],math.min(b0,b1),math.max(b0,b1))
+  end
+  local uniformLine=true
+  for x=2,nx do if lineR[x]~=lineR[1] or lineG[x]~=lineG[1] or lineB[x]~=lineB[1] then uniformLine=false;break end end
+  if uniformLine then
+   local r,g,bl=lineR[1],lineG[1],lineB[1]
+   if c.saturation~=100 or c.brightness~=100 then
+    local l=r*.2126+g*.7152+bl*.0722;local sat=c.saturation/100;local br=c.brightness/100
+    r=(l+(r-l)*sat)*br;g=(l+(g-l)*sat)*br;bl=(l+(bl-l)*sat)*br
+   end
+   local code=math.round(math.clamp(r,0,1)*255)*65536+math.round(math.clamp(g,0,1)*255)*256+math.round(math.clamp(bl,0,1)*255)
+   for ix=1,output do codes[ix]=code end
+  else
+  for x=1,nx do
+   local lo,hi=math.max(1,x-1),math.min(nx,x+1)
+   local rl,rr=lineR[x]-lineR[lo],lineR[hi]-lineR[x]
+   lineSlopeR[x]=rl*rr<=0 and 0 or 2*rl*rr/(rl+rr)
+   local gl,gr=lineG[x]-lineG[lo],lineG[hi]-lineG[x]
+   lineSlopeG[x]=gl*gr<=0 and 0 or 2*gl*gr/(gl+gr)
+   local bl,br=lineB[x]-lineB[lo],lineB[hi]-lineB[x]
+   lineSlopeB[x]=bl*br<=0 and 0 or 2*bl*br/(bl+br)
   end
   for ix=1,output do
-   local p=xlookup[ix];local x0,x1,x2,x3,t=p[1],p[2],p[3],p[4],p[5]
-   local r=mono(lineR[x0],lineR[x1],lineR[x2],lineR[x3],t)
-   local g=mono(lineG[x0],lineG[x1],lineG[x2],lineG[x3],t)
-   local bl=mono(lineB[x0],lineB[x1],lineB[x2],lineB[x3],t)
+   local p=xlookup[ix];local a,b=p[1],p[2];local h00,h10,h01,h11=p[3],p[4],p[5],p[6]
+   local r0,r1=lineR[a],lineR[b]
+   local r=(r0==r1 or h01==0) and r0 or math.clamp(h00*r0+h10*lineSlopeR[a]+h01*r1+h11*lineSlopeR[b],math.min(r0,r1),math.max(r0,r1))
+   local g0,g1=lineG[a],lineG[b]
+   local g=(g0==g1 or h01==0) and g0 or math.clamp(h00*g0+h10*lineSlopeG[a]+h01*g1+h11*lineSlopeG[b],math.min(g0,g1),math.max(g0,g1))
+   local bl0,bl1=lineB[a],lineB[b]
+   local bl=(bl0==bl1 or h01==0) and bl0 or math.clamp(h00*bl0+h10*lineSlopeB[a]+h01*bl1+h11*lineSlopeB[b],math.min(bl0,bl1),math.max(bl0,bl1))
    if c.saturation~=100 or c.brightness~=100 then
     local l=r*.2126+g*.7152+bl*.0722;local sat=c.saturation/100;local br=c.brightness/100
     r=(l+(r-l)*sat)*br;g=(l+(g-l)*sat)*br;bl=(l+(bl-l)*sat)*br
    end
    codes[ix]=math.round(math.clamp(r,0,1)*255)*65536+math.round(math.clamp(g,0,1)*255)*256+math.round(math.clamp(bl,0,1)*255)
   end
-  if j.texture then TextureSurface.row(j.pixels,i-1,codes,output)
+  end
+  if j.texture then TextureSurface.row(j.pixels,i-1,codes,output,pixelRowState)
   else
   for segment=1,segments do
    local index=(i-1)*segments+segment
@@ -3019,8 +3045,6 @@ function LocalBlur.new(host,options)
   if i%2==0 then checkpoint() end
  end
  if j.texture then
-  -- Upload only after the scheduler validates the camera/config generation.
-  -- A cancelled coroutine must never overwrite the image currently on screen.
   buffer.count=0
   return
  end
@@ -3045,7 +3069,7 @@ function LocalBlur.new(host,options)
   local j={config=table.clone(profile),bounds=cloneBounds(current),nx=visibleX+gx*2,ny=visibleY+gy*2,
    visibleX=visibleX,visibleY=visibleY,stepX=stepX,stepY=stepY,guardX=gx*stepX,guardY=gy*stepY,
    size=Vector2.new(current.w+gx*stepX*2,current.h+gy*stepY*2),version=version,cpu=0,sampler=sampler,
-   camera=camera,pose=camera and camera.CFrame,fov=camera and camera.FieldOfView,fovMode=camera and camera.FieldOfViewMode,viewport=camera and camera.ViewportSize}
+   camera=camera,pose=camera and camera.CFrame,fov=camera and camera.FieldOfView,viewport=camera and camera.ViewportSize}
   j.halo=profile.radius*1.5
   j.stepX=(j.size.X+2*j.halo)/(j.nx-1);j.stepY=(j.size.Y+2*j.halo)/(j.ny-1)
   j.steps=0;j.age=0;j.createdAt=os.clock();j.texture=texture.ready
@@ -3065,11 +3089,11 @@ function LocalBlur.new(host,options)
    if profile[k]~=v and k~="strength" and k~="transparency" and k~="budget" and k~="refresh" and k~="idle" and k~="frameSync" then expensive=true end
   end
   profile=nextProfile;quality=1;slow=0;failed=false
-  if expensive then version+=1;force=true;job=nil end
+  if expensive then version+=1;force=true;job=nil;cacheKey=nil end
   updateOpacity()
  end
  function api:Invalidate(clear)
-  version+=1;force=true;failed=false
+  version+=1;force=true;failed=false;job=nil;cacheKey=nil
   if clear then job=nil;frontInfo=nil;front.layer.Visible=false;back.layer.Visible=false;active=false;root.Visible=false end
  end
  function api:Step(bounds,enabled,dt,opacity,workBudget)
@@ -3089,40 +3113,13 @@ function LocalBlur.new(host,options)
   root.Position=UDim2.fromScale(inset/bounds.w,inset/bounds.h)
   root.Size=UDim2.fromScale(b.w/bounds.w,b.h/bounds.h)
   root.Visible=true;elapsed+=dt
-  if frontInfo then positionBuffer(front,frontInfo,b);active=frontInfo.cacheValid~=false end
+  if frontInfo then positionBuffer(front,frontInfo,b);active=true end
   updateOpacity()
   if frontInfo then applyMasks(front,frontInfo,b) end
   if failed then return end
   local camera=workspace.CurrentCamera
-  frameSerial+=1
-  local sliceBudget=finite(workBudget) and math.clamp(workBudget,0,profile.budget) or profile.budget
-  if sliceBudget<=0 then lastSlice=(os.clock()-started)*1000;return end
-  local function obsolete(work)
-   local latestCamera=workspace.CurrentCamera
-   if work.version~=version then return "config-changed" end
-   if work.camera~=latestCamera then return "camera-replaced" end
-   if latestCamera and (work.viewport~=latestCamera.ViewportSize or work.fov~=latestCamera.FieldOfView or work.fovMode~=latestCamera.FieldOfViewMode) then return "projection-changed" end
-   if work.bounds.w~=current.w or work.bounds.h~=current.h then return "bounds-resized" end
-   if latestCamera and work.pose~=latestCamera.CFrame then
-    if work.pose.LookVector:Dot(latestCamera.CFrame.LookVector)<.8 or
-     (work.pose.Position-latestCamera.CFrame.Position).Magnitude>math.max(5,(work.depth or work.config.distance)*.25) then return "camera-jump" end
-   end
-   local viewChanged=latestCamera and work.pose~=latestCamera.CFrame or work.bounds.x~=current.x or work.bounds.y~=current.y
-   if profile.frameSync and viewChanged and os.clock()-work.createdAt>math.max(1/30,dt*2) then return "frame-expired" end
-   return nil
-  end
-  if job then
-   local why=obsolete(job)
-   if why then
-    deadlines[job.co]=nil;job=nil;discarded+=1;lastDiscard=why;force=true
-    if profile.adaptive and why=="frame-expired" then quality=math.max(.5,quality*.75);slow=0 end
-   end
-  end
-  if frontInfo and camera~=frontInfo.camera then
-   frontInfo=nil;front.layer.Visible=false;active=false;force=true
-  end
   local ref=job or frontInfo
-  local moving=not ref or ref.camera~=camera or (camera and (ref.pose~=camera.CFrame or ref.fov~=camera.FieldOfView or ref.viewport~=camera.ViewportSize or ref.fovMode~=camera.FieldOfViewMode))
+  local moving=not ref or ref.camera~=camera or (camera and (ref.pose~=camera.CFrame or ref.fov~=camera.FieldOfView or ref.viewport~=camera.ViewportSize))
   local rate=profile.frameSync and 0 or profile.refresh
   if profile.adaptive and not moving and not profile.frameSync then rate=math.min(rate,profile.idle) end
   if not job and (force or rate==0 or elapsed+1e-6>=1/rate) then
@@ -3131,25 +3128,26 @@ function LocalBlur.new(host,options)
   end
   if job then
    local work=job;work.steps+=1;work.age+=dt
-   local sliceStarted=os.clock()
-   deadlines[work.co]=started+sliceBudget/1000
-   while job==work and (os.clock()-started)*1000<sliceBudget do
+   local sliceStarted=os.clock();local resumes=0
+   local sliceBudget=finite(workBudget) and math.clamp(workBudget,0,profile.budget) or profile.budget
+   while job==work and resumes<8192 and (os.clock()-started)*1000<sliceBudget do
+    resumes+=1
     local ok,err=coroutine.resume(work.co)
-    if not ok then deadlines[work.co]=nil;job=nil;failed=true;reason="sampling-error: "..tostring(err);break end
+    if not ok then cacheKey=nil;job=nil;failed=true;reason="sampling-error: "..tostring(err);break end
     if coroutine.status(work.co)=="dead" then
-     deadlines[work.co]=nil
-     local why=obsolete(work)
-     if why then job=nil;discarded+=1;lastDiscard=why;force=true;reason="resampling-"..why;break end
-     if work.texture and not texture:Commit(work.pixels) then
-      job=nil;force=true;reason="texture-write-failed; gradient fallback";break
-     end
-     work.publishedAt=os.clock();work.frame=frameSerial
-     front.layer.Visible=false;back.layer.Visible=true;front,back=back,front
+     if work.version~=version then cacheKey=nil;job=nil;force=true;break end
+     if not work.reuse then
+      if work.texture and not texture:Commit(work.pixels) then cacheKey=nil;job=nil;force=true;reason="texture-write-failed; gradient fallback";break end
+      front.layer.Visible=false;back.layer.Visible=true;front,back=back,front
+      if work.texture then uploadedFrames+=1;cacheKey=work.cacheKey end
+     else reusedFrames+=1 end
+     work.publishedAt=os.clock()
      frontInfo=work;job=nil;completed+=1;active=true;reason=nil
      totalCPU=work.cpu+(os.clock()-sliceStarted)*1000
      positionBuffer(front,work,current);updateOpacity();applyMasks(front,work,current)
      if profile.adaptive and (work.steps>2 or totalCPU>profile.budget*2) then slow+=1 else slow=0 end
-     if slow>=2 and quality>.5 then quality=math.max(.5,quality-.125);slow=0;force=true end
+     if profile.adaptive and work.steps>2 and quality>.5 then quality=.5;slow=0;force=true
+     elseif slow>=2 and quality>.5 then quality=math.max(.5,quality-.125);slow=0;force=true end
      if work.version~=version or work.bounds.x~=current.x or work.bounds.y~=current.y or work.bounds.w~=current.w or work.bounds.h~=current.h then force=true end
      break
     end
@@ -3171,21 +3169,17 @@ function LocalBlur.new(host,options)
    textureWidth=frontInfo and frontInfo.texture and TextureSurface.Width or 0,
    textureHeight=frontInfo and frontInfo.texture and TextureSurface.Height or 0,
    renderColumns=frontInfo and frontInfo.renderColumns or profile.renderColumns,
-   discarded=discarded,lastDiscard=lastDiscard,
-   contentAge=frontInfo and math.max(0,os.clock()-frontInfo.createdAt) or nil,
-   publishedAge=frontInfo and math.max(0,os.clock()-(frontInfo.publishedAt or frontInfo.createdAt)) or nil,
-   cacheValid=frontInfo and frontInfo.cacheValid or false,
-   reprojected=frontInfo and frontInfo.reprojected or false,
-   reprojectionClamped=frontInfo and frontInfo.reprojectionClamped or false,
-   reprojectionX=frontInfo and frontInfo.reprojectionX or nil,reprojectionY=frontInfo and frontInfo.reprojectionY or nil,
-   sourcePose=frontInfo and frontInfo.pose or nil,
-   frame=frontInfo and frontInfo.frame or nil}
+   uploads=uploadedFrames,reused=reusedFrames,filterBuilds=filteredFrames,
+   displayedDataAgeMs=frontInfo and math.max(0,(os.clock()-frontInfo.createdAt)*1000) or nil,
+   publishedAgeMs=frontInfo and math.max(0,(os.clock()-frontInfo.publishedAt)*1000) or nil,
+   adaptiveQuality=quality}
  end
  function api:Destroy()
   if dead then return end
   dead=true;job=nil;frontInfo=nil;active=false
   if destroyConnection then destroyConnection:Disconnect();destroyConnection=nil end
   table.clear(source);table.clear(temp);table.clear(filtered);table.clear(ping);table.clear(refined)
+  table.clear(cachedInput);table.clear(verticalSlopes);table.clear(lineSlopeR);table.clear(lineSlopeG);table.clear(lineSlopeB)
   if texture then texture:Destroy();texture=nil end
   root:Destroy()
  end
