@@ -5767,26 +5767,41 @@ function UI.new(options)
    return s.value
   end
  local function expireNotices()
+  local now=os.clock()
   local duration=(state.HUD and state.HUD.settings["Island State Duration"]) or 2
   local deadline=islandState.lastToggleAt and islandState.lastToggleAt+duration
+  -- Non-toggle notices retain their independent deadlines.
   for i=#notices,1,-1 do
-   local notice=notices[i]
-   if notice.kind=="toggle" and deadline then notice.untilTime=deadline end
-   if os.clock()>=notice.untilTime then table.remove(notices,i) end
+   local n=notices[i]
+   if n.kind=="toggle" and deadline then n.untilTime=deadline
+   elseif now>=n.untilTime then table.remove(notices,i) end
   end
+  if not deadline or now<deadline then islandState.nextRetireAt=nil;return end
+  if islandState.nextRetireAt and now<islandState.nextRetireAt then return end
+  -- Retire the most recently triggered group. One group per step, including
+  -- after a long frame; never catch up by deleting the entire sequence at once.
+  local group
+  for i=#notices,1,-1 do if notices[i].kind=="toggle" then group=notices[i].toggleGroup;break end end
+  if group==nil then islandState.nextRetireAt=nil;return end
+  for i=#notices,1,-1 do if notices[i].kind=="toggle" and notices[i].toggleGroup==group then table.remove(notices,i) end end
+  islandState.nextRetireAt=now+.28/bridge.islandAnimationSpeed
  end
  postNotice=function(key,title,detail,kind,value,duration)
   if dead then return end;expireNotices()
-  local n;for _,v in ipairs(notices) do if v.key==key then n=v;break end end
+  local n,index;for i,v in ipairs(notices) do if v.key==key then n=v;index=i;break end end
+  if n and kind=="toggle" then table.remove(notices,index);notices[#notices+1]=n end
   if not n then n={key=key,width=0,started=os.clock(),toggle=value and 0 or 1};notices[#notices+1]=n end
   if kind=="toggle" then
-   -- A burst has one expiry boundary: an older row cannot collapse the panel
-   -- while the next module's toggle state is still being shown.
-   islandState.lastToggleAt=os.clock()
-   local deadline=islandState.lastToggleAt+duration
-   for _,active in ipairs(notices) do
-    if active.kind=="toggle" then active.untilTime=deadline end
+   local now=os.clock();local frame=islandState.noticeFrame or 0
+   -- Same rendered frame and a short wall-clock window define a simultaneous
+   -- batch. Sequential interactions receive different retirement groups.
+   if islandState.lastToggleFrame~=frame or not islandState.lastToggleAt or now-islandState.lastToggleAt>.04 then
+    islandState.toggleGroupSerial=(islandState.toggleGroupSerial or 0)+1
    end
+   n.toggleGroup=islandState.toggleGroupSerial or 1
+   islandState.lastToggleFrame=frame;islandState.lastToggleAt=now;islandState.nextRetireAt=nil
+   local deadline=now+duration
+   for _,active in ipairs(notices) do if active.kind=="toggle" then active.untilTime=deadline end end
   end
   n.sourceTitle=tostring(title);n.sourceDetail=tostring(detail or "");n.title=n.sourceTitle;n.detail=n.sourceDetail;n.kind=kind;n.value=value;n.untilTime=os.clock()+duration
     if kind=="toggle" then n.started=os.clock();n.animationStarted=islandState.animationTime or 0;n.toggleFrom=n.toggle end
@@ -5809,7 +5824,9 @@ function UI.new(options)
   for i=#notices,1,-1 do if notices[i].key~=key then table.remove(notices,i) end end
   postNotice(key,title,detail,kind,math.clamp(value,0,1),duration)
  end
- function api:ClearNotices() table.clear(notices) end
+ function api:ClearNotices()
+  table.clear(notices);islandState.lastToggleAt=nil;islandState.lastToggleFrame=nil;islandState.nextRetireAt=nil
+ end
  function api:SetTarget(target) assert(target==nil or type(target)=="table","Target must be a table or nil");islandState.target=target and copy(target) end
  local function widgetEnabled(name)
   local st=state.HUD
@@ -6352,6 +6369,7 @@ local function drawArrayList(dt,view,factor,st,p)
  end)()
 
  local function renderHUD(dt,frameDelta)
+  islandState.noticeFrame=(islandState.noticeFrame or 0)+1
   bridge.Sync()
   bridge.RefreshBindings()
   expireNotices()
