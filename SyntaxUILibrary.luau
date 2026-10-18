@@ -2430,6 +2430,172 @@ local palettes={
  ["Light Pink"]={header=0x161110,body=0x1A1413,enabled=0xDF9D95,enabledHover=0xE5A59D,accent=0xFFB4AA,enabledText=0x5F150F,text=0xEDE0DE,field=0x2E2625,line=0xCDB7B4,track=0x56413E,scrollbar=0x69534D,selected=0x483A37,outline=0x9E8D8B}}
 local function rgb(n) return Color3.fromRGB(math.floor(n/65536)%256,math.floor(n/256)%256,n%256) end
 local function opaiFont(plain) return plain and Enum.Font.Gotham or Enum.Font.GothamMedium end
+local LocalConfigStore=(function()
+-- Local data files; the .lua extension never causes configuration code execution.
+local LocalConfigStore={}
+local function clone(v) if type(v)~='table' then return v end;local r={};for k,x in pairs(v) do r[k]=clone(x) end;return r end
+local function resolve(name,provided)
+ if provided~=nil then return type(provided[name])=='function' and provided[name] or nil end
+ local direct={writefile=writefile,readfile=readfile,isfile=isfile,makefolder=makefolder,isfolder=isfolder,listfiles=listfiles,delfile=delfile}
+ if type(direct[name])=='function' then return direct[name] end
+ for _,getter in pairs({getgenv,getfenv}) do
+  if type(getter)=='function' then local ok,env=pcall(getter);if ok and type(env)=='table' and type(env[name])=='function' then return env[name] end end
+ end
+ return type(_G[name])=='function' and _G[name] or nil
+end
+local function missing(value)
+ local s=tostring(value):lower()
+ return s:find('not found',1,true) or s:find('no such',1,true) or s:find('does not exist',1,true) or s:find('missing',1,true) or s:find('不存在',1,true)
+end
+local function cleanName(name)
+ if type(name)~='string' then return nil,'Name must be text' end
+ name=name:match('^%s*(.-)%s*$')
+ if #name<1 or #name>64 or name:find('[%z\1-\31/\\:*?"<>|]') or name=='.' or name=='..' or name:match('[%. ]$') then return nil,'Invalid configuration name (1–64 bytes, no path characters)' end
+ local base=(name:match('^([^%.]+)') or name):upper()
+ if base=='CON' or base=='PRN' or base=='AUX' or base=='NUL' or base:match('^COM[1-9]$') or base:match('^LPT[1-9]$') then return nil,'Reserved local filename' end
+ return name
+end
+function LocalConfigStore.new(http,options)
+ options=options or {}
+ local directory=options.ConfigDirectory or 'Syntax/Configuration'
+ assert(type(directory)=='string' and #directory>0 and not directory:find('%z') and not directory:find('..',1,true) and not directory:match('^[/\\]') and not directory:find(':',1,true),'ConfigDirectory must be a relative local path')
+ directory=directory:gsub('\\','/'):gsub('/+$','')
+ local indexPath=directory..'/_index.json'
+ local self={directory=directory,path=directory..'/<name>.lua',lastError=nil,warning=nil,recovered=false}
+ local function file(name) return resolve(name,options.FileSystem) end
+ local function fail(message) self.lastError=tostring(message);return false,self.lastError end
+ local function read(path)
+  local reader=file('readfile');if not reader then return nil,'readfile unavailable' end
+  local exists=file('isfile')
+  if exists then local ok,value=pcall(exists,path);if not ok then return nil,'isfile failed: '..tostring(value) end;if not value then return nil,nil end end
+  local ok,raw=pcall(reader,path)
+  if not ok then if missing(raw) then return nil,nil end;return nil,'readfile failed: '..tostring(raw) end
+  if type(raw)~='string' then return nil,'readfile returned non-text data' end
+  return raw,nil
+ end
+ local function decode(raw,index)
+  local ok,value=pcall(http.JSONDecode,http,raw)
+  if not ok or type(value)~='table' then return nil,'Invalid configuration JSON' end
+  if index then
+   if value.format~='SyntaxUI.ConfigIndex' or value.version~=1 or type(value.names)~='table' then return nil,'Invalid configuration index' end
+   for _,name in pairs(value.names) do if not cleanName(name) then return nil,'Invalid indexed name' end end
+   return value
+  end
+  if value.format=='SyntaxUI.LocalConfig' then value=value.state end
+  if type(value)~='table' or type(value.modules)~='table' or (value.version~=1 and value.version~=2 and value.version~=3) then return nil,'Invalid configuration data' end
+  return value
+ end
+ local function loadFile(path,index)
+  local raw,err=read(path);local result,problem
+  if raw then result,problem=decode(raw,index);if result then return result,nil,raw end end
+  local backup,backupErr=read(path..'.bak')
+  if backup then local previous=decode(backup,index);if previous then self.recovered=true;return previous,nil,backup end end
+  if not raw and not err and not backup and not backupErr then return nil,nil,nil end
+  return nil,err or problem or backupErr or 'Invalid local backup'
+ end
+ local function namesOnDisk()
+  local index,problem=loadFile(indexPath,true);local names={}
+  if index then for _,name in pairs(index.names) do names[name]=true end end
+  local list=file('listfiles');local folder=file('isfolder')
+  if list then
+   local exists=true
+   if folder then local ok,result=pcall(folder,directory);if not ok then return nil,tostring(result) end;exists=result end
+   if exists then
+    local ok,paths=pcall(list,directory)
+    if ok and type(paths)=='table' then
+     for _,path in pairs(paths) do if type(path)=='string' then local name=path:gsub('\\','/'):match('([^/]+)%.lua$');if name and cleanName(name) then names[name]=true end end end
+    elseif not index and not missing(paths) then return nil,'listfiles failed: '..tostring(paths) end
+   end
+  elseif problem then return nil,problem end
+  return names
+ end
+ local function ensureDirectory()
+  local prefix=''
+  for segment in directory:gmatch('[^/]+') do
+   prefix=prefix=='' and segment or prefix..'/'..segment
+   local exists=file('isfolder');local create=file('makefolder');local found=false
+   if exists then local ok,result=pcall(exists,prefix);if not ok then return false,tostring(result) end;found=result end
+   if not found then
+    if not create then return false,'makefolder unavailable for '..prefix end
+    local ok,err=pcall(create,prefix)
+    if not ok and not tostring(err):lower():find('exist',1,true) then return false,tostring(err) end
+   end
+  end
+  return true
+ end
+ local function encode(value) local ok,raw=pcall(http.JSONEncode,http,value);if not ok then return nil,'JSON encode failed: '..tostring(raw) end;return raw end
+ local function writeChecked(path,raw)
+  local writer=file('writefile');if not writer then return false,'writefile unavailable' end
+  local ok,err=pcall(writer,path,raw);if not ok then return false,'writefile failed: '..tostring(err) end
+  local actual,problem=read(path);if actual~=raw then return false,problem or 'File verification failed: '..path end
+  return true
+ end
+ local function writeIndex(names)
+  local list={};for name in pairs(names) do list[#list+1]=name end;table.sort(list)
+  local raw,err=encode({format='SyntaxUI.ConfigIndex',version=1,names=list});if not raw then return false,err end
+  local _,_,old=loadFile(indexPath,true)
+  local ok,problem=writeChecked(indexPath..'.tmp',raw);if not ok then return false,problem end
+  if old then ok,problem=writeChecked(indexPath..'.bak',old);if not ok then return false,problem end end
+  return writeChecked(indexPath,raw)
+ end
+ function self:GetPath(name) local clean,err=cleanName(name);if not clean then return nil,err end;return directory..'/'..clean..'.lua',clean end
+ function self:Get(name)
+  self.recovered=false
+  local path,err=self:GetPath(name);if not path then return fail(err) end
+  local value,problem=loadFile(path,false)
+  if not value then return fail(problem or ('Configuration not found: '..tostring(name))) end
+  self.lastError=nil;return true,clone(value)
+ end
+ function self:ReadAll()
+  self.recovered=false;self.warning=nil
+  if not file('readfile') then return fail('readfile unavailable') end
+  local names,problem=namesOnDisk();if not names then return fail(problem) end
+  local values={}
+  for name in pairs(names) do
+   local path=self:GetPath(name);local value,err=loadFile(path,false)
+   if value then values[name]=clone(value) elseif err then self.warning='Skipped '..name..': '..err end
+  end
+  self.lastError=nil;return true,values
+ end
+ function self:Put(name,snapshot)
+  local path,clean=self:GetPath(name);if not path then return fail(clean) end
+  if not file('writefile') or not file('readfile') then return fail('Local save requires writefile and readfile') end
+  local raw,err=encode({format='SyntaxUI.LocalConfig',version=1,name=clean,state=snapshot});if not raw then return fail(err) end
+  local valid,problem=decode(raw,false);if not valid then return fail(problem) end
+  local previous,readError,old=loadFile(path,false);if readError and not previous then return fail(readError) end
+  local names,nameError=namesOnDisk();if not names then return fail(nameError) end
+  local ok,message=ensureDirectory();if not ok then return fail(message) end
+  ok,message=writeChecked(path..'.tmp',raw);if not ok then return fail(message) end
+  if old then ok,message=writeChecked(path..'.bak',old);if not ok then return fail(message) end end
+  names[clean]=true;ok,message=writeIndex(names);if not ok then return fail(message) end
+  ok,message=writeChecked(path,raw);if not ok then return fail(message) end
+  local readOK,values=self:ReadAll();if not readOK then return false,values end
+  return true,values,clean
+ end
+ function self:Remove(name)
+  local path,err=self:GetPath(name);if not path then return fail(err) end
+  local remove=file('delfile');if not remove then return fail('delfile unavailable') end
+  local names,problem=namesOnDisk();if not names then return fail(problem) end
+  local found=false
+  -- Remove backups first, so a deleted profile cannot resurrect on refresh.
+  for _,suffix in ipairs({'.bak','.tmp',''}) do
+   local at=path..suffix;local raw,readError=read(at)
+   if readError then return fail(readError) end
+   if raw then
+    found=true;local ok,message=pcall(remove,at);if not ok then return fail(message) end
+    local remaining,readErr=read(at);if remaining or readErr then return fail(readErr or 'File deletion verification failed') end
+   end
+  end
+  if not found then return fail('Configuration not found: '..tostring(name)) end
+  names[name]=nil;local ok,message=writeIndex(names);if not ok then return fail(message) end
+  return self:ReadAll()
+ end
+ function self:Inspect() return {path=self.path,directory=directory,index=indexPath,available=file('writefile')~=nil and file('readfile')~=nil,recovered=self.recovered,warning=self.warning,error=self.lastError} end
+ return self
+end
+return LocalConfigStore
+
+end)()
 local function copy(v) if type(v)~="table" then return v end;local t={} for k,x in pairs(v) do t[k]=copy(x) end return t end
 local function new(class,parent,props) local o=Instance.new(class);if class=="Frame" or class=="TextButton" or class=="TextBox" or class=="TextLabel" or class=="ImageLabel" then o.AutoLocalize=false end;if class=="Frame" or class=="TextButton" or class=="TextBox" then o.BorderSizePixel=0 end;for k,v in pairs(props or {}) do o[k]=v end;o.Parent=parent;return o end
 local function ease(a,b,dt,rate) local v=b+(a-b)*math.exp(-dt*(rate or 30));return math.abs(v-b)<.0005 and b or v end
@@ -4594,7 +4760,12 @@ function UI.new(options)
    return count==#v and (s.allowEmpty~=false or #v>0)
   end return false
  end
- function api:GetState() return {version=3,theme=selectedTheme(),appearance=api:GetAppearance(),hudLayout=copy(hudPlacements),modules=copy(state)} end
+ function api:GetState()
+  local snapshot={version=3,theme=selectedTheme(),appearance=api:GetAppearance(),hudLayout=copy(hudPlacements),modules=copy(state),blur={menu=self:GetLocalBlurConfig(),hud={}}}
+  for id,row in pairs(rows) do if row.def.transient then snapshot.modules[id].enabled=false end end
+  for _,name in ipairs({"Island","ArrayList","TargetHUD","WaterMark"}) do snapshot.blur.hud[name]=self:GetHUDBlurConfig(name) end
+  return snapshot
+ end
  function api:SetEnabled(id,value)
   assert(state[id] and type(value)=="boolean","Invalid module")
   if state[id].enabled==value then return end
@@ -4645,8 +4816,18 @@ function UI.new(options)
     for name,value in pairs(incoming.settings) do
      local exists,accepted=false,false
      for _,s in ipairs(rows[id].def.settings or {}) do if s.name==name then exists=true;accepted=valid(s,value);break end end
+     if not exists and id=="ClickGUI" and name=="Opai Color" and palettes[value] then exists=true;accepted=true end
      if (exists and not accepted) or (not exists and not (id=="ClickGUI" and (name=="Style" or name=="Interface")) and not (id=="HUD" and tostring(name):match("^XHan "))) then return false,"Invalid setting: "..tostring(name) end
     end
+  end
+  for id,incoming in pairs(snapshot.modules) do if rows[id].def.transient then incoming.enabled=false end end
+  if snapshot.blur~=nil then
+   if type(snapshot.blur)~="table" or (snapshot.blur.hud~=nil and type(snapshot.blur.hud)~="table") then return false,"Invalid blur configuration" end
+   if snapshot.blur.menu~=nil then local ok=pcall(SampledLocalBlur.Profile,snapshot.blur.menu);if not ok then return false,"Invalid menu blur configuration" end end
+   for name,profile in pairs(snapshot.blur.hud or {}) do
+    if name~="Island" and name~="ArrayList" and name~="TargetHUD" and name~="WaterMark" then return false,"Invalid HUD blur region" end
+    local ok=pcall(SampledLocalBlur.Profile,profile);if not ok then return false,"Invalid HUD blur configuration" end
+   end
   end
   local incomingAppearance=snapshot.appearance
   if incomingAppearance~=nil then
@@ -4674,6 +4855,18 @@ function UI.new(options)
    if state.HUD and state.HUD.settings["Island Background Transparency"]~=nil then islandBackgroundTransparency=state.HUD.settings["Island Background Transparency"] end
    if state.HUD and state.HUD.settings["Island Animation Speed"]~=nil then bridge.islandAnimationSpeed=state.HUD.settings["Island Animation Speed"] end
    if incomingAppearance then if incomingAppearance.islandAnimationSpeed~=nil then self:SetIslandAnimationSpeed(incomingAppearance.islandAnimationSpeed) end;if incomingAppearance.islandBackgroundTransparency~=nil then self:SetIslandBackgroundTransparency(incomingAppearance.islandBackgroundTransparency) end;self:SetScale(incomingAppearance.scale or k);self:SetHUDScale(incomingAppearance.hudScale or hudScale);self:SetAccent(incomingAppearance.accent);self:SetThemeEffect(incomingAppearance.effect or "Source");self:SetAnimations(incomingAppearance.animations~=false);self:SetAnimationSpeed(incomingAppearance.animationSpeed or 1);self:SetGlowStrength(incomingAppearance.glowStrength or .75);if incomingAppearance.islandShadow~=nil then self:SetIslandShadow(incomingAppearance.islandShadow) end;self:SetLanguage(incomingAppearance.language or "English") end
+  if snapshot.blur then
+   if snapshot.blur.menu then
+    local patch=copy(snapshot.blur.menu);local controls=snapshot.modules.ClickGUI and snapshot.modules.ClickGUI.settings or {}
+    for key,name in pairs({radius="Local Blur radius",strength="Local Blur strength",smooth="Local Blur softness"}) do if controls[name]~=nil then patch[key]=controls[name] end end
+    self:SetLocalBlurConfig(patch)
+   end
+   for name,profile in pairs(snapshot.blur.hud or {}) do
+    local patch=copy(profile);local controls=snapshot.modules.HUD and snapshot.modules.HUD.settings or {}
+    for key,suffix in pairs({radius=" Blur radius",strength=" Blur strength",smooth=" Blur softness"}) do if controls[name..suffix]~=nil then patch[key]=controls[name..suffix] end end
+    self:SetHUDBlurConfig(name,patch)
+   end
+  end
   for _,entry in ipairs(notifications) do notify(entry[1],entry[2],entry[3]) end
   dropdown=nil;return true
  end
@@ -4840,6 +5033,42 @@ function UI.new(options)
   end
  end
  local function configNames() config.names={};for name in pairs(config.values) do config.names[#config.names+1]=name end;table.sort(config.names,function(a,b)return a:lower()<b:lower() end) end
+ config.store=LocalConfigStore.new(Http,options)
+ function api:GetConfigStorage() return config.store:Inspect() end
+ function api:RefreshConfigs()
+  local ok,values=config.store:ReadAll()
+  if not ok then return false,values end
+  config.values=values;configNames()
+  if config.selected and not values[config.selected] then config.selected=nil end
+  return true,copy(config.names)
+ end
+ function api:ListConfigs()
+  local ok,result=self:RefreshConfigs();if not ok then return false,result end
+  return true,result
+ end
+ function api:SaveConfig(name,blank)
+  if type(name)~='string' then return false,'Name must be text' end
+  local snapshot=self:GetState()
+  if blank then for id,m in pairs(snapshot.modules) do m.enabled=false;m.key='Unknown';for _,s in ipairs(rows[id].def.settings or {}) do m.settings[s.name]=copy(s.default) end end end
+  local ok,values,cleanName=config.store:Put(name,snapshot)
+  if not ok then return false,values end
+  config.values=values;config.selected=cleanName;configNames()
+  return true,config.store:GetPath(cleanName)
+ end
+ function api:LoadConfig(name)
+  local ok,snapshot=config.store:Get(name);if not ok then return false,snapshot end
+  self:RefreshConfigs()
+  local accepted,problem=self:ApplyState(snapshot)
+  if accepted then config.selected=name end
+  return accepted,problem
+ end
+ function api:DeleteConfig(name)
+  local ok,values=config.store:Remove(name);if not ok then return false,values end
+  config.values=values;if config.selected==name then config.selected=nil end;configNames()
+  return true
+ end
+ api:RefreshConfigs()
+
  local function configButton(text,x,y,w,action,data)
   local p=currentPalette();front:box(x,y,w,18,p.field,1,3);if text=="REFRESH" or text=="SAVE" or text=="LOAD" or text=="DELETE" then drawIcon(front,text,x+(w-10)/2,y+4,10,p.line) else front:text(text,x,y+9,7.5,w,p.text,false,Enum.TextXAlignment.Center) end;hit(rect(x,y,w,18),action,data)
  end
@@ -5348,9 +5577,9 @@ function UI.new(options)
  end
  local function frontColumn(c) for i,v in ipairs(columns) do if v==c then table.remove(columns,i);columns[#columns+1]=c;return end end end
  local function savePreset(name,blank)
-  name=name:match("^%s*(.-)%s*$");if #name<1 or #name>64 then message("Name must be 1–64 bytes");return end
-  local snapshot=api:GetState();if blank then for id,m in pairs(snapshot.modules) do m.enabled=false;m.key="Unknown";for _,s in ipairs(rows[id].def.settings or {}) do m.settings[s.name]=copy(s.default) end end end
-  config.values[name]=snapshot;config.selected=name;configNames();config.page="Configurations";editor:ReleaseFocus();message("Saved")
+  local ok,result=api:SaveConfig(name,blank)
+  if not ok then message(result);return end
+  config.page="Configurations";editor:ReleaseFocus();message("Saved to "..result)
  end
  local function click(button,x,y,target)
   if dead or not visible then return end
@@ -5411,17 +5640,17 @@ function UI.new(options)
     if s.type=="multi" then local values=copy(value);local index=table.find(values,d);if index then if s.allowEmpty==false and #values==1 then return end;table.remove(values,index) else values[#values+1]=d end;api:SetSetting(choice.row.def.id,s.name,values)
     else api:SetSetting(choice.row.def.id,s.name,d);dropdown=nil end
    end
-  elseif a=="configOpen" and button==0 then config.open=true;config.x=math.max(4,width-W-4);config.y=math.max(4,height*.112-2)
+  elseif a=="configOpen" and button==0 then local ok,result=api:RefreshConfigs();if not ok then message(result) end;config.open=true;config.x=math.max(4,width-W-4);config.y=math.max(4,height*.112-2)
   elseif a=="configHeader" then if button==1 then config.open=false elseif button==0 then drag={kind="config",dx=x-config.x,dy=y-config.y} end
   elseif a=="configPage" and button==0 then config.page=d;dropdown=nil;editor:ReleaseFocus();jsonEditor:ReleaseFocus()
   elseif a=="configFocus" and button==0 then editor:CaptureFocus()
   elseif a=="jsonFocus" and button==0 then jsonEditor:CaptureFocus()
   elseif a=="configCreate" and button==0 then savePreset(editor.Text,d)
   elseif a=="configSelect" and button==0 then config.selected=d
-  elseif a=="configSave" and button==0 then if config.selected then config.values[config.selected]=api:GetState();message("Updated") else message("Select a configuration") end
-  elseif a=="configLoad" and button==0 then if config.selected then local ok,errorText=api:ApplyState(config.values[config.selected]);message(ok and "Loaded" or errorText) end
-  elseif a=="configDelete" and button==0 then if config.selected then config.values[config.selected]=nil;config.selected=nil;configNames();message("Deleted") end
-  elseif a=="configRefresh" and button==0 then configNames()
+  elseif a=="configSave" and button==0 then if config.selected then local ok,result=api:SaveConfig(config.selected);message(ok and ("Saved to "..result) or result) else message("Select a configuration") end
+  elseif a=="configLoad" and button==0 then if config.selected then local ok,errorText=api:LoadConfig(config.selected);message(ok and "Loaded" or errorText) end
+  elseif a=="configDelete" and button==0 then if config.selected then local ok,result=api:DeleteConfig(config.selected);message(ok and "Deleted" or result) end
+  elseif a=="configRefresh" and button==0 then local ok,result=api:RefreshConfigs();if not ok then message(result) end
   elseif a=="configExport" and button==0 then jsonEditor.Text=api:ExportJSON();config.page="JSON";message("Copy the JSON text")
   elseif a=="configImport" and button==0 then local ok,errorText=api:ImportJSON(jsonEditor.Text);message(ok and "Imported" or errorText)
   elseif a=="configClose" and button==0 then config.open=false;dropdown=nil
@@ -6374,7 +6603,7 @@ local function drawArrayList(dt,view,factor,st,p)
    OnSelectStyle=function(name) api:SetStyle(name) end,
    OnOpenAppearance=function() api:OpenAppearance() end,
    OnEditHUD=function() api:EditHUD() end,
-   OnOpenConfigs=function() config.open=not config.open;config.x=math.max(4,width-W-12);config.y=50 end,
+   OnOpenConfigs=function() local ok,result=api:RefreshConfigs();if not ok then message(result) end;config.open=not config.open;config.x=math.max(4,width-W-12);config.y=50 end,
    OnVisibilityChanged=function(value) if not bridge.suspended and visible~=value then api:SetVisible(value) end end})
   local app=bridge.app
   app.HUD.Visible=false
