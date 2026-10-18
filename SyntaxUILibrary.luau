@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-17.V9.3",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.5",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,10 +2372,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-17.V9.3",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.5",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影范围",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -3740,6 +3740,55 @@ local navY={96,132,200,236,304,372,408,444}
 local modernNames={"Combat","Movement","Visuals","Player","Other"}
 local modernCats={"Combat","Movement","Visual","Player","Misc"}
 
+-- Native pooled shadow; no image permission, asset download or extra render loop.
+local ArrayListShadow={}
+function ArrayListShadow.new(parent)
+ local self={slots={},used=0,rows=0,dead=false}
+ -- Sibling ordering puts this entire subtree below Widgets and StarlightArrayList.
+ self.root=new("Frame",parent,{Name="ArrayListShadow",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Active=false,ClipsDescendants=false,Visible=false})
+ function self:Step(metrics,settings,visible)
+  self.used=0;self.rows=0
+  local strength=(settings["ArrayList Shadow strength"] or 55)/100
+  local radius=settings["ArrayList Shadow radius"] or 18
+  local enabled=visible and settings["ArrayList Shadow"]~=false and strength>0 and radius>0
+  if metrics.mode=="Opai" and settings["Opai Shadow"]==false then enabled=false end
+  local scale=math.max(.05,metrics.shadowScale or 1)
+  if enabled then
+   for _,row in ipairs(metrics.rows or {}) do
+    local fade=math.clamp(row.alpha or 0,0,1)
+    if row.width>0 and row.height>0 and fade>.001 then
+     self.rows+=1
+     local padding=metrics.mode=="Default" and 6.5*scale or 0
+     local x,y,w,h=row.x-padding,row.y,row.width+padding,row.height
+     local rounding=metrics.mode=="BloomFlow" and 0 or math.min(4*scale,h/2)
+     for layer=8,1,-1 do
+      self.used+=1
+      local slot=self.slots[self.used]
+      if not slot then
+       local frame=new("Frame",self.root,{Name="ShadowBand",BackgroundColor3=rgb(0x000000),BorderSizePixel=0,ZIndex=1,Active=false})
+       slot={frame=frame,corner=new("UICorner",frame,{CornerRadius=UDim.new(0,0)})};self.slots[self.used]=slot
+      end
+      local t=layer/9;local spread=radius*scale*t
+      slot.frame.Position=UDim2.fromOffset(x-spread,y-spread+scale)
+      slot.frame.Size=UDim2.fromOffset(w+spread*2,h+spread*2)
+      slot.frame.BackgroundTransparency=1-math.clamp(strength*fade*.22*(1-t)*(1-t),0,1)
+      slot.corner.CornerRadius=UDim.new(0,rounding+spread)
+      slot.frame.Visible=true
+     end
+    end
+   end
+  end
+  for i=self.used+1,#self.slots do self.slots[i].frame.Visible=false end
+  self.root.Visible=enabled and self.used>0
+ end
+ function self:Inspect() return {active=self.root.Visible,rows=self.rows,bands=self.used,pooledBands=#self.slots,zindex=self.root.ZIndex,renderer="NativePooled"} end
+ function self:Destroy()
+  if self.dead then return end
+  self.dead=true;self.root:Destroy();table.clear(self.slots);self.used=0;self.rows=0
+ end
+ return self
+end
+
 function UI.new(options)
  uiDiagnostics.Stage="初始化 UI 设置"
  options=table.clone(options or {})
@@ -3758,6 +3807,19 @@ function UI.new(options)
     m.settings[#m.settings+1]=def
    end
    for _,name in ipairs({"Island Blur","BloomFlow Blur","TargetHUD Blur","TargetHUD Glow"}) do addHUDSetting({name=name,type="toggle",default=true}) end
+   addHUDSetting({name="ArrayList Shadow",type="toggle",default=true})
+   addHUDSetting({name="ArrayList Shadow strength",type="slider",default=55,min=0,max=100,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
+   addHUDSetting({name="ArrayList Shadow radius",type="slider",default=18,min=0,max=48,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
+   -- Keep the three shadow controls in the first visible HUD settings group.
+   do
+    local priority={"ArrayList Shadow","ArrayList Shadow strength","ArrayList Shadow radius","Widgets","ArrayList mode"}
+    local promoted,seen={},{}
+    for _,name in ipairs(priority) do
+     for _,setting in ipairs(m.settings) do if setting.name==name then promoted[#promoted+1]=setting;seen[name]=true;break end end
+    end
+    for _,setting in ipairs(m.settings) do if not seen[setting.name] then promoted[#promoted+1]=setting end end
+    m.settings=promoted
+   end
    for _,name in ipairs({"Island Blur radius","BloomFlow Blur radius","TargetHUD Blur radius"}) do
     addHUDSetting({name=name,type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
    end
@@ -4026,7 +4088,7 @@ function UI.new(options)
   assert(state[id] and type(value)=="boolean","Invalid module")
   if state[id].enabled==value then return end
   state[id].enabled=value;notify(id,"enabled",value)
-  if postNotice and id~="HUD" then postNotice("module:"..id,"Module Toggled",rows[id].def.name.." has been ","toggle",value,.8) end
+  if postNotice and id~="HUD" then postNotice("module:"..id,"Module Toggled",rows[id].def.name.." has been ","toggle",value,2) end
  end
  function api:SetSetting(id,name,value)
   local row=assert(rows[id],"Invalid module")
@@ -4849,6 +4911,7 @@ function UI.new(options)
  -- HUD lives outside the menu canvas: closing ClickGUI must not hide the island.
  local hudRoot=new("Frame",gui,{Name="HUD",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=1})
  api.HUDLayer=new("Frame",gui,{Name="HUDOverlay",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=3,Active=false})
+ api.arrayListShadow=ArrayListShadow.new(api.HUDLayer)
  local island=new("Frame",api.HUDLayer,{Name="DynamicIsland",BackgroundTransparency=1,ZIndex=20})
  local shell=pool(island,true)
   local islandBackdrop=new("Frame",island,{Name="Backdrop",BackgroundColor3=rgb(0x000000),BackgroundTransparency=1-0x98/255,BorderSizePixel=0,ZIndex=30})
@@ -4947,6 +5010,14 @@ function UI.new(options)
   if dead then return end;expireNotices()
   local n;for _,v in ipairs(notices) do if v.key==key then n=v;break end end
   if not n then n={key=key,width=0,started=os.clock(),toggle=value and 0 or 1};notices[#notices+1]=n end
+  if kind=="toggle" then
+   -- A burst has one expiry boundary: an older row cannot collapse the panel
+   -- while the next module's toggle state is still being shown.
+   local deadline=os.clock()+duration
+   for _,active in ipairs(notices) do
+    if active.kind=="toggle" then active.untilTime=math.max(active.untilTime,deadline) end
+   end
+  end
   n.title=tostring(title);n.detail=tostring(detail or "");n.kind=kind;n.value=value;n.untilTime=os.clock()+duration
     if kind=="toggle" then n.started=os.clock();n.animationStarted=islandState.animationTime or 0;n.toggleFrom=n.toggle end
     local detailText=kind=="toggle" and toggleDetail(n.detail,value) or n.detail
@@ -5155,7 +5226,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    local smoothPower=st["Smooth Glow strength"] or .5
    xhan.smooth:Begin(smoothRequested and st["XHan Glow"]~=false and #candidates>0,smoothPower,st["Smooth Glow layers"] or 2)
    local smooth=smoothRequested and xhan.smooth.state~="unavailable"
-   arrayMetrics={mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,glowRenderer=smoothRequested and "V3 Smooth" or "Original",width=widest*q,height=pixelHeight,rows={}}
+   arrayMetrics={shadowScale=q,mode=bloom and "BloomFlow" or "XHan",display=mode,palette=colors,glow=st["XHan Glow"]~=false,glowRenderer=smoothRequested and "V3 Smooth" or "Original",width=widest*q,height=pixelHeight,rows={}}
   if #candidates>0 then hudBounds.ArrayList=rect(right-widest*q,top,widest*q,pixelHeight) end
   local p=xhan.paint
   for _,item in pairs(xhan.entries) do if item.clip then item.clip.Visible=false end end
@@ -5298,7 +5369,7 @@ local function drawArrayList(dt,view,factor,st,p)
   local pixelHeight
   visible,pixelHeight=xhan.stackRows(visible,12,scale,top)
   top=xhan.pixel(top)
-  arrayMetrics={mode=opai and "Opai" or "Default",rows={},width=widest*scale,height=pixelHeight}
+  arrayMetrics={shadowScale=scale,mode=opai and "Opai" or "Default",rows={},width=widest*scale,height=pixelHeight}
   if #visible>0 then hudBounds.ArrayList=rect(math.max(0,right-widest*scale),top,widest*scale,pixelHeight) end
   local background=st[opai and "Opai Background" or "Background"]~=false
   for i,item in ipairs(visible) do
@@ -5310,9 +5381,7 @@ local function drawArrayList(dt,view,factor,st,p)
    arrayMetrics.rows[i]={id=item.id,name=item.name,suffix=item.suffix,x=item.x,y=item.py,width=item.width*scale,height=item.slotHeight,alpha=item.alpha,enabled=item.enabled,progress=item.progress,contribution=item.contribution,radius=item.radius}
   end
   if opai then
-   if st["Opai Shadow"]~=false then
-    for _,item in ipairs(visible) do for layer=3,1,-1 do local spread=layer*1.7*scale;widgets:box(item.x-spread,item.py-spread,item.width*scale+spread*2,item.slotHeight+spread*2,0x000000,.028*item.alpha,math.min(5,item.radius)*scale+spread) end end
-   end
+   -- All styles use the shared bottom shadow layer.
    if background then for _,item in ipairs(visible) do bottomLeftShape(item.x,item.py,item.width*scale,item.slotHeight,item.radius*scale,0x101010,.8*item.alpha) end end
    for _,item in ipairs(visible) do
     local label=rowText(item,item.name,item.x+3*scale,item.py+item.slotHeight/2,9.08*scale,item.nameWidth*scale+1,0xFFFFFF);if label then label.Font=font end
@@ -5410,6 +5479,7 @@ local function drawArrayList(dt,view,factor,st,p)
    origin.Y+host.Position.Y.Offset+(p.Y.Scale*hs.Y.Offset+p.Y.Offset)*scale-h*a.Y,w,h)
  end
  local function destroyHUDEffects()
+  api.arrayListShadow:Destroy()
   for _,pane in pairs(hudBlurPanes) do if pane.renderer then pane.renderer:Destroy();pane.renderer=nil end end
   targetHUD:DestroyEffects()
  end
@@ -5419,6 +5489,9 @@ local function drawArrayList(dt,view,factor,st,p)
   local view=gui.AbsoluteSize
   local drawable=view.X>36 and view.Y>32
   local widgetsVisible=drawable and not (visible and activeStyle:match("^Jackal ") and not hudEditing)
+  api.arrayListShadow:Step(arrayMetrics,st,widgetsVisible and widgetEnabled("ArrayList") and
+   ((arrayMetrics.mode=="XHan" or arrayMetrics.mode=="BloomFlow") and xhan.root.Visible or
+    (arrayMetrics.mode=="Default" or arrayMetrics.mode=="Opai") and widgetRoot.Visible))
   local jobs={}
   local function prepare(name,enabled,bounds,masks)
    local pane=hudBlurPanes[name]
@@ -5890,7 +5963,7 @@ local function drawArrayList(dt,view,factor,st,p)
  uiDiagnostics.Stage="绑定 UI 渲染回调"
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Last.Value,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),arrayListShadow=api.arrayListShadow:Inspect(),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  uiDiagnostics.Stage="UI 就绪"
  return api
 end
