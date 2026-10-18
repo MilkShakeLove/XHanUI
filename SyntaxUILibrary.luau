@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-18.V9.6",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.7",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,7 +2372,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.6",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.7",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影范围",["Island State Duration"]="灵动岛状态停留时间（秒）",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -3555,7 +3555,8 @@ end
             HudText=TargetName.Text}
     end
         local targetSmooth=glowFactory(TargetHud,glowOptions)
-    targetSmooth.root.ZIndex=1
+    targetSmooth.root.Name="TargetHUDTopGlow"
+    targetSmooth.root.ZIndex=100 -- above blur, damage flash, avatar, names and health bar
     local function effectReason(reason)
         return reason and reason:gsub("Using original glow", "TargetHUD glow disabled")
     end
@@ -3577,7 +3578,8 @@ end
     end
     function controller:InspectGlow()
         local info=targetSmooth:Inspect();info.reason=effectReason(info.reason)
-        info.renderer="V3 Smooth";info.healthWidth=math.max(0,292*TargetHealthGlowHolder.Size.X.Scale+TargetHealthGlowHolder.Size.X.Offset)
+        info.renderer="V3 Smooth";info.zindex=targetSmooth.root.ZIndex;info.layer="Top"
+        info.healthWidth=math.max(0,292*TargetHealthGlowHolder.Size.X.Scale+TargetHealthGlowHolder.Size.X.Offset)
         return info
     end
     function controller:DestroyEffects() targetSmooth:Destroy() end
@@ -3740,51 +3742,43 @@ local navY={96,132,200,236,304,372,408,444}
 local modernNames={"Combat","Movement","Visuals","Player","Other"}
 local modernCats={"Combat","Movement","Visual","Player","Misc"}
 
--- Native pooled shadow; no image permission, asset download or extra render loop.
+-- The same V3 Smooth alpha texture and image pool as the colored glow, tinted black.
 local ArrayListShadow={}
-function ArrayListShadow.new(parent)
- local self={slots={},used=0,rows=0,dead=false}
- -- Sibling ordering puts this entire subtree below Widgets and StarlightArrayList.
+function ArrayListShadow.new(parent,options)
+ local self={rows=0,dead=false}
+ -- Keep the entire subtree under all list backgrounds, blur, glow and text.
  self.root=new("Frame",parent,{Name="ArrayListShadow",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Active=false,ClipsDescendants=false,Visible=false})
+ self.smooth=SmoothGlow.new(self.root,options)
  function self:Step(metrics,settings,visible)
-  self.used=0;self.rows=0
+  self.rows=0
   local strength=(settings["ArrayList Shadow strength"] or 55)/100
   local radius=settings["ArrayList Shadow radius"] or 18
   local enabled=visible and settings["ArrayList Shadow"]~=false and strength>0 and radius>0
   if metrics.mode=="Opai" and settings["Opai Shadow"]==false then enabled=false end
   local scale=math.max(.05,metrics.shadowScale or 1)
+  self.smooth:Begin(enabled,strength,2)
   if enabled then
    for _,row in ipairs(metrics.rows or {}) do
     local fade=math.clamp(row.alpha or 0,0,1)
     if row.width>0 and row.height>0 and fade>.001 then
      self.rows+=1
      local padding=metrics.mode=="Default" and 6.5*scale or 0
-     local x,y,w,h=row.x-padding,row.y,row.width+padding,row.height
-     local rounding=metrics.mode=="BloomFlow" and 0 or math.min(4*scale,h/2)
-     for layer=8,1,-1 do
-      self.used+=1
-      local slot=self.slots[self.used]
-      if not slot then
-       local frame=new("Frame",self.root,{Name="ShadowBand",BackgroundColor3=rgb(0x000000),BorderSizePixel=0,ZIndex=1,Active=false})
-       slot={frame=frame,corner=new("UICorner",frame,{CornerRadius=UDim.new(0,0)})};self.slots[self.used]=slot
-      end
-      local t=layer/9;local spread=radius*scale*t
-      slot.frame.Position=UDim2.fromOffset(x-spread,y-spread+scale)
-      slot.frame.Size=UDim2.fromOffset(w+spread*2,h+spread*2)
-      slot.frame.BackgroundTransparency=1-math.clamp(strength*fade*.22*(1-t)*(1-t),0,1)
-      slot.corner.CornerRadius=UDim.new(0,rounding+spread)
-      slot.frame.Visible=true
-     end
+     self.smooth:Draw(row.x-padding,row.y+scale,row.width+padding,row.height,0x000000,fade,radius,scale)
     end
    end
   end
-  for i=self.used+1,#self.slots do self.slots[i].frame.Visible=false end
-  self.root.Visible=enabled and self.used>0
+  self.smooth:Finish()
+  self.root.Visible=enabled and self.smooth.root.Visible and self.smooth.used>0
  end
- function self:Inspect() return {active=self.root.Visible,rows=self.rows,bands=self.used,pooledBands=#self.slots,zindex=self.root.ZIndex,renderer="NativePooled"} end
+ function self:Inspect()
+  local info=self.smooth:Inspect()
+  info.active=self.root.Visible;info.rows=self.rows;info.pooledPoints=#self.smooth.images
+  info.zindex=self.root.ZIndex;info.renderer="V3 Smooth";info.color=0x000000
+  return info
+ end
  function self:Destroy()
   if self.dead then return end
-  self.dead=true;self.root:Destroy();table.clear(self.slots);self.used=0;self.rows=0
+  self.dead=true;self.smooth:Destroy();self.root:Destroy();self.rows=0
  end
  return self
 end
@@ -4912,7 +4906,14 @@ function UI.new(options)
  -- HUD lives outside the menu canvas: closing ClickGUI must not hide the island.
  local hudRoot=new("Frame",gui,{Name="HUD",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=1})
  api.HUDLayer=new("Frame",gui,{Name="HUDOverlay",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=3,Active=false})
- api.arrayListShadow=ArrayListShadow.new(api.HUDLayer)
+ api.arrayListShadow=ArrayListShadow.new(api.HUDLayer,{
+  imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,
+  onUnavailable=function(reason)
+   if not dead then
+    reason=reason:gsub("Using original glow", "ArrayList shadow disabled")
+    warn("[SyntaxUI ArrayList Shadow] "..reason);api:Notify("ArrayList shadow",reason,"warning",7)
+   end
+  end})
  local island=new("Frame",api.HUDLayer,{Name="DynamicIsland",BackgroundTransparency=1,ZIndex=20})
  local shell=pool(island,true)
   local islandBackdrop=new("Frame",island,{Name="Backdrop",BackgroundColor3=rgb(0x000000),BackgroundTransparency=1-0x98/255,BorderSizePixel=0,ZIndex=30})
