@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-18.V9.4",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.5",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,7 +2372,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.4",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.5",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影范围",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -3810,6 +3810,16 @@ function UI.new(options)
    addHUDSetting({name="ArrayList Shadow",type="toggle",default=true})
    addHUDSetting({name="ArrayList Shadow strength",type="slider",default=55,min=0,max=100,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
    addHUDSetting({name="ArrayList Shadow radius",type="slider",default=18,min=0,max=48,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
+   -- Keep the three shadow controls in the first visible HUD settings group.
+   do
+    local priority={"ArrayList Shadow","ArrayList Shadow strength","ArrayList Shadow radius","Widgets","ArrayList mode"}
+    local promoted,seen={},{}
+    for _,name in ipairs(priority) do
+     for _,setting in ipairs(m.settings) do if setting.name==name then promoted[#promoted+1]=setting;seen[name]=true;break end end
+    end
+    for _,setting in ipairs(m.settings) do if not seen[setting.name] then promoted[#promoted+1]=setting end end
+    m.settings=promoted
+   end
    for _,name in ipairs({"Island Blur radius","BloomFlow Blur radius","TargetHUD Blur radius"}) do
     addHUDSetting({name=name,type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
    end
@@ -4078,7 +4088,7 @@ function UI.new(options)
   assert(state[id] and type(value)=="boolean","Invalid module")
   if state[id].enabled==value then return end
   state[id].enabled=value;notify(id,"enabled",value)
-  if postNotice and id~="HUD" then postNotice("module:"..id,"Module Toggled",rows[id].def.name.." has been ","toggle",value,.8) end
+  if postNotice and id~="HUD" then postNotice("module:"..id,"Module Toggled",rows[id].def.name.." has been ","toggle",value,2) end
  end
  function api:SetSetting(id,name,value)
   local row=assert(rows[id],"Invalid module")
@@ -5000,6 +5010,14 @@ function UI.new(options)
   if dead then return end;expireNotices()
   local n;for _,v in ipairs(notices) do if v.key==key then n=v;break end end
   if not n then n={key=key,width=0,started=os.clock(),toggle=value and 0 or 1};notices[#notices+1]=n end
+  if kind=="toggle" then
+   -- A burst has one expiry boundary: an older row cannot collapse the panel
+   -- while the next module's toggle state is still being shown.
+   local deadline=os.clock()+duration
+   for _,active in ipairs(notices) do
+    if active.kind=="toggle" then active.untilTime=math.max(active.untilTime,deadline) end
+   end
+  end
   n.title=tostring(title);n.detail=tostring(detail or "");n.kind=kind;n.value=value;n.untilTime=os.clock()+duration
     if kind=="toggle" then n.started=os.clock();n.animationStarted=islandState.animationTime or 0;n.toggleFrom=n.toggle end
     local detailText=kind=="toggle" and toggleDetail(n.detail,value) or n.detail
