@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-18.V9.11",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.12",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,7 +2372,7 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.11",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.12",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
   ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["HUD Color source"]="HUD 配色来源",["Palette"]="列表配色",["WaterMark Text size"]="水印字号",["BloomFlow Corner radius"]="列表阶梯圆角半径",["ArrayList Blur"]="功能列表模糊",["ArrayList Blur radius"]="功能列表模糊半径",["WaterMark"]="水印",["WaterMark Blur"]="水印模糊",["WaterMark Blur radius"]="水印模糊半径",["WaterMark Glow"]="水印辉光",["WaterMark Glow strength"]="水印辉光强度",["WaterMark Glow radius"]="水印辉光半径",["WaterMark Glow layers"]="水印辉光层数",["WaterMark Flow speed"]="水印流光速度",["WaterMark Background opacity"]="水印底板不透明度",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
@@ -2438,6 +2438,7 @@ end
 function LocalBlur.Profile(patch) return validated(LocalBlur.Defaults,patch or {}) end
 local function make(class,parent,properties)
  local object=Instance.new(class)
+ if class=="Frame" or class=="ImageLabel" then object.BorderSizePixel=0 end
  for key,value in pairs(properties) do object[key]=value end
  object.Parent=parent;return object
 end
@@ -2497,10 +2498,7 @@ function TextureSurface.new()
     end
     local x,y,w,h=mask.x*bounds.w,mask.y*bounds.h,mask.w*bounds.w,mask.h*bounds.h
     local alpha=profile.strength/100*opacity*(mask.alpha or 1)
-    if not mask.band then
-     if slot.image.Parent~=view.layer then slot.image.Parent=view.layer end
-     if slot.bandClip then slot.bandClip.Visible=false end
-    end
+    if slot.image.Parent~=view.layer then slot.image.Parent=view.layer end
     slot.image.Visible=true;slot.image.ImageContent=self.content
     if not mask.band then
      slot.image.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh)
@@ -2547,17 +2545,25 @@ function TextureSurface.new()
     end
     if slot.tint then slot.tint.Visible=tintAlpha>0;slot.tint.BackgroundTransparency=1-tintAlpha;slot.tintCorner.CornerRadius=slot.corner.CornerRadius end
     if mask.band then
-     if not slot.bandClip then slot.bandClip=make("Frame",view.layer,{Name="LocalBlurContourClip",BackgroundTransparency=1,ClipsDescendants=true,BorderSizePixel=0,Active=false,ZIndex=1}) end
-     slot.bandClip.Visible=true;slot.bandClip.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh);slot.bandClip.Size=UDim2.fromScale(w/sw,h/sh)
-     if slot.image.Parent~=slot.bandClip then slot.image.Parent=slot.bandClip end
-     -- Display the whole sampled image behind a geometric clip. Subpixel
-     -- ImageRectSize on a one-pixel contour band can round to zero in Roblox.
-     slot.image.ImageRectOffset=Vector2.new(0,0);slot.image.ImageRectSize=Vector2.new(0,0)
-     slot.image.Position=UDim2.fromScale((ox-x)/w,(oy-y)/h);slot.image.Size=UDim2.fromScale(sw/w,sh/h)
+     -- No one-pixel ClipsDescendants containers. Snap shared SCREEN edges once,
+     -- then use a bounded, nonzero integer texture crop directly on the image.
+     local left=math.floor(bounds.x+x+.5)-bounds.x
+     local top=math.floor(bounds.y+y+.5)-bounds.y
+     local right=math.floor(bounds.x+x+w+.5)-bounds.x
+     local bottom=math.floor(bounds.y+y+h+.5)-bounds.y
+     slot.image.Visible=right>left and bottom>top
+     slot.image.Position=UDim2.fromOffset(left-ox,top-oy)
+     slot.image.Size=UDim2.fromOffset(math.max(0,right-left),math.max(0,bottom-top))
+     local sx=math.clamp(math.floor((left-ox)/sw*128),0,127)
+     local sy=math.clamp(math.floor((top-oy)/sh*64),0,63)
+     local ex=math.clamp(math.ceil((right-ox)/sw*128),sx+1,128)
+     local ey=math.clamp(math.ceil((bottom-oy)/sh*64),sy+1,64)
+     slot.image.ImageRectOffset=Vector2.new(sx,sy)
+     slot.image.ImageRectSize=Vector2.new(ex-sx,ey-sy)
     end
    end
   end
-  for i=used+1,#view.imageViews do local slot=view.imageViews[i];slot.image.Visible=false;if slot.bandClip then slot.bandClip.Visible=false end;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end
+  for i=used+1,#view.imageViews do local slot=view.imageViews[i];slot.image.Visible=false;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end
   return true
  end
  function self:Destroy() if self.image then self.image:Destroy();self.image=nil end;self.content=nil;self.ready=false end
@@ -2696,7 +2702,7 @@ function LocalBlur.new(host,options)
  end
  local function applyMasks(buffer,info,bounds)
   if texture and texture:Present(buffer,info,bounds,profile,opacityFactor,masks,options.Masked) then return end
-  if buffer.imageViews then for _,slot in ipairs(buffer.imageViews) do slot.image.Visible=false;if slot.bandClip then slot.bandClip.Visible=false end;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end end
+  if buffer.imageViews then for _,slot in ipairs(buffer.imageViews) do slot.image.Visible=false;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end end
   if not options.Masked then return end
   local lp,ls=buffer.layer.Position,buffer.layer.Size
   local ox,oy=lp.X.Scale*bounds.w,lp.Y.Scale*bounds.h
@@ -3896,7 +3902,7 @@ function WaterMark.new(parent,options)
  self.blur=new("Frame",self.root,{Name="WaterMarkLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Active=false})
  self.backdrop=new("Frame",self.root,{Name="WaterMarkBackdrop",BackgroundColor3=rgb(0x101319),BackgroundTransparency=.75,Size=UDim2.fromScale(1,1),ZIndex=10,Active=false})
  self.corner=new("UICorner",self.backdrop,{CornerRadius=UDim.new(0,8)})
- self.label=new("TextLabel",self.root,{Name="WaterMarkText",Text="Syntax",BackgroundTransparency=1,Font=Enum.Font.Gotham,TextSize=22,TextColor3=Color3.new(1,1,1),TextScaled=false,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=30,Active=false})
+ self.label=new("TextLabel",self.root,{Name="WaterMarkText",Text="Syntax",BackgroundTransparency=1,Font=Enum.Font.Gotham,TextSize=22,TextColor3=Color3.new(1,1,1),TextScaled=false,TextWrapped=false,AutomaticSize=Enum.AutomaticSize.None,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=30,Active=false})
  self.logo=new("Frame",self.root,{Name="WaterMarkLogo",BackgroundTransparency=1,Size=UDim2.fromOffset(18,18),ZIndex=30,Active=false})
  self.logoStrokes={}
  for i,stroke in ipairs({{3,5,8,2,42},{3,11,8,2,-42},{12,13,6,2,0}}) do
@@ -3915,14 +3921,14 @@ function WaterMark.new(parent,options)
   self.text=self.brand
   local baseSize=settings["WaterMark Text size"] or 22;local baseHeight=baseSize+16
   local scale=math.min(hudScale/2*(at and at.scale or 1),math.max(.1,(view.Y-4)/baseHeight))
-  local size=math.max(1,math.round(baseSize*scale))
+  local size=math.max(1,math.round(baseSize)) -- Native pixels: only the text-size slider changes this.
   if self.measuredText~=self.text or self.measuredSize~=size then
    self.measuredText=self.text;self.measuredSize=size
    self.measuredWidth=TextService:GetTextSize(self.text or self.brand,size,Enum.Font.Gotham,Vector2.new(10000,100)).X
   end
   local logoSize=math.max(16,baseSize);local labelX=12+logoSize+8
   local width=self.measuredWidth+(labelX+12)*scale
-  local w=math.max(1,math.min(width,view.X-4));local h=math.max(1,baseHeight*scale)
+  local w=math.max(1,math.min(width,view.X-4));local h=math.max(size+8,baseHeight*scale)
   local x=math.clamp(at and at.x or 16,2,math.max(2,view.X-w-2))
   local y=math.clamp(at and at.y or 16,2,math.max(2,view.Y-h-2))
   self.bounds={x=x,y=y,w=w,h=h};self.scale=scale
@@ -3930,7 +3936,7 @@ function WaterMark.new(parent,options)
   self.backdrop.BackgroundTransparency=1-(settings["WaterMark Background opacity"] or 25)/100
   self.corner.CornerRadius=UDim.new(0,8*scale)
   self.label.Text=self.text or self.brand;self.label.TextSize=size
-  self.logo.Position=UDim2.fromOffset(12*scale,(baseHeight-logoSize)/2*scale);self.logo.Size=UDim2.fromOffset(logoSize*scale,logoSize*scale)
+  self.logo.Position=UDim2.fromOffset(12*scale,(h-logoSize*scale)/2);self.logo.Size=UDim2.fromOffset(logoSize*scale,logoSize*scale)
   self.label.Position=UDim2.fromOffset(labelX*scale,0);self.label.Size=UDim2.fromOffset(math.max(1,w-(labelX+12)*scale),h)
   local colors={}
   for i=0,4 do colors[i+1]=ColorSequenceKeypoint.new(i/4,options.color and rgb(options.color(self.phase+i/4)) or Color3.fromHSV((self.phase+i*.13)%1,.5,1)) end
@@ -3943,12 +3949,12 @@ function WaterMark.new(parent,options)
   for i=1,4 do
    local c=colors[i].Value:Lerp(colors[i+1].Value,.5)
    local packed=math.round(c.R*255)*65536+math.round(c.G*255)*256+math.round(c.B*255)
-   self.glow:Draw(12*scale+(w-24*scale)*(i-1)/4,8*scale,math.max(0,w-24*scale)/4,baseSize*scale,packed,1,settings["WaterMark Glow radius"] or 18,scale)
+   self.glow:Draw(12*scale+(w-24*scale)*(i-1)/4,(h-size)/2,math.max(0,w-24*scale)/4,size,packed,1,settings["WaterMark Glow radius"] or 18,scale)
   end
   self.glow:Finish()
  end
  function self:SetText(value) assert(type(value)=="string" and #value>0 and #value<=120,"Invalid WaterMark text");self.brand=value end
- function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,logo=">_",font=self.label.Font.Name,fontSize=self.label.TextSize,phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
+ function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,logo=">_",font=self.label.Font.Name,fontSize=self.label.TextSize,textScaleIndependent=true,phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
  function self:Destroy() if self.dead then return end;self.dead=true;self.glow:Destroy();self.root:Destroy() end
  return self
 end
@@ -5740,7 +5746,7 @@ local function drawArrayList(dt,view,factor,st,p)
       end
      else
       local pad=arrayMetrics.mode=="Default" and 6.5*scale or 0
-      local item={x=row.x-pad,y=row.y,w=row.width+pad,h=row.height,alpha=row.alpha,radius=0}
+      local item={x=row.x-pad,y=row.y,w=row.width+pad,h=row.height,alpha=row.alpha,radius=0,band=true}
       regions[#regions+1]=item
       left=math.min(left,item.x);top=math.min(top,item.y);right=math.max(right,item.x+item.w);bottom=math.max(bottom,item.y+item.h)
      end
