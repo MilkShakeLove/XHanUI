@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-18.V9.12",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.13",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -487,7 +487,7 @@ local LAUNCHER_NAMES={"Default","Vape","Jackal","Neon","Matrix","Aurora","Random
 
 local ZH={["AntiCapture"]="反捕获",["AntiClose"]="反关闭",["AntiDebug"]="反调试",["AntiInject"]="反注入",["AntiIntercept"]="反拦截",["AntiMalware"]="反恶意软件",["AntiTaskkill"]="反进程杀手",["AntiMouseHook"]="反鼠标钩子",["AntiKeyHook"]="反键盘钩子",["AutoStart"]="开机自启",["AutoUAC"]="自动管理员",["AutoLogin"]="自动登录",["Admin"]="管理员",["System"]="系统",["UIAccess"]="界面特权",["SuperTopmost"]="超级置顶",["UACBypass"]="管理员绕过",["Taskmgr"]="任务管理器",["Cmd"]="命令提示符",["SuperCmd"]="超级CMD",["Gpedit"]="组策略",["Regedit"]="注册表",["Perfmon"]="资源监视器",["Calc"]="计算器",["Osk"]="屏幕键盘",["Mrt"]="恶意软件删除工具",["ClearPin"]="清除PIN",["CrackPassword"]="破解密码",["SetPassword"]="篡改密码",["Uninstaller"]="一键卸载",["Interceptor"]="拦截器",["Gatekeeper"]="看门人",["NoFirewall"]="关闭防火墙",["FreezeWinlogon"]="冻结 Winlogon",["MagnifyReplace"]="放大镜替换",["SethcBackdoor"]="粘滞键后门",["Privileges"]="特权",["Protection"]="自保护",["MachineLock"]="锁机",["LockUser"]="锁定用户",["Logoff"]="注销",["Shutdown"]="关机",["Reboot"]="重启",["MythwareKiller"]="极域杀手",["Crash"]="蓝屏",["ListTrays"]="列举托盘",["WindowManager"]="窗口管理器",["WindowTags"]="窗口标签",["WindowHighlight"]="窗口高亮",["WindowESP"]="窗口透视",["WindowKill"]="窗口击杀",["WindowFreeze"]="窗口冻结",["Tracers"]="追踪线",["OpacityChanger"]="透明度调节",["ConsoleESP"]="控制台透视",["Messenger"]="消息通信",["MsgBlocker"]="消息阻塞",["WindowMaster"]="窗口大师",["PrivateWindow"]="隐私窗口",["BandSetter"]="Z序段设置",["Topmost"]="窗口置顶",["TitleChanger"]="标题修改",["BetterAnimation"]="更好的动画",["AntiBrowser"]="反浏览器",["AntiPopups"]="反弹窗",["AntiTopmost"]="反置顶",["AutoTranslate"]="自动翻译",["AutoFocus"]="自动聚焦",["HoverFocus"]="悬停聚焦",["CloseEnhance"]="关闭增强",["DialogEscape"]="对话框关闭",["DialogPhysics"]="物理弹窗",["HideTaskbar"]="隐藏任务栏",["TargetHUD"]="目标显示",["ToastESP"]="通知透视",["TargetESP"]="目标透视",["KeywordESP"]="关键词透视",["UncrossAura"]="抗关闭光环",["FreezeAura"]="冻结光环",["AimAssist"]="自动瞄准",["TriggerBot"]="触发点击",["KillAuraLegit"]="合法杀戮光环",["KillAura"]="杀戮光环",["MaxAura"]="最大化光环",["MinAura"]="最小化光环",["Ruler"]="标尺",["AntiProcCreate"]="禁止创建进程",["Elevator"]="电梯",["ForceTerminator"]="暴力送终",["ListModules"]="枚举模块",["ListDrivers"]="枚举驱动",["ListServices"]="枚举服务",["ListTasks"]="枚举计划任务",["Injector"]="注入器",["RemoteRun"]="远程执行",["Speedhack"]="变速齿轮",["GenshinImpact"]="原神启动",["Tasklist"]="进程列表",["QuickRun"]="快捷运行",["Run"]="运行",["DebugESP"]="调试透视",["ProcessESP"]="进程透视",["CompileESP"]="编译透视",["ProcessKill"]="进程击杀",["ProcessKeep"]="进程保持",["ProcessFreeze"]="进程冻结",["FileManager"]="文件管理器",["ProcessManager"]="进程管理器",["Everything"]="Everything",["LongPath"]="长路径",["TopFiles"]="大文件",["PeParser"]="PE解析",["HexViewer"]="十六进制查看",["DiskMissing"]="磁盘丢失",["FileDelete"]="文件删除",["FileCreate"]="文件创建",["FileMonitor"]="文件监视",["FolderClear"]="目录清空",["TempClear"]="临时清空",["RubbishClean"]="垃圾清理",["RecyclerClear"]="回收站清空",["RootProgram"]="根目录程序",["PrivacySpy"]="隐私密探",["PrivacyDatabase"]="隐私数据库",["SelfBackup"]="自我备份",["SelfRestore"]="自我还原",["AutoRestore"]="自动还原",["RegManager"]="注册表管理",["RegMonitor"]="注册表监视",["SecureLogin"]="安全登录",["ListHijacks"]="劫持调查",["KillHijacks"]="清除劫持",["CrashKey"]="快捷蓝屏",["NoCmd"]="禁命令提示符",["NoPowerShell"]="禁PowerShell",["NoTaskmgr"]="禁任务管理器",["NoRegedit"]="禁注册表编辑器",["NoDesktopIcons"]="隐藏桌面图标",["NoDesktopMenu"]="隐藏桌面菜单",["NoTaskbarMenu"]="隐藏任务栏菜单",["NoStartMenuChange"]="禁开始菜单改变",["NoRun"]="禁运行框",["NoPowerOptions"]="隐藏电源选项",["NoLogOff"]="隐藏注销",["NoDwm"]="禁用DWM",["NoConsoleAltF4"]="禁控制台Alt+F4",["NoSetFolders"]="禁开始菜单目录",["NoFolderOptions"]="禁目录选项",["HideWindowsUpdate"]="隐藏系统更新",["UpdateDisabler"]="更新禁用器",["NoWinKeys"]="禁Win快捷键",["NoLockUser"]="禁Win+L",["RestrictRun"]="限制运行",["NoMSDos"]="禁MSDOS",["NoSmartScreen"]="禁SmartScreen",["NoRemovableDev"]="禁可移动设备",["NoUAC"]="禁UAC",["NoDefender"]="禁用实时保护",["NoHibernate"]="禁休眠",["NoFastStartup"]="禁快启",["NoRemoteDesktop"]="禁远程桌面",["Arraylist"]="模块列表",["Ambience"]="环境气氛",["AutoDanmaku"]="自动弹幕",["AutoTitle"]="自动标题",["AutoTotem"]="自动图腾",["HighContrast"]="高对比度",["BlackCapture"]="黑屏捕获",["BetterLyrics"]="更好的歌词",["MusicOverlay"]="音乐信息",["LyricsPhysics"]="物理歌词",["ScreenSaver"]="屏保程序",["CloseMonitor"]="关闭显示器",["Crosshair"]="准星线",["MouseTrails"]="鼠标轨迹",["Keystrokes"]="按键显示",["Keystrokes2"]="按键显示II",["LetterGraph"]="字母图",["ChatBar"]="聊天栏",["HudEditor"]="HUD编辑器",["NoAnimation"]="禁用动画",["NoScreenSaver"]="关闭屏保",["PerformanceHUD"]="性能显示",["DownloadHUD"]="下载显示",["SessionHUD"]="会话显示",["PPLESP"]="保护进程透视",["SecurityESP"]="安全透视",["ClipboardESP"]="剪贴板透视",["MCDisplay"]="MC显示",["MotionBlur"]="动态模糊",["Background"]="背景",["WarpUI"]="空间变形",["GUIBlur"]="界面模糊",["HUDBlur"]="HUD模糊",["CustomHUD"]="自定义显示",["Scoreboard"]="计分板",["ChatQueue"]="聊天队列",["Clock"]="时钟",["TimeDisplay"]="时间显示",["Island"]="灵动岛",["Karaoke"]="卡拉OK",["Title"]="标题显示",["FancyTexts"]="花式文字",["Actionbar"]="行为栏",["Totem"]="不死图腾",["Tint"]="染色",["Stuck"]="冻结",["Watermark"]="水印",["BlackoutSense"]="停电感知",["PowerSaving"]="节能",["WeakView"]="节电模式",["Bright"]="亮度修改",["Gamma"]="伽马覆写",["Spotlight"]="聚光灯",["Shaders"]="着色器",["Night"]="夜间",["TcpMonitor"]="TCP监视",["TcpKiller"]="TCP杀手",["OnlineTime"]="在线时间",["IPTracker"]="IP追踪",["IPAddress"]="IP地址",["IPHorror"]="IP恐惧",["PhoneArea"]="手机归属地",["WallCheck"]="墙壁检测",["WeatherInfo"]="天气信息",["QuakeWarning"]="地震预警",["Encryptor"]="加密器",["Memeizer"]="生草机",["BiliCookies"]="B站曲奇",["BiliChatter"]="B站弹幕",["BiliConsole"]="B站控制台",["BiliFans"]="B站粉丝",["BiliFeed"]="B站推荐",["BiliHot"]="B站热搜",["BiliNotifier"]="B站通知",["BiliComponents"]="B友成分",["BiliProfile"]="B友档案",["BiliSettings"]="B站设定",["WebSettings"]="网络设定",["AISettings"]="AI设定",["ApiHzSettings"]="翻译接口盒子设定",["Agent"]="AI代理",["Translator"]="翻译器",["BiliVideo"]="B站视频",["BiliVideoCover"]="B站视频封面",["BiliVideoHelper"]="B站视频助手",["LiveStream"]="直播间",["Streamer"]="主播模式",["SystemProxy"]="系统代理",["QQBot"]="QQ机器人",["QQInspect"]="QQ窥探",["QQBindQuery"]="QQ查绑",["Flight"]="飞行",["IRC"]="聊天室",["IRCLegacy"]="旧版聊天室",["AntiWebpage"]="反网页",["AntiAFK"]="反挂机",["AntiRickroll"]="反诈骗",["AntiSpy"]="反间谍",["AntiMicrophone"]="反麦克风",["LiveChatter"]="直播弹幕",["AutoClicker"]="连点器",["AutoSpeak"]="自动讲述",["ColorPicker"]="取色器",["BridgeAssist"]="搭路辅助",["ChestStealer"]="箱子小偷",["ChatAsk"]="AI回答",["ChatTranslate"]="AI翻译",["ChatBilingual"]="AI双语",["ChatRestruct"]="AI重构",["AutoCopy"]="自动复制",["ClipboardTweaks"]="剪贴板功能",["MinecraftUtils"]="MC功能",["AutoText"]="自动文本",["AutoL"]="自动嘲讽",["MemeTrigger"]="梗触发",["MouseESP"]="鼠标透视",["MouseTeleport"]="鼠标传送",["MouseWatcher"]="鼠标监视",["MouseSwap"]="鼠标交换",["NoDoubleClick"]="禁止双击",["NoClipboard"]="禁止复制",["MouseDisabler"]="禁用鼠标",["BHop"]="兔子跳",["SnapTap"]="急停键",["ToggleKey"]="切换键",["Typewriter"]="打字机",["CapsGuard"]="大写守护",["Spammer"]="刷屏器",["KeyDisabler"]="禁用键盘",["KeyMapper"]="按键映射",["KeyLogger"]="键盘记录",["KeySound"]="按键音效",["KeyReaction"]="按键反应",["TypingEffects"]="打字效果",["TypingPractice"]="打字练习",["CaretBrowser"]="光标浏览",["MacroRecorder"]="宏录制",["MacroPlayer"]="宏播放",["NoBeep"]="禁止蜂鸣",["RestartExplorer"]="重启资源管理器",["QuickIME"]="快捷输入法",["DisableIME"]="关闭输入法",["NoIME"]="禁止输入法",["Panic"]="恐慌",["Musics"]="音乐",["Speaker"]="讲述人",["Volume"]="音量",["Mixer"]="混音器",["AudioIsolation"]="音频隔离",["CloudMusic"]="云音乐",["Mute"]="静音",["Active"]="活动",["AudioVisualizer"]="音频可视化",["ModuleEditor"]="模块编辑器",["GUIStyler"]="GUI风格",["ForceTopmost"]="强制置顶",["NotificationModule"]="通知",["Reminder"]="提醒",["Triggers"]="触发器",["NickGenerator"]="昵称生成",["IQBooster"]="智商提升",["TaskbarIcon"]="任务栏图标",["ScreenCapture"]="屏幕捕获",["AsciiArtConvert"]="字符画转换",["TimeManager"]="时间管理",["QuickCommand"]="快速命令",["Shell"]="命令行",["OpenUrl"]="打开链接",["Screenshot"]="截图工具",["Console"]="控制台",["Developer"]="开发者",["Hidden"]="隐藏至托盘",["Restart"]="重新启动",["Exit"]="退出",["Anti360Ad"]="反数字广告",["Anti360VT"]="反数字核晶",["ScaredUAC"]="恐惧UAC",["KillEveryone"]="全员击杀",["KillAV"]="击杀杀软",["KillHuorong"]="杀火绒",["CloseAV"]="关闭杀软",["Kill360"]="杀数字",["Kill360Test"]="杀数字测试",["Kill360Test2"]="杀数字测试II",["Kill360AdProc"]="杀数字广告进程",["KillMalware"]="击杀病毒",["FreezeExplorer"]="冻结资源管理器",["FreezeEveryone"]="全员冻结",["UnfreezeEveryone"]="全员解冻",["PPLButcher"]="解除进程保护",["TrustedInstaller"]="受信任安装者",["RemoteKillHR"]="远程杀火绒",["Masquerade"]="伪装",["NoNotification"]="关闭通知",["RuinAura"]="毁灭光环",["SelfDestruct"]="自我删除",["SelfUninstall"]="自我卸载",["HideProcess"]="隐藏进程",["Vape"]="电子烟",["Kernel1"]="内核1",["Sirius"]="天狼星",["Portal"]="传送门",["Combat"]="战斗",["Window"]="窗口",["Process"]="进程",["Registry"]="注册表",["File"]="文件",["Control"]="控制",["Render"]="渲染",["Web"]="网络",["Misc"]="杂项",["Driver"]="驱动",["Modules"]="模块",["Config"]="配置",["GUI"]="界面",["HUD"]="显示",["Sound"]="声音",["Search"]="搜索",["Profiles"]="配置文件",["Apps"]="应用",["About"]="关于",["Language"]="语言",["ClickGUI Layout"]="界面布局",["Style Preset"]="样式预设",["Global Scale"]="整体缩放",["Launcher Style"]="启动器风格",["Reset panel positions"]="重置面板位置",["Enabled"]="开启",["Reset"]="重置",["Save"]="保存",["Results"]="项结果",["Search modules and settings"]="搜索模块和设置",["No matching modules"]="没有匹配的模块",["No saved profiles"]="尚无配置文件",["Advanced"]="高级选项"}
 for key,value in pairs({["Dynamic Island"]="灵动岛",["Demo"]="示例",["Progress"]="进度",["Cancelled"]="已取消",["Completed"]="已完成",["Notification received"]="收到通知",["Disabled"]="关闭",["Cancel"]="取消"}) do ZH[key]=value end
-function Window:_tr(value) return self.Language=="中文" and (ZH[value] or ZH[value:gsub("%s","")] or value) or value end
+function Window:_tr(value) if self.Options.Translate then return self.Options.Translate(value) end;return self.Language=="中文" and (ZH[value] or ZH[value:gsub("%s","")] or value) or value end
 
 function Window:_beginBinding(group,key,button,scope)
  local function set(value)
@@ -2372,14 +2372,53 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.12",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.13",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["HUD Color source"]="HUD 配色来源",["Palette"]="列表配色",["WaterMark Text size"]="水印字号",["BloomFlow Corner radius"]="列表阶梯圆角半径",["ArrayList Blur"]="功能列表模糊",["ArrayList Blur radius"]="功能列表模糊半径",["WaterMark"]="水印",["WaterMark Blur"]="水印模糊",["WaterMark Blur radius"]="水印模糊半径",["WaterMark Glow"]="水印辉光",["WaterMark Glow strength"]="水印辉光强度",["WaterMark Glow radius"]="水印辉光半径",["WaterMark Glow layers"]="水印辉光层数",["WaterMark Flow speed"]="水印流光速度",["WaterMark Background opacity"]="水印底板不透明度",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur strength"]="菜单模糊强度",["Local Blur softness"]="菜单柔化程度",["Island Blur strength"]="灵动岛模糊强度",["Island Blur softness"]="灵动岛柔化程度",["ArrayList Blur strength"]="功能列表模糊强度",["ArrayList Blur softness"]="功能列表柔化程度",["TargetHUD Blur strength"]="目标显示模糊强度",["TargetHUD Blur softness"]="目标显示柔化程度",["WaterMark Blur strength"]="水印模糊强度",["WaterMark Blur softness"]="水印柔化程度",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["HUD Color source"]="HUD 配色来源",["Palette"]="列表配色",["WaterMark Text size"]="水印字号",["BloomFlow Corner radius"]="列表阶梯圆角半径",["ArrayList Blur"]="功能列表模糊",["ArrayList Blur radius"]="功能列表模糊半径",["WaterMark"]="水印",["WaterMark Blur"]="水印模糊",["WaterMark Blur radius"]="水印模糊半径",["WaterMark Glow"]="水印辉光",["WaterMark Glow strength"]="水印辉光强度",["WaterMark Glow radius"]="水印辉光半径",["WaterMark Glow layers"]="水印辉光层数",["WaterMark Flow speed"]="水印流光速度",["WaterMark Background opacity"]="水印底板不透明度",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
+-- Presentation only: never translate module IDs, setting keys or saved values.
+local moduleNames={
+ ["全图连发"]="Map Burst",["单次全载具弱点打击"]="Vehicle Weakpoint Strike",["载具帧频轰炸"]="Vehicle Frame Burst",
+ ["增强静默瞄准"]="SilentAim Pro",["SilentAim 队伍检测"]="SilentAim Team Check",["SilentAim 墙体检测"]="SilentAim Wall Check",["SilentAim 概率追踪"]="SilentAim Probability Tracking",["SilentAim 追踪概率"]="SilentAim Tracking Chance",["显示 SilentAim FOV"]="Show SilentAim FOV",["SilentAim FOV 半径"]="SilentAim FOV Radius",["SilentAim 目标高亮"]="SilentAim Target Highlight",
+ ["队友载具弹药监控"]="Team Vehicle Ammo Monitor",["命中框扩展"]="Hitbox Expansion",["命中框大小"]="Hitbox Size",["命中框部位"]="Hitbox Part",["镜头瞄准"]="Aimbot",["瞄准队伍检测"]="Aim Team Check",["瞄准墙体检测"]="Aim Wall Check",["瞄准平滑度"]="Aim Smoothness",["瞄准FOV"]="Aim FOV",["瞄准部位"]="Aim Part",["无限弹药"]="Infinite Ammo",["彩色弹道轨迹"]="Bullet Tracers",["命中标记"]="Hit Marker",["战斗缩放状态"]="Combat Zoom",["显示镜头FOV圈"]="Show Camera FOV",
+ ["移动速度开关"]="Walk Speed",["移动速度"]="Walk Speed Value",["跳跃高度开关"]="Jump Height",["跳跃高度"]="Jump Height Value",["视野范围开关"]="Camera FOV",["视野范围"]="Camera FOV Value",["穿墙模式"]="Noclip",["无限跳跃"]="Infinite Jump",["无限体力"]="Infinite Stamina",["全亮模式"]="Full Bright",["幽灵模式"]="Ghost Mode",["载具飞行"]="Vehicle Fly",["旋转模式 SpinBot"]="SpinBot",["SpinBot 速度"]="SpinBot Speed",["即时交互"]="Instant Interact",
+ ["人物透视"]="Player ESP",["载具透视"]="Vehicle ESP",["通风口透视"]="Vent ESP",["可破坏物透视"]="Destructible ESP",["水坑透视"]="Puddle ESP",["污渍透视"]="Stain ESP",["显示瞄准FOV圈"]="Show Aim FOV",
+ ["启用 Adonis Bypass"]="Adonis Bypass",["重新加入服务器"]="Rejoin Server",["聊天日志"]="Chat Logs",["紧急关闭新增功能"]="Emergency Disable",["自动兑换码"]="Auto Redeem Codes",["自动拖地"]="Auto Mop",["自动擦玻璃"]="Auto Clean Windows",["自动修理"]="Auto Repair",["破坏设备"]="Destroy Devices",["破坏设备攻击模式"]="Device Attack Mode",["破坏设备攻击频率（×0.01秒）"]="Device Attack Interval (x0.01s)",["破坏设备攻击距离（Stud）"]="Device Attack Range (studs)",["破坏设备无限制模式"]="Device Unlimited Mode",
+ ["保存配置"]="Save Config",["读取配置"]="Load Config",["重置主要状态"]="Reset Main State",["隐藏主 UI"]="Hide Main UI",["立即打开主 UI"]="Open Main UI",["回到第一个页面"]="Return to First Page",["功能列表样式"]="ArrayList Style",["UI 样式设置"]="UI Style Settings",["UI字体样式"]="UI Font",["UI字体颜色"]="UI Font Color",["RageBot 攻击间隔 (×0.01秒)"]="RageBot Attack Interval (x0.01s)",["RageBot 搜索范围"]="RageBot Search Range",
+ ["SilentAim 目标类型"]="SilentAim Target Types",["SilentAim 目标部位"]="SilentAim Target Part",["SilentAim 瞄准模式"]="SilentAim Aim Mode",["SilentAim 特殊模式"]="SilentAim Special Mode",
+ ["FOV 半径"]="FOV Radius",["玩家+NPC"]="Players + NPCs",["单体攻击"]="Single Attack",["群体攻击"]="Group Attack",["纯白"]="White",["纯黑"]="Black",["冷灰白"]="Cool Gray",["冰蓝"]="Ice Blue",["薄荷青"]="Mint",["樱粉"]="Cherry Pink",["浅紫"]="Lilac",["暖金"]="Warm Gold",
+ ["队伍检测"]="Team Check",["墙体检测"]="Wall Check",["概率追踪"]="Probability Tracking",["追踪概率"]="Tracking Chance",["目标高亮"]="Target Highlight",["目标类型"]="Target Types",["目标部位"]="Target Part",["瞄准模式"]="Aim Mode",["特殊模式"]="Special Mode",
+ ["静默瞄准"]="SilentAim",["静默瞄准增强版"]="SilentAim Pro",["Module Toggled"]="Module Toggled",
+}
+for zh,en in pairs(moduleNames) do
+ if zh~=en then translations[en]=zh end
+end
+translations["Module Toggled"]="功能状态"
+translations["Recording blur preset"]="录屏模糊预设"
+translations["Local Blur"]="局部模糊"
+translations["SilentAim"]="静默瞄准"
+translations["AutoPowerOrder++"]="自动电力订单++"
+translations["RageBot"]="暴力瞄准"
+-- These remain the source name in Chinese; the English equivalents use the same resolver.
+local englishNames={}
+local orderedNames={}
+for en in pairs(translations) do orderedNames[#orderedNames+1]=en end
+table.sort(orderedNames)
+for _,en in ipairs(orderedNames) do local zh=translations[en];if not englishNames[zh] then englishNames[zh]=en end end
+for zh,en in pairs(moduleNames) do englishNames[zh]=en end
+local function translateSource(value)
+ value=tostring(value or "")
+ if language=="English" then return moduleNames[value] or englishNames[value] or value end
+ local english=moduleNames[value] or englishNames[value] or value
+ if translations[english] then return translations[english] end
+ return value
+end
+
 local function localize(value)
- if language~="中文" then return value end
+ local translated=translateSource(value)
+ if translated~=value or language~="中文" then return translated end
  if translations[value] then return translations[value] end
  local changed=false
  local result=value:gsub("%a+",function(word) if words[word] then changed=true;return words[word] end;return word end)
@@ -2410,14 +2449,14 @@ local function precision(step) for n=0,6 do if math.abs(step*10^n-math.round(ste
 local function numberText(value,step) return string.format("%."..precision(step).."f",value) end
 local function toggleDetail(detail,enabled)
  detail=tostring(detail):gsub("%s+$","")
- return (detail~="" and detail.." " or "")..(enabled and "Enabled" or "Disabled").."."
+ return (detail~="" and detail.." " or "")..localize(enabled and "Enabled" or "Disabled").."."
 end
 local SampledLocalBlur=(function()
 -- Syntax sampled local blur V9.2. Shared by the library and standalone UI test.
 -- Base-color reconstruction, not a framebuffer capture. No independent render binding.
-local LocalBlur={Version="2026-10-17.V9.2"}
-LocalBlur.Defaults={refresh=120,radius=120,strength=100,edge=100,smooth=100,columns=25,sampleRows=19,
- renderColumns=17,band=3,transparency=100,brightness=121,saturation=100,distance=3000,budget=8,idle=30,
+local LocalBlur={Version="2026-10-18.RecordedLightDetail"}
+LocalBlur.Defaults={refresh=120,radius=1,strength=100,edge=100,smooth=100,columns=81,sampleRows=65,
+ renderColumns=97,band=1,transparency=100,brightness=100,saturation=100,distance=100,budget=6.5,idle=30,
  nodes=768,skyR=107,skyG=143,skyB=184,frameSync=true,adaptive=true,guard=24}
 local ranges={refresh={5,120},radius={0,120},strength={0,100},edge={0,100},smooth={0,100},columns={25,81},
  sampleRows={17,65},renderColumns={17,97},band={1,4},transparency={0,100},brightness={50,150},saturation={0,150},
@@ -2464,11 +2503,12 @@ end
 
 -- One continuous, opaque RGB texture removes per-band raster seams when image APIs are available.
 -- Permission/size/write failures fall back once to the borderless gradient renderer.
-local TextureSurface={Width=128,Height=64}
+local TEX_W,TEX_H=256,128
+local TextureSurface={Width=TEX_W,Height=TEX_H}
 function TextureSurface.new()
  local self={ready=false,reason=nil,image=nil,content=nil}
  local ok,err=pcall(function()
-  self.image=game:GetService("AssetService"):CreateEditableImage({Size=Vector2.new(128,64)})
+  self.image=game:GetService("AssetService"):CreateEditableImage({Size=Vector2.new(TEX_W,TEX_H)})
   assert(self.image,"EditableImage unavailable")
   self.content=Content.fromObject(self.image)
  end)
@@ -2477,7 +2517,7 @@ function TextureSurface.new()
   if self.image then self.image:Destroy();self.image=nil end
  end
  function self:Commit(pixels)
-  local success,message=pcall(function() self.image:WritePixelsBuffer(Vector2.new(0,0),Vector2.new(128,64),pixels) end)
+  local success,message=pcall(function() self.image:WritePixelsBuffer(Vector2.new(0,0),Vector2.new(TEX_W,TEX_H),pixels) end)
   if not success then self.ready=false;self.reason=tostring(message) end
   return success
  end
@@ -2503,8 +2543,8 @@ function TextureSurface.new()
     if not mask.band then
      slot.image.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh)
      slot.image.Size=UDim2.fromScale(w/sw,h/sh)
-     slot.image.ImageRectOffset=Vector2.new((x-ox)/sw*128,(y-oy)/sh*64)
-     slot.image.ImageRectSize=Vector2.new(w/sw*128,h/sh*64)
+     slot.image.ImageRectOffset=Vector2.new((x-ox)/sw*TEX_W,(y-oy)/sh*TEX_H)
+     slot.image.ImageRectSize=Vector2.new(w/sw*TEX_W,h/sh*TEX_H)
     end
     slot.image.ImageTransparency=1-alpha
     -- Per-corner list contour clips reuse the SAME sampled texture. Four
@@ -2554,10 +2594,10 @@ function TextureSurface.new()
      slot.image.Visible=right>left and bottom>top
      slot.image.Position=UDim2.fromOffset(left-ox,top-oy)
      slot.image.Size=UDim2.fromOffset(math.max(0,right-left),math.max(0,bottom-top))
-     local sx=math.clamp(math.floor((left-ox)/sw*128),0,127)
-     local sy=math.clamp(math.floor((top-oy)/sh*64),0,63)
-     local ex=math.clamp(math.ceil((right-ox)/sw*128),sx+1,128)
-     local ey=math.clamp(math.ceil((bottom-oy)/sh*64),sy+1,64)
+     local sx=math.clamp(math.floor((left-ox)/sw*TEX_W),0,TEX_W-1)
+     local sy=math.clamp(math.floor((top-oy)/sh*TEX_H),0,TEX_H-1)
+     local ex=math.clamp(math.ceil((right-ox)/sw*TEX_W),sx+1,TEX_W)
+     local ey=math.clamp(math.ceil((bottom-oy)/sh*TEX_H),sy+1,TEX_H)
      slot.image.ImageRectOffset=Vector2.new(sx,sy)
      slot.image.ImageRectSize=Vector2.new(ex-sx,ey-sy)
     end
@@ -2569,15 +2609,31 @@ function TextureSurface.new()
  function self:Destroy() if self.image then self.image:Destroy();self.image=nil end;self.content=nil;self.ready=false end
  return self
 end
-function TextureSurface.newPixels() return buffer.create(128*64*4) end
+-- Reuse a normalized horizontal lookup; unpack colors once per control point,
+-- instead of repeating integer channel extraction for every output texel.
+function TextureSurface.newPixels() return buffer.create(TEX_W*TEX_H*4) end
+local rowLookup={}
+local channelR,channelG,channelB={},{},{}
 function TextureSurface.row(pixels,y,codes,count)
- for x=0,127 do
-  local gx=x/127*(count-1);local ix=math.min(count-2,math.floor(gx));local t=gx-ix
-  local a,b=codes[ix+1],codes[ix+2]
-  local r=math.floor(a/65536)+(math.floor(b/65536)-math.floor(a/65536))*t
-  local g=math.floor(a/256)%256+((math.floor(b/256)%256)-(math.floor(a/256)%256))*t
-  local bl=a%256+(b%256-a%256)*t
-  buffer.writeu32(pixels,(y*128+x)*4,math.round(r)+math.round(g)*256+math.round(bl)*65536+4278190080)
+ local lookup=rowLookup[count]
+ if not lookup then
+  lookup={}
+  for x=0,TEX_W-1 do
+   local gx=x/(TEX_W-1)*(count-1);local ix=math.min(count-2,math.floor(gx))
+   lookup[x+1]={ix+1,gx-ix}
+  end
+  rowLookup[count]=lookup
+ end
+ for i=1,count do
+  local code=codes[i]
+  channelR[i]=math.floor(code/65536);channelG[i]=math.floor(code/256)%256;channelB[i]=code%256
+ end
+ for x=0,TEX_W-1 do
+  local p=lookup[x+1];local i,t=p[1],p[2]
+  local r=channelR[i]+(channelR[i+1]-channelR[i])*t
+  local g=channelG[i]+(channelG[i+1]-channelG[i])*t
+  local b=channelB[i]+(channelB[i+1]-channelB[i])*t
+  buffer.writeu32(pixels,(y*TEX_W+x)*4,math.round(r)+math.round(g)*256+math.round(b)*65536+4278190080)
  end
 end
 
@@ -2832,7 +2888,7 @@ function LocalBlur.new(host,options)
   horizontal(filtered,temp,w,h,qx);vertical(temp,ping,w,h,qy)
   horizontal(ping,temp,w,h,qx);vertical(temp,filtered,w,h,qy)
  local output=c.renderColumns;local segments=math.ceil((output-1)/16)
- local rows=j.texture and 64 or math.max(1,math.min(math.ceil(j.size.Y/c.band),math.floor(c.nodes/segments)))
+ local rows=j.texture and TextureSurface.Height or math.max(1,math.min(math.ceil(j.size.Y/c.band),math.floor(c.nodes/segments)))
  local count=rows*segments
  local buffer=back
  local frameAlpha=1 -- opacity is updated on the visible buffer, independent of color work
@@ -2846,7 +2902,8 @@ function LocalBlur.new(host,options)
  end
  for i=1,rows do
   local top=math.floor((i-1)*j.size.Y/rows);local bottom=i==rows and j.size.Y or math.floor(i*j.size.Y/rows)
-  local gy=(j.halo+(top+bottom)*.5)/stepY;local y=math.floor(gy);local ty=gy-y
+  local sampleY=j.texture and (i-.5)/rows*j.size.Y or (top+bottom)*.5
+  local gy=(j.halo+sampleY)/stepY;local y=math.floor(gy);local ty=gy-y
   local a=(math.max(0,y-1)+padY)*w+padX
   local b=(y+padY)*w+padX
   local d=(math.min(ny-1,y+1)+padY)*w+padX
@@ -2903,7 +2960,7 @@ function LocalBlur.new(host,options)
    if entry.alpha~=frameAlpha then entry.row.BackgroundTransparency=1-frameAlpha;entry.alpha=frameAlpha end
   end
   end
-  if i%8==0 then checkpoint() end
+  if i%2==0 then checkpoint() end
  end
  if j.texture then
   j.discard=not texture:Commit(j.pixels)
@@ -2924,8 +2981,8 @@ function LocalBlur.new(host,options)
    if options.Texture==false then texture={ready=false,reason="disabled",Present=function() return false end,Destroy=function() end}
    else texture=TextureSurface.new() end
   end
-  local visibleX=math.max(math.min(profile.columns,17),math.round(profile.columns*quality))
-  local visibleY=math.max(math.min(profile.sampleRows,13),math.round(profile.sampleRows*quality))
+  local visibleX=math.max(math.min(profile.columns,25),math.round(profile.columns*quality))
+  local visibleY=math.max(math.min(profile.sampleRows,19),math.round(profile.sampleRows*quality))
   local stepX,stepY=current.w/(visibleX-1),current.h/(visibleY-1)
   local gx,gy=math.min(4,math.ceil(profile.guard/stepX)),math.min(4,math.ceil(profile.guard/stepY))
   local j={config=table.clone(profile),bounds=cloneBounds(current),nx=visibleX+gx*2,ny=visibleY+gy*2,
@@ -3021,7 +3078,10 @@ function LocalBlur.new(host,options)
    completedSteps=frontInfo and frontInfo.steps or 0,completedAge=frontInfo and frontInfo.age or 0,
    samplePoints=frontInfo and frontInfo.nx*frontInfo.ny or 0,
    surface=frontInfo and frontInfo.texture and "ContinuousTexture" or "GradientFallback",
-   textureReason=texture and texture.reason or nil}
+   textureReason=texture and texture.reason or nil,
+   textureWidth=frontInfo and frontInfo.texture and TextureSurface.Width or 0,
+   textureHeight=frontInfo and frontInfo.texture and TextureSurface.Height or 0,
+   renderColumns=frontInfo and frontInfo.renderColumns or profile.renderColumns}
  end
  function api:Destroy()
   if dead then return end
@@ -3870,28 +3930,23 @@ function ListContour.Shape(rows,radius)
   row.bands=bands
  end
 end
+-- Only the thin color edge is drawn here. The contour itself is a blur mask;
+-- it never paints a dark or opaque backing behind the feature text.
 function ListContour.new(parent)
  local self={rows={},used=0,root=new("Frame",parent,{Name="ArrayListContour",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=10,Active=false})}
  function self:Begin(enabled) self.used=0;self.root.Visible=enabled end
- function self:Draw(row)
+ function self:Draw(row,scale)
   self.used+=1;local slot=self.rows[self.used]
-  if not slot then slot={root=new("Frame",self.root,{Name="ContourRow",BackgroundTransparency=1,Active=false}),bands={}};self.rows[self.used]=slot end
-  slot.root.Visible=true;slot.root.Position=UDim2.fromOffset(row.x,row.y);slot.root.Size=UDim2.fromOffset(row.width,row.height)
-  for i,band in ipairs(row.bands) do
-   local node=slot.bands[i]
-   if not node then
-    local fill=new("Frame",slot.root,{Name="ContourBand",BorderSizePixel=0,Active=false})
-    node={fill=fill,edge=new("UIGradient",fill,{Rotation=0})};slot.bands[i]=node
-   end
-   local fill=node.fill;fill.Visible=true;fill.Position=UDim2.fromOffset(band.x-row.x,band.y-row.y);fill.Size=UDim2.fromOffset(band.w,band.h)
-   fill.BackgroundColor3=rgb(0x0F1016):Lerp(rgb(row.topColor),.07):Lerp(rgb(0x0F1016):Lerp(rgb(row.bottomColor),.07),band.fraction)
-   fill.BackgroundTransparency=1-.76*row.alpha
-   local aa=math.min(.65/band.w,.45)
-   node.edge.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(aa,0),NumberSequenceKeypoint.new(1-aa,0),NumberSequenceKeypoint.new(1,1)})
+  if not slot then
+   local edge=new("Frame",self.root,{Name="ContourEdge",BorderSizePixel=0,Active=false})
+   slot={edge=edge,gradient=new("UIGradient",edge,{Rotation=90})};self.rows[self.used]=slot
   end
-  for i=#row.bands+1,#slot.bands do slot.bands[i].fill.Visible=false end
+  local width=math.min(1.5*(scale or 1),row.width)
+  slot.edge.Visible=true;slot.edge.Position=UDim2.fromOffset(row.x+row.width-width,row.y);slot.edge.Size=UDim2.fromOffset(width,row.height)
+  slot.edge.BackgroundColor3=Color3.new(1,1,1);slot.edge.BackgroundTransparency=1-.96*row.alpha
+  slot.gradient.Color=ColorSequence.new(rgb(row.topColor),rgb(row.bottomColor))
  end
- function self:Finish() for i=self.used+1,#self.rows do self.rows[i].root.Visible=false end end
+ function self:Finish() for i=self.used+1,#self.rows do self.rows[i].edge.Visible=false end end
  return self
 end
 
@@ -3903,6 +3958,7 @@ function WaterMark.new(parent,options)
  self.backdrop=new("Frame",self.root,{Name="WaterMarkBackdrop",BackgroundColor3=rgb(0x101319),BackgroundTransparency=.75,Size=UDim2.fromScale(1,1),ZIndex=10,Active=false})
  self.corner=new("UICorner",self.backdrop,{CornerRadius=UDim.new(0,8)})
  self.label=new("TextLabel",self.root,{Name="WaterMarkText",Text="Syntax",BackgroundTransparency=1,Font=Enum.Font.Gotham,TextSize=22,TextColor3=Color3.new(1,1,1),TextScaled=false,TextWrapped=false,AutomaticSize=Enum.AutomaticSize.None,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=30,Active=false})
+ self.nativeTextScale=new("UIScale",self.label,{Name="NativePixelText",Scale=1})
  self.logo=new("Frame",self.root,{Name="WaterMarkLogo",BackgroundTransparency=1,Size=UDim2.fromOffset(18,18),ZIndex=30,Active=false})
  self.logoStrokes={}
  for i,stroke in ipairs({{3,5,8,2,42},{3,11,8,2,-42},{12,13,6,2,0}}) do
@@ -3917,7 +3973,7 @@ function WaterMark.new(parent,options)
   local power=settings["WaterMark Glow strength"] or .5
   self.glow:Begin(enabled and settings["WaterMark Glow"]~=false,power,settings["WaterMark Glow layers"] or 2)
   if not enabled then self.glow:Finish();return end
-  self.phase=(self.phase+math.max(0,dt)*.08*(settings["WaterMark Flow speed"] or 1))%1
+  self.phase=(self.phase+math.min(.1,math.max(0,dt))*.08*(settings["WaterMark Flow speed"] or 1))%1
   self.text=self.brand
   local baseSize=settings["WaterMark Text size"] or 22;local baseHeight=baseSize+16
   local scale=math.min(hudScale/2*(at and at.scale or 1),math.max(.1,(view.Y-4)/baseHeight))
@@ -3935,9 +3991,18 @@ function WaterMark.new(parent,options)
   self.root.Position=UDim2.fromOffset(x,y);self.root.Size=UDim2.fromOffset(w,h)
   self.backdrop.BackgroundTransparency=1-(settings["WaterMark Background opacity"] or 25)/100
   self.corner.CornerRadius=UDim.new(0,8*scale)
+  local ancestorScale=1;local ancestor=self.label.Parent
+  while ancestor do
+   for _,child in ipairs(ancestor:GetChildren()) do
+    if child:IsA("UIScale") then ancestorScale*=child.Scale end
+   end
+   ancestor=ancestor.Parent
+  end
+  self.ancestorScale=ancestorScale;self.nativeTextScale.Scale=1/math.max(.001,ancestorScale)
+  self.label.TextScaled=false;self.label.TextWrapped=false;self.label.AutomaticSize=Enum.AutomaticSize.None
   self.label.Text=self.text or self.brand;self.label.TextSize=size
   self.logo.Position=UDim2.fromOffset(12*scale,(h-logoSize*scale)/2);self.logo.Size=UDim2.fromOffset(logoSize*scale,logoSize*scale)
-  self.label.Position=UDim2.fromOffset(labelX*scale,0);self.label.Size=UDim2.fromOffset(math.max(1,w-(labelX+12)*scale),h)
+  self.label.Position=UDim2.fromOffset(math.round(labelX*scale),0);self.label.Size=UDim2.fromOffset(math.ceil(math.max(1,w-(labelX+12)*scale)*ancestorScale),math.ceil(h*ancestorScale))
   local colors={}
   for i=0,4 do colors[i+1]=ColorSequenceKeypoint.new(i/4,options.color and rgb(options.color(self.phase+i/4)) or Color3.fromHSV((self.phase+i*.13)%1,.5,1)) end
   self.gradient.Color=ColorSequence.new(colors)
@@ -3954,7 +4019,7 @@ function WaterMark.new(parent,options)
   self.glow:Finish()
  end
  function self:SetText(value) assert(type(value)=="string" and #value>0 and #value<=120,"Invalid WaterMark text");self.brand=value end
- function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,logo=">_",font=self.label.Font.Name,fontSize=self.label.TextSize,textScaleIndependent=true,phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
+ function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,logo=">_",font=self.label.Font.Name,fontSize=self.label.TextSize,textScaleIndependent=true,textCompensation=self.nativeTextScale.Scale,effectiveFontSize=self.label.TextSize*(self.ancestorScale or 1)*self.nativeTextScale.Scale,phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
  function self:Destroy() if self.dead then return end;self.dead=true;self.glow:Destroy();self.root:Destroy() end
  return self
 end
@@ -3962,13 +4027,33 @@ end
 function UI.new(options)
  uiDiagnostics.Stage="初始化 UI 设置"
  options=table.clone(options or {})
+ assert(options.Language==nil or options.Language=="English" or options.Language=="中文","Unknown language")
+ language=options.Language or "English"
  options.Modules=copy(options.Modules or {})
+ local function addBlurControl(module,name,key,source)
+  module.settings=module.settings or {}
+  for _,setting in ipairs(module.settings) do if setting.name==name then return end end
+  module.settings[#module.settings+1]={name=name,type="slider",default=source and source[key] or SampledLocalBlur.Defaults[key],min=0,max=100,step=1}
+ end
+ for _,module in ipairs(options.Modules) do
+  if module.id=="ClickGUI" then
+   addBlurControl(module,"Local Blur strength","strength",options.LocalBlurOptions)
+   addBlurControl(module,"Local Blur softness","smooth",options.LocalBlurOptions)
+  elseif module.id=="HUD" then
+   local profile=table.clone(options.LocalBlurOptions or {})
+   for key,value in pairs(options.HUDBlurOptions or {}) do profile[key]=value end
+   for _,region in ipairs({"Island","ArrayList","TargetHUD","WaterMark"}) do
+    addBlurControl(module,region.." Blur strength","strength",profile)
+    addBlurControl(module,region.." Blur softness","smooth",profile)
+   end
+  end
+ end
  for _,m in ipairs(options.Modules) do
   if m.id=="ClickGUI" then for _,setting in ipairs(m.settings or {}) do if setting.name=="Style" then setting.options=copy(UI.Styles) end end end
   if m.id=="ClickGUI" then
    m.settings=m.settings or {}
    local found=false;for _,setting in ipairs(m.settings) do if setting.name=="Local Blur radius" then found=true end end
-   if not found then m.settings[#m.settings+1]={name="Local Blur radius",type="slider",default=options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1} end
+   if not found then m.settings[#m.settings+1]={name="Local Blur radius",type="slider",default=options.LocalBlurOptions and options.LocalBlurOptions.radius or 1,min=0,max=120,step=1} end
   end
   if m.id=="HUD" then
    m.settings=m.settings or {};SmoothGlow.addSettings(m)
@@ -3988,9 +4073,9 @@ function UI.new(options)
    addHUDSetting({name="WaterMark Text size",type="slider",default=22,min=10,max=36,step=1})
    addHUDSetting({name="BloomFlow Corner radius",type="slider",default=3,min=0,max=12,step=.5})
    addHUDSetting({name="ArrayList Blur",type="toggle",default=true})
-   addHUDSetting({name="ArrayList Blur radius",type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
+   addHUDSetting({name="ArrayList Blur radius",type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 1,min=0,max=120,step=1})
    for _,name in ipairs({"WaterMark Blur","WaterMark Glow"}) do addHUDSetting({name=name,type="toggle",default=true}) end
-   addHUDSetting({name="WaterMark Blur radius",type="slider",default=120,min=0,max=120,step=1})
+   addHUDSetting({name="WaterMark Blur radius",type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 1,min=0,max=120,step=1})
    addHUDSetting({name="WaterMark Glow strength",type="slider",default=.5,min=0,max=1.6,step=.05})
    addHUDSetting({name="WaterMark Glow radius",type="slider",default=18,min=6,max=72,step=1})
    addHUDSetting({name="WaterMark Glow layers",type="slider",default=2,min=1,max=4,step=1})
@@ -4020,7 +4105,7 @@ function UI.new(options)
     m.settings=promoted
    end
    for _,name in ipairs({"Island Blur radius","BloomFlow Blur radius","TargetHUD Blur radius"}) do
-    addHUDSetting({name=name,type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
+    addHUDSetting({name=name,type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 1,min=0,max=120,step=1})
    end
    addHUDSetting({name="TargetHUD Glow strength",type="slider",default=.5,min=0,max=1.6,step=.05})
    addHUDSetting({name="TargetHUD Glow radius",type="slider",default=24,min=6,max=72,step=1})
@@ -4279,6 +4364,7 @@ function UI.new(options)
    local ok,item=pcall(function() return Enum.KeyCode[key] end);assert(ok and item,"Invalid key")
    state[id].key=key;binding=nil;notify(id,"key",key);bridge.RefreshBindings()
   end
+  function api:Translate(value) return localize(tostring(value)) end
   function api:GetAppearance() return {language=language,islandAnimationSpeed=bridge.islandAnimationSpeed,islandBackgroundTransparency=islandBackgroundTransparency,islandShadow=islandShadow,scale=options.Scale or k,hudScale=hudScale,accent=customAccent or false,effect=themeEffect,animations=animations,animationSpeed=animationSpeed,glowStrength=glowStrength} end
  function api:OpenAppearance() appearanceOpen=true;dropdown=nil;sliding=nil;binding=nil;drag=nil end
 
@@ -4611,14 +4697,15 @@ function UI.new(options)
   local blurPane={active=false,unsupported=false,renderer=SampledLocalBlur.new(altGlass,{Profile=options.LocalBlurOptions,Inset=4,ScreenCoordinates=true})}
   function api:GetLocalBlurConfig()
    local result=blurPane.renderer:GetConfig()
-   if state.ClickGUI and state.ClickGUI.settings["Local Blur radius"]~=nil then result.radius=state.ClickGUI.settings["Local Blur radius"] end
+   for key,name in pairs({radius="Local Blur radius",strength="Local Blur strength",smooth="Local Blur softness"}) do
+    if state.ClickGUI and state.ClickGUI.settings[name]~=nil then result[key]=state.ClickGUI.settings[name] end
+   end
    return result
   end
   function api:SetLocalBlurConfig(patch)
    blurPane.renderer:SetConfig(patch)
-   if patch.radius~=nil then
-    blurPane.radius=patch.radius
-    if state.ClickGUI and state.ClickGUI.settings["Local Blur radius"]~=nil then self:SetSetting("ClickGUI","Local Blur radius",patch.radius) end
+   for key,name in pairs({radius="Local Blur radius",strength="Local Blur strength",smooth="Local Blur softness"}) do
+    if patch[key]~=nil and state.ClickGUI and state.ClickGUI.settings[name]~=nil then self:SetSetting("ClickGUI",name,patch[key]) end
    end
   end
    local altPaint=pool(altRoot)
@@ -4806,8 +4893,8 @@ function UI.new(options)
  end
   local function drawNeverlose(dt)
    local p=altPaint;local frost=state.ClickGUI and state.ClickGUI.settings["Local Blur"]~=false
-    p:gradient(0,0,184,620,0x090A0A,0x0D0E0C,frost and .52 or .82,4);p:box(180,0,580,620,0x080808,frost and .48 or 1,4)
-    if frost then p:gradient(182,1,576,63,0x2A3B4A,0x121A22,.17,3);p:stroke(0,0,760,620,0x51585C,.3,4,1) end
+    p:gradient(0,0,184,620,0x090A0A,0x0D0E0C,frost and .22 or .82,4);p:box(180,0,580,620,0x080808,frost and .18 or 1,4)
+    if frost then p:stroke(0,0,760,620,0x51585C,.15,4,1) end
    p:box(180,0,1,620,0x242525,1);p:box(180,64,580,1,0x1C1D1D,1)
   p:text("SYNTAX",18,35,24,160,0x3A85E2)
   for i,name in ipairs({"Combat","Player","Visuals","Miscellaneous"}) do p:text(name,20,({79,183,287,355})[i],10.5,145,0x646B6D) end
@@ -4950,7 +5037,7 @@ function UI.new(options)
   location.x=math.clamp(location.x,4,math.max(4,width-ww*alt.s-4));location.y=math.clamp(location.y,4,math.max(4,height-hh*alt.s-4));alt.x,alt.y=location.x,location.y
    altRoot.Visible=true;altRoot.Position=UDim2.fromOffset(alt.x,alt.y);altRoot.Size=UDim2.fromOffset(ww,hh);altScale.Scale=alt.s
    local frost=activeStyle=="Neverlose" and state.ClickGUI and state.ClickGUI.settings["Local Blur"]~=false
-    altGlass.Visible=frost;altGlass.BackgroundTransparency=1-.18*opacity
+    altGlass.Visible=frost;altGlass.BackgroundTransparency=1-.05*opacity
    if altSoftShadow then altSoftShadow.Enabled=frost;altSoftShadow.Transparency=1-.57*opacity end
    altPaint:begin();altContent:begin();alt.scroll=ease(alt.scroll,alt.target,dt,14)
   if activeStyle=="Modern" then drawModern(dt) else drawNeverlose(dt) end
@@ -5202,7 +5289,7 @@ function UI.new(options)
   local islandState={width=spring(180),height=spring(23),top=spring(21),idle=true,wasIdle=true,fps=0,ping=nil,nextPing=0,start=os.clock(),target=nil}
   local measureCache={};local cacheCount=0
   local function measure(text,size,plain)
-   text=tostring(text);local scale=islandState.renderScale or hudScale
+   text=localize(tostring(text));local scale=islandState.renderScale or hudScale
    local physicalSize=math.max(1,math.round(size*scale));local key="w:"..physicalSize..":"..scale..":"..tostring(plain)..":"..text
    if measureCache[key] then return measureCache[key] end
    local bounds=TextService:GetTextSize(text,physicalSize,opaiFont(plain),Vector2.new(10000,10000))
@@ -5210,7 +5297,7 @@ function UI.new(options)
    local measured=math.ceil(bounds.X/scale)+3;measureCache[key]=measured;cacheCount+=1;return measured
   end
   local function wrappedHeight(text,size,width,plain)
-   if text=="" then return 0 end
+   text=localize(tostring(text));if text=="" then return 0 end
    local scale=islandState.renderScale or hudScale
    local physicalSize=math.max(1,math.round(size*scale))
    local physicalWidth=math.max(1,math.floor(width*scale))
@@ -5255,7 +5342,7 @@ function UI.new(options)
     if active.kind=="toggle" then active.untilTime=deadline end
    end
   end
-  n.title=tostring(title);n.detail=tostring(detail or "");n.kind=kind;n.value=value;n.untilTime=os.clock()+duration
+  n.sourceTitle=tostring(title);n.sourceDetail=tostring(detail or "");n.title=n.sourceTitle;n.detail=n.sourceDetail;n.kind=kind;n.value=value;n.untilTime=os.clock()+duration
     if kind=="toggle" then n.started=os.clock();n.animationStarted=islandState.animationTime or 0;n.toggleFrom=n.toggle end
     local detailText=kind=="toggle" and toggleDetail(n.detail,value) or n.detail
     local titleSize=kind=="breaking" and 9 or 10;local detailSize=kind=="breaking" and 8 or 9
@@ -5436,7 +5523,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     if target and not item then item={id=id,enabled=false,motion=spring(0)};xhan.entries[id]=item end
    if item then
      if xhan.updatePresence(item,target,dt) then
-      item.name=def.name or displayName(id);item.suffix=st["XHan Show suffix"]~=false and moduleSuffix(row) or "";item.mode=item.suffix~="" and " "..item.suffix or ""
+      item.name=localize(def.name or displayName(id));item.suffix=st["XHan Show suffix"]~=false and moduleSuffix(row) or "";item.mode=item.suffix~="" and " "..item.suffix or ""
        item.nameWidth=xhanMeasure(item.name,size);item.modeWidth=xhanMeasure(item.mode,size);item.width=math.ceil(item.nameWidth+item.modeWidth+(bloom and 12 or 13)+extra);item.order=order
       candidates[#candidates+1]=item
      elseif not target then releaseArrayClip(item);xhan.entries[id]=nil end
@@ -5496,7 +5583,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
    end
    ListContour.Shape(arrayMetrics.rows,(st["BloomFlow Corner radius"] or 3)*q)
    for i,item in ipairs(candidates) do
-    local row=arrayMetrics.rows[i];xhan.contour:Draw(row)
+    local row=arrayMetrics.rows[i];xhan.contour:Draw(row,q)
     local x,y,w,h=row.x,row.y,row.width,row.height
     if bloom and st["XHan Glow"]~=false then
      if smooth then xhan.smooth:Draw(x,y,w,h,item.color,item.alpha,st["Smooth Glow radius"] or 30,q)
@@ -5505,7 +5592,6 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
       p:image("rbxassetid://102472648910048",x-11*q,y-8*q,w+22*q,h+16*q,0,item.color,.46*strength*item.alpha,true)
      end
     end
-    p:gradient(x+w-math.min(1.5*q,w),y,math.min(1.5*q,w),h,row.topColor,row.bottomColor,.96*item.alpha,0)
    end
    xhan.contour:Finish()
    for i,item in ipairs(candidates) do
@@ -5553,7 +5639,7 @@ local function drawArrayList(dt,view,factor,st,p)
   for id,row in pairs(rows) do
    local item=arrayEntries[id]
    if not item then item={id=id,motion=spring(0),enabled=false};arrayEntries[id]=item end
-   local label=row.def.name or displayName(id);local suffix=showSuffix and moduleSuffix(row) or ""
+   local label=localize(row.def.name or displayName(id));local suffix=showSuffix and moduleSuffix(row) or ""
    if lower then label=label:lower();suffix=suffix:lower() end
    item.name=label;item.suffix=suffix;item.font=font;item.nameWidth=arrayMeasure(label,size,font);item.gap=suffix~="" and arrayMeasure(" ",size,font) or 0
    item.text=label..(suffix~="" and " "..suffix or "");item.width=opai and (3+item.nameWidth+item.gap+arrayMeasure(suffix,size,font)+2+1) or arrayMeasure(item.text,size,font)
@@ -5615,7 +5701,7 @@ local function drawArrayList(dt,view,factor,st,p)
   end
  end
 
- local function drawHUDWidgets(dt)
+ local function drawHUDWidgets(dt,frameDelta)
    widgets:begin();hudBounds={};local view=gui.AbsoluteSize;local factor=hudScale
   if visible and activeStyle:match("^Jackal ") and not hudEditing then
    widgetRoot.Visible=false;xhan.root.Visible=false;targetHUD.Host.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish()
@@ -5645,7 +5731,7 @@ local function drawArrayList(dt,view,factor,st,p)
    if preview then targetHUD:Preview() else targetHUD:Update(target) end
   else targetHUD:Update(nil) end
 
-  api.waterMark:Step(st,view,hudScale,hudPlacements.WaterMark,widgetEnabled("WaterMark"),dt,{})
+  api.waterMark:Step(st,view,hudScale,hudPlacements.WaterMark,widgetEnabled("WaterMark"),frameDelta or dt,{})
   if api.waterMark.root.Visible then hudBounds.WaterMark=api.waterMark.bounds end
   widgets:finish();updateHUDControls()
  end
@@ -5654,7 +5740,7 @@ local function drawArrayList(dt,view,factor,st,p)
  -- HUD blur panes share a 4ms cooperative work target, never one sampler per row.
  -- Merge validated HUD overrides onto the recording profile, not onto a new UI state.
  local hudBlurProfile=SampledLocalBlur.Profile(options.LocalBlurOptions)
- hudBlurProfile.band=1;hudBlurProfile.budget=4
+ hudBlurProfile.band=1
  for key,value in pairs(options.HUDBlurOptions or {}) do hudBlurProfile[key]=value end
  hudBlurProfile=SampledLocalBlur.Profile(hudBlurProfile)
  local hudBlurPanes={
@@ -5669,6 +5755,10 @@ local function drawArrayList(dt,view,factor,st,p)
   local result=table.clone(assert(hudBlurPanes[name],"Unknown HUD blur").profile)
   local value=state.HUD and state.HUD.settings[radiusSettings[name]]
   if value~=nil then result.radius=value end
+  for key,suffix in pairs({strength=" strength",smooth=" softness"}) do
+   local value=state.HUD and state.HUD.settings[name.." Blur"..suffix]
+   if value~=nil then result[key]=value end
+  end
   return result
  end
  function api:SetHUDBlurConfig(name,patch)
@@ -5681,6 +5771,21 @@ local function drawArrayList(dt,view,factor,st,p)
   pane.profile=nextProfile
   if pane.renderer then pane.renderer:SetConfig(patch) end
   if patch.radius~=nil and state.HUD and state.HUD.settings[radiusSettings[name]]~=nil then self:SetSetting("HUD",radiusSettings[name],patch.radius) end
+  for key,suffix in pairs({strength=" strength",smooth=" softness"}) do
+   local setting=name.." Blur"..suffix
+   if patch[key]~=nil and state.HUD and state.HUD.settings[setting]~=nil then self:SetSetting("HUD",setting,patch[key]) end
+  end
+ end
+ function api:ApplyRecordedBlurPreset()
+  local patch=table.clone(SampledLocalBlur.Defaults)
+  self:SetLocalBlurConfig(patch)
+  for _,region in ipairs({"Island","ArrayList","TargetHUD","WaterMark"}) do self:SetHUDBlurConfig(region,patch) end
+  return self:GetLocalBlurConfig()
+ end
+ function api:ApplyLightBlurPreset()
+  local patch={radius=24,strength=25,smooth=10,brightness=100,transparency=100}
+  self:SetLocalBlurConfig(patch)
+  for _,region in ipairs({"Island","ArrayList","TargetHUD","WaterMark"}) do self:SetHUDBlurConfig(region,patch) end
  end
  -- Use the positions/scales assigned this render frame. GUI Absolute* values can
  -- still describe the preceding layout while a HUD is being dragged or tweened.
@@ -5716,11 +5821,12 @@ local function drawArrayList(dt,view,factor,st,p)
   local jobs={}
   local function prepare(name,enabled,bounds,masks)
    local pane=hudBlurPanes[name]
-   local radius=st[radiusSettings[name]]
-   if radius~=nil and radius~=pane.profile.radius then
-    pane.profile.radius=radius
-    if pane.renderer then pane.renderer:SetConfig({radius=radius}) end
+   local patch={}
+   for key,setting in pairs({radius=radiusSettings[name],strength=name.." Blur strength",smooth=name.." Blur softness"}) do
+    local value=st[setting]
+    if value~=nil and value~=pane.profile[key] then patch[key]=value;pane.profile[key]=value end
    end
+   if next(patch) and pane.renderer then pane.renderer:SetConfig(patch) end
    enabled=enabled and pane.profile.radius>0 and pane.profile.strength>0
    pane.host.Visible=enabled
    if enabled then
@@ -5774,17 +5880,19 @@ local function drawArrayList(dt,view,factor,st,p)
   prepare("TargetHUD",targetVisible and st["TargetHUD Blur"]~=false,targetRect(),
    {{x=0,y=0,w=1,h=1,radius=18/76}})
   targetHUD:RenderGlow(st,targetVisible)
-  blurPane.frameBudget=#jobs>0 and 4 or nil -- native menu + HUD work target <=8ms
+  local totalBudget=api:GetLocalBlurConfig().budget
+  local hudBudget=visible and totalBudget*.5 or totalBudget
   local started=os.clock()
   hudBlurRotation=hudBlurRotation+1
   for i=1,#jobs do
    local job=jobs[(i+hudBlurRotation-1)%#jobs+1]
-   local remaining=math.max(0,4-(os.clock()-started)*1000)
+   local remaining=math.max(0,hudBudget-(os.clock()-started)*1000)
    job.pane.renderer:Step(job.bounds,true,dt,1,remaining/(#jobs-i+1))
   end
+  blurPane.frameBudget=math.max(0,totalBudget-(os.clock()-started)*1000)
  end
  function api:GetHUDEffectsState()
-  local result={workBudgetMs=4,targetGlow=targetHUD:InspectGlow()}
+  local result={workBudgetMs=api:GetLocalBlurConfig().budget,targetGlow=targetHUD:InspectGlow()}
   for name,pane in pairs(hudBlurPanes) do
    result[name]=pane.renderer and pane.renderer:Inspect() or {active=false,completed=0,reason="not-created"}
   end
@@ -5800,14 +5908,23 @@ local function drawArrayList(dt,view,factor,st,p)
  local function renderHUD(dt,frameDelta)
   bridge.Sync()
   bridge.RefreshBindings()
-  expireNotices();local view=gui.AbsoluteSize
+  expireNotices()
+  for _,n in ipairs(notices) do
+   local moduleId=n.key:match("^module:(.+)$")
+   n.title=localize(n.sourceTitle or n.title)
+   if n.kind=="toggle" and moduleId and rows[moduleId] then
+    local name=localize(rows[moduleId].def.name or moduleId)
+    n.detail=language=="中文" and name or name.." has been "
+   else n.detail=localize(n.sourceDetail or n.detail) end
+  end
+  local view=gui.AbsoluteSize
   if view.X<=36 or view.Y<=32 then targetHUD.Host.Visible=false;island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;api.waterMark:Step({},view,hudScale,nil,false,dt,{});xhan.smooth:Begin(false,0,2);xhan.smooth:Finish();return end
   widgetRoot.Visible=true;hudControls.Visible=true
     local scale=math.min(hudScale,(view.X-8)/70)
     islandState.renderScale=scale
     -- Render the island in physical pixels so shell morphing does not scale text.
     shell.drawScale=scale;ink.drawScale=scale
-   island.Visible=widgetEnabled("Dynamic Island");drawHUDWidgets(dt)
+   island.Visible=widgetEnabled("Dynamic Island");drawHUDWidgets(dt,frameDelta)
   local realDelta=frameDelta or dt
   local delta=math.min(realDelta,.1)*bridge.islandAnimationSpeed
   islandState.animationTime=(islandState.animationTime or 0)+delta
@@ -5841,7 +5958,7 @@ local function drawArrayList(dt,view,factor,st,p)
       local titleSize=n.kind=="breaking" and 9 or 10;local detailSize=n.kind=="breaking" and 8 or 9
       local titleHeight=wrappedHeight(n.title,titleSize,available)
       local detail=n.kind=="toggle" and tostring(n.detail):gsub("%s+$","") or n.detail
-      local suffix=n.value and "Enabled" or "Disabled"
+      local suffix=localize(n.value and "Enabled" or "Disabled")
       local prefix=n.kind=="toggle" and (detail~="" and detail.." " or "") or detail
       local prefixWidth=n.kind=="toggle" and (prefix~="" and measure(prefix,detailSize) or 0) or 0
       local suffixWidth=n.kind=="toggle" and measure(suffix,detailSize) or 0
@@ -6032,7 +6149,7 @@ local function drawArrayList(dt,view,factor,st,p)
   bridge.app=JackalRenderer.new({Parent=parent,Name="SyntaxJackalRenderer",DisplayOrder=gui.DisplayOrder-1,
    Embedded=true,Visible=false,Modules=definitions,Categories=categoryOrder,Category=categoryOrder[1],
    Layout=activeStyle=="Jackal Neverlose" and "Neverlose" or "Dropdown",Preset="Opai",
-   Scale=k,Language=language,BindBuiltinComponents=false,DynamicIsland={Enabled=false},
+   Scale=k,Language=language,Translate=function(value) return api:Translate(value) end,BindBuiltinComponents=false,DynamicIsland={Enabled=false},
    StyleOptions=copy(UI.Styles),StyleName=activeStyle,
    SyntaxKeybind=bridge.CreateKeybind,
    SyntaxBindingActive=function(input) return binding~=nil or (input~=nil and bridge.consumedInput==input) end,
@@ -6082,7 +6199,12 @@ local function drawArrayList(dt,view,factor,st,p)
   opacity=animations and ease(opacity,visible and 1 or 0,dt,30) or (visible and 1 or 0);catcher.Visible=visible and not selectedStyle():match("^Jackal ");root.Visible=opacity>.005
   front:drawFixedToolbar(frameDelta)
    local menuRadius=state.ClickGUI and state.ClickGUI.settings["Local Blur radius"]
-   if menuRadius~=nil and blurPane.radius~=menuRadius then blurPane.renderer:SetConfig({radius=menuRadius});blurPane.radius=menuRadius end
+   local settings=state.ClickGUI and state.ClickGUI.settings or {}
+   local patch={};local config=blurPane.renderer:GetConfig()
+   for key,name in pairs({radius="Local Blur radius",strength="Local Blur strength",smooth="Local Blur softness"}) do
+    if settings[name]~=nil and settings[name]~=config[key] then patch[key]=settings[name] end
+   end
+   if next(patch) then blurPane.renderer:SetConfig(patch) end
    local localBlur=state.ClickGUI and state.ClickGUI.settings["Local Blur"]~=false
    blur.Size=(options.Blur==false or state.ClickGUI) and 0 or 10*opacity
   local nextStyle=selectedStyle()
@@ -6204,7 +6326,7 @@ local function drawArrayList(dt,view,factor,st,p)
  uiDiagnostics.Stage="绑定 UI 渲染回调"
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Last.Value,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),arrayListShadow=api.arrayListShadow:Inspect(),waterMark=api.waterMark:Inspect(),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),arrayListShadow=api.arrayListShadow:Inspect(),waterMark=api.waterMark:Inspect(),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={noticeItems=copy(notices),backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  uiDiagnostics.Stage="UI 就绪"
  return api
 end
