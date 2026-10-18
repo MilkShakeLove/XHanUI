@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-18.V9.10",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.11",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,10 +2372,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.10",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.11",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["BloomFlow Corner radius"]="BloomFlow 圆角半径",["ArrayList Blur"]="功能列表模糊",["ArrayList Blur radius"]="功能列表模糊半径",["WaterMark"]="水印",["WaterMark Blur"]="水印模糊",["WaterMark Blur radius"]="水印模糊半径",["WaterMark Glow"]="水印辉光",["WaterMark Glow strength"]="水印辉光强度",["WaterMark Glow radius"]="水印辉光半径",["WaterMark Glow layers"]="水印辉光层数",["WaterMark Flow speed"]="水印流光速度",["WaterMark Background opacity"]="水印底板不透明度",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["HUD Color source"]="HUD 配色来源",["Palette"]="列表配色",["WaterMark Text size"]="水印字号",["BloomFlow Corner radius"]="列表阶梯圆角半径",["ArrayList Blur"]="功能列表模糊",["ArrayList Blur radius"]="功能列表模糊半径",["WaterMark"]="水印",["WaterMark Blur"]="水印模糊",["WaterMark Blur radius"]="水印模糊半径",["WaterMark Glow"]="水印辉光",["WaterMark Glow strength"]="水印辉光强度",["WaterMark Glow radius"]="水印辉光半径",["WaterMark Glow layers"]="水印辉光层数",["WaterMark Flow speed"]="水印流光速度",["WaterMark Background opacity"]="水印底板不透明度",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -2497,11 +2497,17 @@ function TextureSurface.new()
     end
     local x,y,w,h=mask.x*bounds.w,mask.y*bounds.h,mask.w*bounds.w,mask.h*bounds.h
     local alpha=profile.strength/100*opacity*(mask.alpha or 1)
+    if not mask.band then
+     if slot.image.Parent~=view.layer then slot.image.Parent=view.layer end
+     if slot.bandClip then slot.bandClip.Visible=false end
+    end
     slot.image.Visible=true;slot.image.ImageContent=self.content
-    slot.image.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh)
-    slot.image.Size=UDim2.fromScale(w/sw,h/sh)
-    slot.image.ImageRectOffset=Vector2.new((x-ox)/sw*128,(y-oy)/sh*64)
-    slot.image.ImageRectSize=Vector2.new(w/sw*128,h/sh*64)
+    if not mask.band then
+     slot.image.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh)
+     slot.image.Size=UDim2.fromScale(w/sw,h/sh)
+     slot.image.ImageRectOffset=Vector2.new((x-ox)/sw*128,(y-oy)/sh*64)
+     slot.image.ImageRectSize=Vector2.new(w/sw*128,h/sh*64)
+    end
     slot.image.ImageTransparency=1-alpha
     -- Per-corner list contour clips reuse the SAME sampled texture. Four
     -- disjoint native clips avoid translucent overlap and row sampling jobs.
@@ -2540,9 +2546,18 @@ function TextureSurface.new()
      slot.tintCorner=make("UICorner",slot.tint,{CornerRadius=UDim.new(0,0)})
     end
     if slot.tint then slot.tint.Visible=tintAlpha>0;slot.tint.BackgroundTransparency=1-tintAlpha;slot.tintCorner.CornerRadius=slot.corner.CornerRadius end
+    if mask.band then
+     if not slot.bandClip then slot.bandClip=make("Frame",view.layer,{Name="LocalBlurContourClip",BackgroundTransparency=1,ClipsDescendants=true,BorderSizePixel=0,Active=false,ZIndex=1}) end
+     slot.bandClip.Visible=true;slot.bandClip.Position=UDim2.fromScale((x-ox)/sw,(y-oy)/sh);slot.bandClip.Size=UDim2.fromScale(w/sw,h/sh)
+     if slot.image.Parent~=slot.bandClip then slot.image.Parent=slot.bandClip end
+     -- Display the whole sampled image behind a geometric clip. Subpixel
+     -- ImageRectSize on a one-pixel contour band can round to zero in Roblox.
+     slot.image.ImageRectOffset=Vector2.new(0,0);slot.image.ImageRectSize=Vector2.new(0,0)
+     slot.image.Position=UDim2.fromScale((ox-x)/w,(oy-y)/h);slot.image.Size=UDim2.fromScale(sw/w,sh/h)
+    end
    end
   end
-  for i=used+1,#view.imageViews do local slot=view.imageViews[i];slot.image.Visible=false;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end
+  for i=used+1,#view.imageViews do local slot=view.imageViews[i];slot.image.Visible=false;if slot.bandClip then slot.bandClip.Visible=false end;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end
   return true
  end
  function self:Destroy() if self.image then self.image:Destroy();self.image=nil end;self.content=nil;self.ready=false end
@@ -2673,7 +2688,7 @@ function LocalBlur.new(host,options)
   if not changed then
    for i,a in ipairs(rectangles) do
     local b=masks[i]
-    if a.x~=b.x or a.y~=b.y or a.w~=b.w or a.h~=b.h or a.radius~=b.radius or a.alpha~=b.alpha or a.tl~=b.tl or a.tr~=b.tr or a.br~=b.br or a.bl~=b.bl then changed=true;break end
+    if a.x~=b.x or a.y~=b.y or a.w~=b.w or a.h~=b.h or a.radius~=b.radius or a.alpha~=b.alpha or a.tl~=b.tl or a.tr~=b.tr or a.br~=b.br or a.bl~=b.bl or a.band~=b.band then changed=true;break end
    end
   end
   masks=rectangles
@@ -2681,7 +2696,7 @@ function LocalBlur.new(host,options)
  end
  local function applyMasks(buffer,info,bounds)
   if texture and texture:Present(buffer,info,bounds,profile,opacityFactor,masks,options.Masked) then return end
-  if buffer.imageViews then for _,slot in ipairs(buffer.imageViews) do slot.image.Visible=false;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end end
+  if buffer.imageViews then for _,slot in ipairs(buffer.imageViews) do slot.image.Visible=false;if slot.bandClip then slot.bandClip.Visible=false end;if slot.quads then for _,q in ipairs(slot.quads) do q.clip.Visible=false end end end end
   if not options.Masked then return end
   local lp,ls=buffer.layer.Position,buffer.layer.Size
   local ox,oy=lp.X.Scale*bounds.w,lp.Y.Scale*bounds.h
@@ -3814,32 +3829,61 @@ function ArrayListShadow.new(parent,options)
  return self
 end
 
--- Four disjoint native corner clips per row: no overlapping translucent fills.
--- Every row shares the rounded pixel boundary with its neighbor during motion.
+-- A connected silhouette with signed inner/outer corners. Narrow strips are
+-- geometry only; blur strips all view one full continuous sampled texture.
 local ListContour={}
+function ListContour.Shape(rows,radius)
+ local function turn(delta,r)
+  return (delta<0 and -1 or 1)*math.min(r,math.abs(delta)/2)
+ end
+ local function inset(value,depth)
+  local r=math.abs(value)
+  if r==0 or depth>=r then return 0 end
+  return (value<0 and -1 or 1)*(r-math.sqrt(math.max(0,r*r-(r-depth)^2)))
+ end
+ for i,row in ipairs(rows) do
+  local previous,after=rows[i-1],rows[i+1]
+  -- Never permit capsule ends, including when an old profile stored radius 12.
+  local r=math.min(radius,row.height*.2,row.width*.2)
+  row.tl=previous and turn(previous.x-row.x,r) or r
+  row.tr=previous and turn(row.x+row.width-previous.x-previous.width,r) or r
+  row.bl=after and turn(after.x-row.x,r) or r
+  row.br=after and turn(row.x+row.width-after.x-after.width,r) or r
+  local top=math.ceil(math.max(math.abs(row.tl),math.abs(row.tr)))
+  local bottom=math.ceil(math.max(math.abs(row.bl),math.abs(row.br)))
+  local bands={};local y=0
+  while y<row.height do
+   local nextY=(y<top or y>=row.height-bottom) and math.min(row.height,y+1) or math.max(y+1,row.height-bottom)
+   nextY=math.min(nextY,row.height)
+   local middle=(y+nextY)/2
+   local left=inset(row.tl,middle)+inset(row.bl,row.height-middle)
+   local right=inset(row.tr,middle)+inset(row.br,row.height-middle)
+   bands[#bands+1]={x=row.x+left,y=row.y+y,w=math.max(.01,row.width-left-right),h=nextY-y,alpha=row.alpha,color=row.color,topColor=row.topColor,bottomColor=row.bottomColor,fraction=middle/row.height}
+   y=nextY
+  end
+  row.bands=bands
+ end
+end
 function ListContour.new(parent)
  local self={rows={},used=0,root=new("Frame",parent,{Name="ArrayListContour",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=10,Active=false})}
  function self:Begin(enabled) self.used=0;self.root.Visible=enabled end
  function self:Draw(row)
   self.used+=1;local slot=self.rows[self.used]
-  if not slot then
-   slot={root=new("Frame",self.root,{Name="ContourRow",BackgroundTransparency=1,Active=false}),quads={}};self.rows[self.used]=slot
-   for i=1,4 do
-    local clip=new("Frame",slot.root,{Name="CornerClip"..i,BackgroundTransparency=1,ClipsDescendants=true,Active=false})
-    local fill=new("Frame",clip,{Name="ContourFill",BorderSizePixel=0,Active=false})
-    slot.quads[i]={clip=clip,fill=fill,corner=new("UICorner",fill,{}),gradient=new("UIGradient",fill,{Rotation=90})}
-   end
-  end
+  if not slot then slot={root=new("Frame",self.root,{Name="ContourRow",BackgroundTransparency=1,Active=false}),bands={}};self.rows[self.used]=slot end
   slot.root.Visible=true;slot.root.Position=UDim2.fromOffset(row.x,row.y);slot.root.Size=UDim2.fromOffset(row.width,row.height)
-  local color=ColorSequence.new(rgb(0x0F1016):Lerp(rgb(row.topColor),.07),rgb(0x0F1016):Lerp(rgb(row.bottomColor),.07))
-  local radii={row.tl,row.tr,row.br,row.bl}
-  for i,q in ipairs(slot.quads) do
-   local right=i==2 or i==3;local bottom=i>=3
-   q.clip.Position=UDim2.fromScale(right and .5 or 0,bottom and .5 or 0);q.clip.Size=UDim2.fromScale(.5,.5)
-   q.fill.Position=UDim2.fromScale(right and -1 or 0,bottom and -1 or 0);q.fill.Size=UDim2.fromScale(2,2)
-   q.fill.BackgroundColor3=Color3.new(1,1,1);q.fill.BackgroundTransparency=1-.76*row.alpha
-   q.corner.CornerRadius=UDim.new(0,radii[i]);q.gradient.Color=color
+  for i,band in ipairs(row.bands) do
+   local node=slot.bands[i]
+   if not node then
+    local fill=new("Frame",slot.root,{Name="ContourBand",BorderSizePixel=0,Active=false})
+    node={fill=fill,edge=new("UIGradient",fill,{Rotation=0})};slot.bands[i]=node
+   end
+   local fill=node.fill;fill.Visible=true;fill.Position=UDim2.fromOffset(band.x-row.x,band.y-row.y);fill.Size=UDim2.fromOffset(band.w,band.h)
+   fill.BackgroundColor3=rgb(0x0F1016):Lerp(rgb(row.topColor),.07):Lerp(rgb(0x0F1016):Lerp(rgb(row.bottomColor),.07),band.fraction)
+   fill.BackgroundTransparency=1-.76*row.alpha
+   local aa=math.min(.65/band.w,.45)
+   node.edge.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1),NumberSequenceKeypoint.new(aa,0),NumberSequenceKeypoint.new(1-aa,0),NumberSequenceKeypoint.new(1,1)})
   end
+  for i=#row.bands+1,#slot.bands do slot.bands[i].fill.Visible=false end
  end
  function self:Finish() for i=self.used+1,#self.rows do self.rows[i].root.Visible=false end end
  return self
@@ -3852,7 +3896,7 @@ function WaterMark.new(parent,options)
  self.blur=new("Frame",self.root,{Name="WaterMarkLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Active=false})
  self.backdrop=new("Frame",self.root,{Name="WaterMarkBackdrop",BackgroundColor3=rgb(0x101319),BackgroundTransparency=.75,Size=UDim2.fromScale(1,1),ZIndex=10,Active=false})
  self.corner=new("UICorner",self.backdrop,{CornerRadius=UDim.new(0,8)})
- self.label=new("TextLabel",self.root,{Name="WaterMarkText",Text="Syntax",BackgroundTransparency=1,Font=Enum.Font.GothamMedium,TextSize=14,TextColor3=Color3.new(1,1,1),TextScaled=false,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=30,Active=false})
+ self.label=new("TextLabel",self.root,{Name="WaterMarkText",Text="Syntax",BackgroundTransparency=1,Font=Enum.Font.Gotham,TextSize=22,TextColor3=Color3.new(1,1,1),TextScaled=false,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=30,Active=false})
  self.logo=new("Frame",self.root,{Name="WaterMarkLogo",BackgroundTransparency=1,Size=UDim2.fromOffset(18,18),ZIndex=30,Active=false})
  self.logoStrokes={}
  for i,stroke in ipairs({{3,5,8,2,42},{3,11,8,2,-42},{12,13,6,2,0}}) do
@@ -3869,14 +3913,16 @@ function WaterMark.new(parent,options)
   if not enabled then self.glow:Finish();return end
   self.phase=(self.phase+math.max(0,dt)*.08*(settings["WaterMark Flow speed"] or 1))%1
   self.text=self.brand
-  local scale=math.min(hudScale/2*(at and at.scale or 1),math.max(.1,(view.Y-4)/32))
-  local size=math.max(1,math.round(14*scale))
+  local baseSize=settings["WaterMark Text size"] or 22;local baseHeight=baseSize+16
+  local scale=math.min(hudScale/2*(at and at.scale or 1),math.max(.1,(view.Y-4)/baseHeight))
+  local size=math.max(1,math.round(baseSize*scale))
   if self.measuredText~=self.text or self.measuredSize~=size then
    self.measuredText=self.text;self.measuredSize=size
-   self.measuredWidth=TextService:GetTextSize(self.text or self.brand,size,Enum.Font.GothamMedium,Vector2.new(10000,100)).X
+   self.measuredWidth=TextService:GetTextSize(self.text or self.brand,size,Enum.Font.Gotham,Vector2.new(10000,100)).X
   end
-  local width=self.measuredWidth+50*scale
-  local w=math.max(1,math.min(width,view.X-4));local h=math.max(1,32*scale)
+  local logoSize=math.max(16,baseSize);local labelX=12+logoSize+8
+  local width=self.measuredWidth+(labelX+12)*scale
+  local w=math.max(1,math.min(width,view.X-4));local h=math.max(1,baseHeight*scale)
   local x=math.clamp(at and at.x or 16,2,math.max(2,view.X-w-2))
   local y=math.clamp(at and at.y or 16,2,math.max(2,view.Y-h-2))
   self.bounds={x=x,y=y,w=w,h=h};self.scale=scale
@@ -3884,25 +3930,25 @@ function WaterMark.new(parent,options)
   self.backdrop.BackgroundTransparency=1-(settings["WaterMark Background opacity"] or 25)/100
   self.corner.CornerRadius=UDim.new(0,8*scale)
   self.label.Text=self.text or self.brand;self.label.TextSize=size
-  self.logo.Position=UDim2.fromOffset(12*scale,7*scale);self.logo.Size=UDim2.fromOffset(18*scale,18*scale)
-  self.label.Position=UDim2.fromOffset(38*scale,0);self.label.Size=UDim2.fromOffset(math.max(1,w-50*scale),h)
+  self.logo.Position=UDim2.fromOffset(12*scale,(baseHeight-logoSize)/2*scale);self.logo.Size=UDim2.fromOffset(logoSize*scale,logoSize*scale)
+  self.label.Position=UDim2.fromOffset(labelX*scale,0);self.label.Size=UDim2.fromOffset(math.max(1,w-(labelX+12)*scale),h)
   local colors={}
-  for i=0,4 do colors[i+1]=ColorSequenceKeypoint.new(i/4,Color3.fromHSV((self.phase+i*.13)%1,.5,1)) end
+  for i=0,4 do colors[i+1]=ColorSequenceKeypoint.new(i/4,options.color and rgb(options.color(self.phase+i/4)) or Color3.fromHSV((self.phase+i*.13)%1,.5,1)) end
   self.gradient.Color=ColorSequence.new(colors)
   for i,stroke in ipairs(self.logoStrokes) do
    local shape=stroke.shape;local line=stroke.line
-   line.Position=UDim2.fromOffset(shape[1]*scale,shape[2]*scale);line.Size=UDim2.fromOffset(shape[3]*scale,shape[4]*scale)
+   line.Position=UDim2.fromOffset(shape[1]*logoSize/18*scale,shape[2]*logoSize/18*scale);line.Size=UDim2.fromOffset(shape[3]*logoSize/18*scale,shape[4]*logoSize/18*scale)
    line.BackgroundColor3=colors[i].Value
   end
   for i=1,4 do
    local c=colors[i].Value:Lerp(colors[i+1].Value,.5)
    local packed=math.round(c.R*255)*65536+math.round(c.G*255)*256+math.round(c.B*255)
-   self.glow:Draw(12*scale+(w-24*scale)*(i-1)/4,9*scale,math.max(0,w-24*scale)/4,14*scale,packed,1,settings["WaterMark Glow radius"] or 18,scale)
+   self.glow:Draw(12*scale+(w-24*scale)*(i-1)/4,8*scale,math.max(0,w-24*scale)/4,baseSize*scale,packed,1,settings["WaterMark Glow radius"] or 18,scale)
   end
   self.glow:Finish()
  end
  function self:SetText(value) assert(type(value)=="string" and #value>0 and #value<=120,"Invalid WaterMark text");self.brand=value end
- function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,logo=">_",phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
+ function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,logo=">_",font=self.label.Font.Name,fontSize=self.label.TextSize,phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
  function self:Destroy() if self.dead then return end;self.dead=true;self.glow:Destroy();self.root:Destroy() end
  return self
 end
@@ -3932,7 +3978,9 @@ function UI.new(options)
    addHUDSetting({name="ArrayList Shadow layers",type="slider",default=2,min=1,max=4,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
    local suppliedArrayList={}
    for _,setting in ipairs(m.settings) do if setting.name=="ArrayList Blur" or setting.name=="ArrayList Blur radius" then suppliedArrayList[setting.name]=true end end
-   addHUDSetting({name="BloomFlow Corner radius",type="slider",default=5,min=0,max=12,step=.5})
+   addHUDSetting({name="HUD Color source",type="select",default="Theme",options={"Theme","Palette"}})
+   addHUDSetting({name="WaterMark Text size",type="slider",default=22,min=10,max=36,step=1})
+   addHUDSetting({name="BloomFlow Corner radius",type="slider",default=3,min=0,max=12,step=.5})
    addHUDSetting({name="ArrayList Blur",type="toggle",default=true})
    addHUDSetting({name="ArrayList Blur radius",type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
    for _,name in ipairs({"WaterMark Blur","WaterMark Glow"}) do addHUDSetting({name=name,type="toggle",default=true}) end
@@ -3957,7 +4005,7 @@ function UI.new(options)
    end
    -- Keep shadow controls at the top of HUD settings.
    do
-    local priority={"BloomFlow Corner radius","ArrayList Blur","ArrayList Blur radius","WaterMark Blur","WaterMark Blur radius","WaterMark Glow","WaterMark Glow strength","WaterMark Glow radius","WaterMark Glow layers","WaterMark Flow speed","WaterMark Background opacity","ArrayList Shadow","ArrayList Shadow strength","ArrayList Shadow radius","ArrayList Shadow layers","Island State Duration","Widgets","ArrayList mode"}
+    local priority={"HUD Color source","WaterMark Text size","BloomFlow Corner radius","ArrayList Blur","ArrayList Blur radius","WaterMark Blur","WaterMark Blur radius","WaterMark Glow","WaterMark Glow strength","WaterMark Glow radius","WaterMark Glow layers","WaterMark Flow speed","WaterMark Background opacity","ArrayList Shadow","ArrayList Shadow strength","ArrayList Shadow radius","ArrayList Shadow layers","Island State Duration","Widgets","ArrayList mode"}
     local promoted,seen={},{}
     for _,name in ipairs(priority) do
      for _,setting in ipairs(m.settings) do if setting.name==name then promoted[#promoted+1]=setting;seen[name]=true;break end end
@@ -4177,6 +4225,15 @@ function UI.new(options)
   if paletteCache and paletteCache.key==name and paletteCache.color==color then return paletteCache end
   local p=copy(original);p.key=name;p.color=color;p.accent=color;p.enabled=mixColor(color,0xFFFFFF,.14);p.enabledHover=mixColor(color,0xFFFFFF,.27)
   p.enabledText=mixColor(color,0x05080C,.83);p.outline=mixColor(color,0x797979,.55);paletteCache=p;return p
+ end
+ local function hudFlowColor(phase,period)
+  local st=state.HUD and state.HUD.settings or {}
+  if st["HUD Color source"]=="Palette" then return flowingColor(st["XHan Colors"] or "Starlight",0,period or 3,phase or 0) end
+  if themeEffect=="FlowingGlow" then return flowingColor("Aurora",0,period or 5,phase or 0) end
+  local source=state.Theme and state.Theme.settings or {}
+  if not customAccent and source.Theme and sourceThemes[source.Theme] then return clientColor((phase or 0)*360) end
+  local accent=customAccent or currentPalette().accent
+  return mixColor(accent,0xFFFFFF,.12+.3*(math.sin((phase or 0)*math.pi*2)+1)/2)
  end
  function api:SetAccent(value)
   if value==nil or value==false then customAccent=nil else customAccent=assert(parseAccent(value),"Accent must be #RRGGBB or a RGB integer") end
@@ -5115,7 +5172,7 @@ function UI.new(options)
  end
  function api:GetTargetHUDState() return targetHUD:Inspect() end
  api.waterMark=WaterMark.new(api.HUDLayer,{
-  text=options.WaterMarkText or "Syntax",imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,
+  text=options.WaterMarkText or "Syntax",color=function(phase) return hudFlowColor(phase,3) end,imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,
   onUnavailable=function(reason) if not dead then warn("[SyntaxUI WaterMark Glow] "..reason) end end})
  function api:SetWaterMarkText(value) self.waterMark:SetText(value) end
  function api:GetWaterMarkState() return self.waterMark:Inspect() end
@@ -5362,7 +5419,7 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
  end
   local function drawXHan(dt,view,factor,st,display)
   xhan.root.Visible=true;xhan.paint:begin()
-    local mode=display=="BloomFlow" and "BloomFlow" or "None";local bloom=mode=="BloomFlow";xhan.contour:Begin(bloom);local colors=st["XHan Colors"] or "Starlight"
+    local mode=display=="BloomFlow" and "BloomFlow" or "None";local bloom=mode=="BloomFlow";xhan.contour:Begin(true);local colors=st["XHan Colors"] or "Starlight"
   local strength=(st["XHan Shadow Strength"] or 78)/100;local size=st["XHan Text size"] or 15
      local rowH=bloom and math.max(size+2,(st["XHan Row height"] or 22)-3) or size+2
    local gap=0;local extra=0
@@ -5421,34 +5478,28 @@ BED={{0,0,1,1,0.75},{1,0,4,1,1.0},{5,0,1,1,0.75},{0,1,6,17,1.0},{6,2,1,8,0.25},{
     local offset=(item.width+8)*(1-item.progress)
     item.drawW=math.max(1,xhan.pixel(item.width*q))
     item.drawX=xhan.pixel(right+offset*q)-item.drawW;item.edgeH=item.drawH
-    item.topColor=bloom and flowingColor(colors,0,flowPeriod,((i-1)/total)*.92) or nil
-    item.bottomColor=bloom and flowingColor(colors,0,flowPeriod,(i/total)*.92) or nil
-    item.color=bloom and flowingColor(colors,0,flowPeriod,((i-.5)/total)*.92) or flowingColor(colors,i,st["XHan Flow speed"] or 3)
+    item.topColor=bloom and hudFlowColor(((i-1)/total)*.92,flowPeriod) or nil
+    item.bottomColor=bloom and hudFlowColor((i/total)*.92,flowPeriod) or nil
+    item.color=hudFlowColor(((i-.5)/total)*.92,flowPeriod)
     arrayMetrics.rows[i]={id=item.id,name=item.name,suffix=item.suffix,x=item.drawX,y=item.drawY,width=item.drawW,height=item.drawH,offset=offset*q,alpha=item.alpha,color=item.color,progress=item.progress,contribution=item.contribution,radius=bloom and 0 or 4,enabled=item.enabled}
    end
-   if bloom then
-    -- A single staircase silhouette, not separately rounded row pills.
-    for i,item in ipairs(candidates) do
-     local row=arrayMetrics.rows[i];local prior=candidates[i-1];local after=candidates[i+1]
-     local r=math.min((st["BloomFlow Corner radius"] or 5)*q,row.height/2,row.width/2)
-     row.tl=prior and math.min(r,math.max(0,prior.drawX-row.x)/2) or r
-     row.tr=prior and math.min(r,math.max(0,row.x+row.width-prior.drawX-prior.drawW)/2) or r
-     row.bl=after and math.min(r,math.max(0,after.drawX-row.x)/2) or r
-     row.br=after and math.min(r,math.max(0,row.x+row.width-after.drawX-after.drawW)/2) or r
-     row.topColor=item.topColor;row.bottomColor=item.bottomColor
-     xhan.contour:Draw(row)
-     local x,y,w,h=row.x,row.y,row.width,row.height
-     if st["XHan Glow"]~=false then
-      if smooth then xhan.smooth:Draw(x,y,w,h,item.color,item.alpha,st["Smooth Glow radius"] or 30,q)
-      else
-       p:image("rbxassetid://104490578391522",x-19*q,y-13*q,w+38*q,h+26*q,0,item.color,.32*strength*item.alpha,true)
-       p:image("rbxassetid://102472648910048",x-11*q,y-8*q,w+22*q,h+16*q,0,item.color,.46*strength*item.alpha,true)
-      end
+   for i,item in ipairs(candidates) do
+    local row=arrayMetrics.rows[i]
+    row.topColor=bloom and item.topColor or hudFlowColor((i-1)/total,st["XHan Flow speed"] or 3)
+    row.bottomColor=bloom and item.bottomColor or hudFlowColor(i/total,st["XHan Flow speed"] or 3)
+   end
+   ListContour.Shape(arrayMetrics.rows,(st["BloomFlow Corner radius"] or 3)*q)
+   for i,item in ipairs(candidates) do
+    local row=arrayMetrics.rows[i];xhan.contour:Draw(row)
+    local x,y,w,h=row.x,row.y,row.width,row.height
+    if bloom and st["XHan Glow"]~=false then
+     if smooth then xhan.smooth:Draw(x,y,w,h,item.color,item.alpha,st["Smooth Glow radius"] or 30,q)
+     else
+      p:image("rbxassetid://104490578391522",x-19*q,y-13*q,w+38*q,h+26*q,0,item.color,.32*strength*item.alpha,true)
+      p:image("rbxassetid://102472648910048",x-11*q,y-8*q,w+22*q,h+16*q,0,item.color,.46*strength*item.alpha,true)
      end
-     -- The reference has one continuous thin right accent, no internal borders.
-     local line=math.min(1.5*q,w)
-     p:gradient(x+w-line,y,line,h,item.topColor,item.bottomColor,.96*item.alpha,0)
     end
+    p:gradient(x+w-math.min(1.5*q,w),y,math.min(1.5*q,w),h,row.topColor,row.bottomColor,.96*item.alpha,0)
    end
    xhan.contour:Finish()
    for i,item in ipairs(candidates) do
@@ -5682,10 +5733,17 @@ local function drawArrayList(dt,view,factor,st,p)
    local scale=arrayMetrics.shadowScale or 1
    for _,row in ipairs(arrayMetrics.rows or {}) do
     if row.height>.5 and row.alpha>.001 then
-     local pad=arrayMetrics.mode=="Default" and 6.5*scale or 0
-     local item={x=row.x-pad,y=row.y,w=row.width+pad,h=row.height,alpha=row.alpha,tl=row.tl,tr=row.tr,br=row.br,bl=row.bl,radius=arrayMetrics.mode=="XHan" and math.min(.5,4*scale/row.height) or 0}
-     regions[#regions+1]=item
-     left=math.min(left,item.x);top=math.min(top,item.y);right=math.max(right,item.x+item.w);bottom=math.max(bottom,item.y+item.h)
+     if row.bands then
+      for _,band in ipairs(row.bands) do
+       regions[#regions+1]={x=band.x,y=band.y,w=band.w,h=band.h,alpha=band.alpha,band=true,radius=0}
+       left=math.min(left,band.x);top=math.min(top,band.y);right=math.max(right,band.x+band.w);bottom=math.max(bottom,band.y+band.h)
+      end
+     else
+      local pad=arrayMetrics.mode=="Default" and 6.5*scale or 0
+      local item={x=row.x-pad,y=row.y,w=row.width+pad,h=row.height,alpha=row.alpha,radius=0}
+      regions[#regions+1]=item
+      left=math.min(left,item.x);top=math.min(top,item.y);right=math.max(right,item.x+item.w);bottom=math.max(bottom,item.y+item.h)
+     end
     end
    end
   end
@@ -5696,7 +5754,7 @@ local function drawArrayList(dt,view,factor,st,p)
    pane.host.Position=UDim2.fromOffset(left,top);pane.host.Size=UDim2.fromOffset(right-left,bottom-top)
    bb=rect(gui.AbsolutePosition.X+left,gui.AbsolutePosition.Y+top,right-left,bottom-top)
    for _,row in ipairs(regions) do
-    local mask={x=(row.x-left)/bb.w,y=(row.y-top)/bb.h,w=row.w/bb.w,h=row.h/bb.h,alpha=row.alpha,radius=row.radius}
+    local mask={x=(row.x-left)/bb.w,y=(row.y-top)/bb.h,w=row.w/bb.w,h=row.h/bb.h,alpha=row.alpha,radius=row.radius,band=row.band}
     if row.tl~=nil then mask.tl=row.tl/bb.h;mask.tr=row.tr/bb.h;mask.br=row.br/bb.h;mask.bl=row.bl/bb.h end
     masks[#masks+1]=mask
    end
@@ -5705,7 +5763,7 @@ local function drawArrayList(dt,view,factor,st,p)
   local wm=api.waterMark
   local wb=wm.bounds
   local globalWB=wb and rect(gui.AbsolutePosition.X+wb.x,gui.AbsolutePosition.Y+wb.y,wb.w,wb.h) or nil
-  prepare("WaterMark",widgetsVisible and wm.root.Visible and st["WaterMark Blur"]~=false,globalWB,{{x=0,y=0,w=1,h=1,radius=.25}})
+  prepare("WaterMark",widgetsVisible and wm.root.Visible and st["WaterMark Blur"]~=false,globalWB,{{x=0,y=0,w=1,h=1,radius=wm.corner.CornerRadius.Offset/math.max(1,wb and wb.h or 1)}})
   local targetVisible=widgetsVisible and targetHUD.Host.Visible and targetHUD.Frame.Visible
   prepare("TargetHUD",targetVisible and st["TargetHUD Blur"]~=false,targetRect(),
    {{x=0,y=0,w=1,h=1,radius=18/76}})
