@@ -1,7 +1,7 @@
 -- Syntax UI library: Neverlose layout, Opai typography and ArrayList motion.
 -- Loaded by SyntaxExecutor.luau from a local file or child ModuleScript.
 -- Jackal renderer: AGPL-3.0-or-later. See LICENSE-Jackal and NOTICE.txt.
-local uiDiagnostics={Version="2026-10-18.V9.8",Stage="声明 Jackal UI"}
+local uiDiagnostics={Version="2026-10-18.V9.9",Stage="声明 Jackal UI"}
 _G.SyntaxUIDiagnostics=uiDiagnostics
 local JackalRenderer=(function()
 -- SPDX-License-Identifier: AGPL-3.0-or-later
@@ -2372,10 +2372,10 @@ local Http=game:GetService("HttpService")
 local Lighting=game:GetService("Lighting")
 local GuiService=game:GetService("GuiService")
 local TextService=game:GetService("TextService")
-local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.8",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
+local UI={ArrayLayoutVersion="2026-10-11.1",ToolbarVersion="2026-10-11.2",BlurVersion="2026-10-17.SampledV8",HUDEffectsVersion="2026-10-18.V9.9",DefaultScale=1.05,JackalStylesVersion="2026-10-16.3",Styles={"Neverlose","Opai","Jackal Neverlose","Jackal Opai"}}
 local language="English"
 local translations={
-  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
+  ["Combat"]="战斗",["Targets"]="目标",["Movement"]="移动",["Player"]="玩家",["Visual"]="视觉",["Visuals"]="视觉",["Misc"]="杂项",["Miscellaneous"]="杂项",["HUD Editor"]="界面编辑",["Configs"]="配置",["Enabled"]="启用",["Disabled"]="禁用",["Save"]="保存",["Load"]="载入",["Delete"]="删除",["Apply"]="应用",["Search"]="搜索",["Appearance"]="外观",["UI scale"]="界面缩放",["HUD scale"]="HUD缩放",["Accent color"]="强调色",["Source colors"]="原始配色",["Flowing colors"]="流光配色",["Animations: On"]="动画：开",["Animations: Off"]="动画：关",["Animation speed"]="动画速度",["Island background transparency"]="灵动岛背景透明度",["Island Background Transparency"]="灵动岛背景透明度",["Jackal Neverlose"]="Jackal Neverlose",["Jackal Opai"]="Jackal Opai",["Island animation speed"]="灵动岛动画速度",["Island Animation Speed"]="灵动岛动画速度",["Island shadow"]="灵动岛阴影",["Island Shadow Strength"]="灵动岛阴影强度",["Local blur"]="局部模糊",["Saved configurations"]="已保存配置",["Create configuration"]="新建配置",["No modules found"]="未找到模块",["Background"]="背景",["Shadow"]="阴影",["Categories"]="分类",["Lowercase"]="小写",["Show suffix"]="显示后缀",["Right line"]="右侧线条",["Widgets"]="组件",["Array List mode"]="功能列表样式",["Glow renderer"]="辉光渲染器",["Smooth Glow strength"]="柔光强度",["Smooth Glow radius"]="柔光半径",["Smooth Glow layers"]="柔光层数",["XHan Glow"]="功能列表辉光",["Local Blur radius"]="菜单模糊半径",["Island Blur radius"]="灵动岛模糊半径",["BloomFlow Blur radius"]="BloomFlow 模糊半径",["TargetHUD Blur radius"]="目标显示模糊半径",["ArrayList Shadow"]="功能列表阴影",["ArrayList Shadow strength"]="功能列表阴影强度",["ArrayList Shadow radius"]="功能列表阴影半径",["ArrayList Shadow layers"]="功能列表阴影层数",["Island State Duration"]="灵动岛状态停留时间（秒）",["ArrayList Blur"]="功能列表模糊",["ArrayList Blur radius"]="功能列表模糊半径",["WaterMark"]="水印",["WaterMark Blur"]="水印模糊",["WaterMark Blur radius"]="水印模糊半径",["WaterMark Glow"]="水印辉光",["WaterMark Glow strength"]="水印辉光强度",["WaterMark Glow radius"]="水印辉光半径",["WaterMark Glow layers"]="水印辉光层数",["WaterMark Flow speed"]="水印流光速度",["WaterMark Background opacity"]="水印底板不透明度",["Island Blur"]="灵动岛模糊",["BloomFlow Blur"]="BloomFlow 模糊",["TargetHUD Blur"]="目标显示模糊",["TargetHUD Glow"]="目标显示辉光",["TargetHUD Glow strength"]="目标辉光强度",["TargetHUD Glow radius"]="目标辉光半径",["TargetHUD Glow layers"]="目标辉光层数",["Original"]="原版",["Range"]="范围",["Speed"]="速度",["Mode"]="模式",["Color"]="颜色",["Scale"]="缩放",["Players"]="玩家",["Items"]="物品",["Health bar"]="生命条",["Outline"]="描边",["Opacity"]="不透明度",["Width"]="宽度",["Height"]="高度",["Size"]="大小",["Distance"]="距离",["Rotation"]="旋转",["Theme"]="主题",["Style"]="样式",["Language"]="语言",["None"]="无",["Default"]="默认",["Opai"]="Opai",["XHan"]="XHan",["Click GUI"]="点击界面",["Full Bright"]="全亮",["Name Tags"]="名称标签",["Target HUD"]="目标面板",["Dynamic Island"]="灵动岛",["ArrayList"]="功能列表"
 }
 local words={Max="最大",Min="最小",Auto="自动",Target="目标",Targets="目标",Show="显示",Hide="隐藏",Health="生命",Armor="护甲",Effect="效果",Effects="效果",Rendering="渲染",Render="渲染",Mode="模式",Speed="速度",Range="范围",Strength="强度",Background="背景",Shadow="阴影",Size="大小",Width="宽度",Height="高度",Color="颜色",Colors="颜色",Glow="发光",Text="文字",Font="字体",Scale="缩放",Island="灵动岛",Delay="延迟",Distance="距离",Duration="时长",Time="时间",Damage="伤害",Chance="概率",Count="数量",Amount="数量",Interval="间隔",Radius="半径",Angle="角度",Offset="偏移",Vertical="垂直",Horizontal="水平",Threshold="阈值",Priority="优先级",Players="玩家",Player="玩家",Blocks="方块",Block="方块",Items="物品",Item="物品",Inventory="背包",Potion="药水",Session="会话",Movement="移动",Combat="战斗",Visual="视觉",Enabled="启用",Disabled="禁用",Apply="应用",Lowercase="小写",Suffix="后缀",Categories="分类",Animation="动画",Animations="动画",Right="右",Left="左",None="无",Default="默认"}
 local function localize(value)
@@ -3747,7 +3747,7 @@ local ArrayListShadow={}
 function ArrayListShadow.new(parent,options)
  local self={rows=0,dead=false}
  -- Keep the entire subtree under all list backgrounds, blur, glow and text.
- self.root=new("Frame",parent,{Name="ArrayListShadow",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Active=false,ClipsDescendants=false,Visible=false})
+ self.root=new("Frame",parent,{Name="ArrayListShadow",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=1,Active=false,ClipsDescendants=false,Visible=false})
  self.smooth=SmoothGlow.new(self.root,options)
  function self:Step(metrics,settings,visible)
   self.rows=0
@@ -3783,6 +3783,60 @@ function ArrayListShadow.new(parent,options)
  return self
 end
 
+local WaterMark={}
+function WaterMark.new(parent,options)
+ local self={brand=options.text or "Syntax",phase=0,nextText=0,dead=false}
+ self.root=new("Frame",parent,{Name="WaterMark",BackgroundTransparency=1,Size=UDim2.fromOffset(240,32),Position=UDim2.fromOffset(16,16),ZIndex=8000,ClipsDescendants=false,Active=false,Visible=false})
+ self.blur=new("Frame",self.root,{Name="WaterMarkLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0,Active=false})
+ self.backdrop=new("Frame",self.root,{Name="WaterMarkBackdrop",BackgroundColor3=rgb(0x101319),BackgroundTransparency=.75,Size=UDim2.fromScale(1,1),ZIndex=10,Active=false})
+ self.corner=new("UICorner",self.backdrop,{CornerRadius=UDim.new(0,8)})
+ self.label=new("TextLabel",self.root,{Name="WaterMarkText",Text="Syntax",BackgroundTransparency=1,Font=Enum.Font.GothamMedium,TextSize=14,TextColor3=Color3.new(1,1,1),TextScaled=false,TextTruncate=Enum.TextTruncate.AtEnd,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=30,Active=false})
+ self.gradient=new("UIGradient",self.label,{Name="FlowingText",Rotation=0})
+ self.glow=SmoothGlow.new(self.root,options)
+ self.glow.root.Name="WaterMarkGlow";self.glow.root.ZIndex=20
+ function self:Step(settings,view,hudScale,at,enabled,dt,info)
+  self.root.Visible=enabled
+  local power=settings["WaterMark Glow strength"] or .5
+  self.glow:Begin(enabled and settings["WaterMark Glow"]~=false,power,settings["WaterMark Glow layers"] or 2)
+  if not enabled then self.glow:Finish();return end
+  self.phase=(self.phase+math.max(0,dt)*.08*(settings["WaterMark Flow speed"] or 1))%1
+  if os.clock()>=self.nextText then
+   self.nextText=os.clock()+.25
+   self.text=self.brand.."  |  "..tostring(info.username or "Player").."  |  "..tostring(math.floor((info.fps or 0)+.5)).." FPS"
+   if info.ping then self.text=self.text.."  |  "..tostring(math.floor(info.ping+.5)).." ms" end
+  end
+  local scale=math.min(hudScale/2*(at and at.scale or 1),math.max(.1,(view.Y-4)/32))
+  local size=math.max(1,math.round(14*scale))
+  if self.measuredText~=self.text or self.measuredSize~=size then
+   self.measuredText=self.text;self.measuredSize=size
+   self.measuredWidth=TextService:GetTextSize(self.text or self.brand,size,Enum.Font.GothamMedium,Vector2.new(10000,100)).X
+  end
+  local width=self.measuredWidth+24*scale
+  local w=math.max(1,math.min(width,view.X-4));local h=math.max(1,32*scale)
+  local x=math.clamp(at and at.x or 16,2,math.max(2,view.X-w-2))
+  local y=math.clamp(at and at.y or 16,2,math.max(2,view.Y-h-2))
+  self.bounds={x=x,y=y,w=w,h=h};self.scale=scale
+  self.root.Position=UDim2.fromOffset(x,y);self.root.Size=UDim2.fromOffset(w,h)
+  self.backdrop.BackgroundTransparency=1-(settings["WaterMark Background opacity"] or 25)/100
+  self.corner.CornerRadius=UDim.new(0,8*scale)
+  self.label.Text=self.text or self.brand;self.label.TextSize=size
+  self.label.Position=UDim2.fromOffset(12*scale,0);self.label.Size=UDim2.fromOffset(math.max(1,w-24*scale),h)
+  local colors={}
+  for i=0,4 do colors[i+1]=ColorSequenceKeypoint.new(i/4,Color3.fromHSV((self.phase+i*.13)%1,.5,1)) end
+  self.gradient.Color=ColorSequence.new(colors)
+  for i=1,4 do
+   local c=colors[i].Value:Lerp(colors[i+1].Value,.5)
+   local packed=math.round(c.R*255)*65536+math.round(c.G*255)*256+math.round(c.B*255)
+   self.glow:Draw(12*scale+(w-24*scale)*(i-1)/4,9*scale,math.max(0,w-24*scale)/4,14*scale,packed,1,settings["WaterMark Glow radius"] or 18,scale)
+  end
+  self.glow:Finish()
+ end
+ function self:SetText(value) assert(type(value)=="string" and #value>0 and #value<=120,"Invalid WaterMark text");self.brand=value;self.nextText=0 end
+ function self:Inspect() return {visible=self.root.Visible,text=self.label.Text,phase=self.phase,bounds=self.bounds,glow=self.glow:Inspect(),glowZIndex=self.glow.root.ZIndex,textZIndex=self.label.ZIndex,backdropZIndex=self.backdrop.ZIndex} end
+ function self:Destroy() if self.dead then return end;self.dead=true;self.glow:Destroy();self.root:Destroy() end
+ return self
+end
+
 function UI.new(options)
  uiDiagnostics.Stage="初始化 UI 设置"
  options=table.clone(options or {})
@@ -3806,9 +3860,33 @@ function UI.new(options)
    addHUDSetting({name="ArrayList Shadow radius",type="slider",default=18,min=0,max=72,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
    addHUDSetting({name="Island State Duration",type="slider",default=2,min=.5,max=15,step=.1})
    addHUDSetting({name="ArrayList Shadow layers",type="slider",default=2,min=1,max=4,step=1,when={op="eq",name="ArrayList Shadow",value=true}})
+   local suppliedArrayList={}
+   for _,setting in ipairs(m.settings) do if setting.name=="ArrayList Blur" or setting.name=="ArrayList Blur radius" then suppliedArrayList[setting.name]=true end end
+   addHUDSetting({name="ArrayList Blur",type="toggle",default=true})
+   addHUDSetting({name="ArrayList Blur radius",type="slider",default=options.HUDBlurOptions and options.HUDBlurOptions.radius or options.LocalBlurOptions and options.LocalBlurOptions.radius or 120,min=0,max=120,step=1})
+   for _,name in ipairs({"WaterMark Blur","WaterMark Glow"}) do addHUDSetting({name=name,type="toggle",default=true}) end
+   addHUDSetting({name="WaterMark Blur radius",type="slider",default=120,min=0,max=120,step=1})
+   addHUDSetting({name="WaterMark Glow strength",type="slider",default=.5,min=0,max=1.6,step=.05})
+   addHUDSetting({name="WaterMark Glow radius",type="slider",default=18,min=6,max=72,step=1})
+   addHUDSetting({name="WaterMark Glow layers",type="slider",default=2,min=1,max=4,step=1})
+   addHUDSetting({name="WaterMark Flow speed",type="slider",default=1,min=0,max=5,step=.1})
+   addHUDSetting({name="WaterMark Background opacity",type="slider",default=25,min=0,max=100,step=1})
+   addHUDSetting({name="Widgets",type="multi",default=options.WaterMarkDefault==false and {} or {"WaterMark"},options={"Dynamic Island","ArrayList","TargetHUD","WaterMark"}})
+   for _,setting in ipairs(m.settings) do
+    if setting.name=="Widgets" then
+     if not table.find(setting.options,"WaterMark") then setting.options[#setting.options+1]="WaterMark" end
+     if options.WaterMarkDefault~=false and not table.find(setting.default,"WaterMark") then setting.default[#setting.default+1]="WaterMark" end
+    elseif setting.name=="BloomFlow Blur" or setting.name=="BloomFlow Blur radius" then
+     local canonical=setting.name=="BloomFlow Blur" and "ArrayList Blur" or "ArrayList Blur radius"
+     if not suppliedArrayList[canonical] then
+      for _,other in ipairs(m.settings) do if other.name==canonical then other.default=setting.default end end
+     end
+     setting.when={op="eq",name="ArrayList mode",value="__LegacyAliasOnly"}
+    end
+   end
    -- Keep shadow controls at the top of HUD settings.
    do
-    local priority={"ArrayList Shadow","ArrayList Shadow strength","ArrayList Shadow radius","ArrayList Shadow layers","Island State Duration","Widgets","ArrayList mode"}
+    local priority={"ArrayList Blur","ArrayList Blur radius","WaterMark Blur","WaterMark Blur radius","WaterMark Glow","WaterMark Glow strength","WaterMark Glow radius","WaterMark Glow layers","WaterMark Flow speed","WaterMark Background opacity","ArrayList Shadow","ArrayList Shadow strength","ArrayList Shadow radius","ArrayList Shadow layers","Island State Duration","Widgets","ArrayList mode"}
     local promoted,seen={},{}
     for _,name in ipairs(priority) do
      for _,setting in ipairs(m.settings) do if setting.name==name then promoted[#promoted+1]=setting;seen[name]=true;break end end
@@ -3977,6 +4055,7 @@ function UI.new(options)
   assert(type(m.id)=="string" and not state[m.id],"Unique module id required")
   local values={};local settingNames={}
   for _,s in ipairs(m.settings or {}) do assert(not settingNames[s.name],"Duplicate setting");settingNames[s.name]=true;values[s.name]=copy(s.default) end
+  if m.id=="HUD" then values["BloomFlow Blur"]=values["ArrayList Blur"];values["BloomFlow Blur radius"]=values["ArrayList Blur radius"] end
   state[m.id]={enabled=m.enabled==true,key="Unknown",settings=values}
   rows[m.id]={def=m,expanded=false,reveal=0,enabled=m.enabled and 1 or 0,hover=0,animations={}}
  end
@@ -4088,7 +4167,12 @@ function UI.new(options)
  end
  function api:SetSetting(id,name,value)
   local row=assert(rows[id],"Invalid module")
-   for _,s in ipairs(row.def.settings or {}) do if s.name==name then assert(valid(s,value),"Invalid setting");state[id].settings[name]=copy(value);if id=="HUD" and name=="Island Shadow Strength" then islandShadow=value end;if id=="HUD" and name=="Island Background Transparency" then islandBackgroundTransparency=value end;if id=="HUD" and name=="Island Animation Speed" then bridge.islandAnimationSpeed=value end;notify(id,name,value);return end end
+   for _,s in ipairs(row.def.settings or {}) do if s.name==name then assert(valid(s,value),"Invalid setting");state[id].settings[name]=copy(value)
+    if id=="HUD" then
+     local alias={['ArrayList Blur']='BloomFlow Blur',['BloomFlow Blur']='ArrayList Blur',['ArrayList Blur radius']='BloomFlow Blur radius',['BloomFlow Blur radius']='ArrayList Blur radius'}
+     if alias[name] then state[id].settings[alias[name]]=copy(value) end
+    end
+    if id=="HUD" and name=="Island Shadow Strength" then islandShadow=value end;if id=="HUD" and name=="Island Background Transparency" then islandBackgroundTransparency=value end;if id=="HUD" and name=="Island Animation Speed" then bridge.islandAnimationSpeed=value end;notify(id,name,value);return end end
   error("Unknown setting")
  end
  function api:SetTheme(name) assert(palettes[name],"Unknown palette");theme=name;customAccent=nil;themeEffect="Source";paletteCache=nil;if state.ClickGUI then state.ClickGUI.settings["Opai Color"]=name;notify("ClickGUI","Opai Color",name) end end
@@ -4105,6 +4189,10 @@ function UI.new(options)
    local incomingHUD=snapshot.modules.HUD
    if type(incomingHUD)=="table" and type(incomingHUD.settings)=="table" then
     local hudSettings=incomingHUD.settings
+    for old,newName in pairs({['BloomFlow Blur']='ArrayList Blur',['BloomFlow Blur radius']='ArrayList Blur radius'}) do
+     if hudSettings[newName]~=nil then hudSettings[old]=hudSettings[newName]
+     elseif hudSettings[old]~=nil then hudSettings[newName]=hudSettings[old] end
+    end
     for _,name in ipairs({"Target Mode","Target Show Armor","Target Theme Color","Target Outline","Target Show Win Or Loss","Target Health Animation"}) do hudSettings[name]=nil end
     if type(hudSettings.Widgets)=="table" then
      local array=true;for key in pairs(hudSettings.Widgets) do if type(key)~="number" or key%1~=0 or key<1 then array=false;break end end
@@ -4137,7 +4225,7 @@ function UI.new(options)
   if snapshot.hudLayout~=nil then
    if type(snapshot.hudLayout)~="table" then return false,"Invalid HUD layout" end
    for name,at in pairs(snapshot.hudLayout) do
-    if (name~="ArrayList" and name~="TargetHUD") or type(at)~="table" then return false,"Invalid HUD panel" end
+    if (name~="ArrayList" and name~="TargetHUD" and name~="WaterMark") or type(at)~="table" then return false,"Invalid HUD panel" end
     for _,axis in ipairs({"x","y"}) do local v=at[axis];if type(v)~="number" or v~=v or math.abs(v)==math.huge then return false,"Invalid HUD position" end end
     local s=at.scale or 1;if type(s)~="number" or s~=s or s<.5 or s>2 then return false,"Invalid HUD scale" end
    end
@@ -4931,7 +5019,7 @@ function UI.new(options)
  function api:EditHUD() api:SetVisible(false);hudEditing=true;if state.HUD then state.HUD.enabled=true end end
  function api:GetHUDLayout() return copy(hudPlacements) end
  function api:SetHUDLayout(name,x,y,scale)
-   assert(name=="ArrayList" or name=="TargetHUD","Unknown draggable HUD")
+   assert(name=="ArrayList" or name=="TargetHUD" or name=="WaterMark","Unknown draggable HUD")
   assert(type(x)=="number" and x==x and math.abs(x)<math.huge and type(y)=="number" and y==y and math.abs(y)<math.huge,"Invalid HUD position")
   scale=scale or 1;assert(type(scale)=="number" and scale==scale and scale>=.5 and scale<=2,"Invalid HUD scale")
   hudPlacements[name]={x=x,y=y,scale=scale}
@@ -4955,7 +5043,12 @@ function UI.new(options)
   targetHUD.Current=info and copy(info)
  end
  function api:GetTargetHUDState() return targetHUD:Inspect() end
-  local hudControlPriority={ArrayList=10,TargetHUD=40}
+ api.waterMark=WaterMark.new(api.HUDLayer,{
+  text=options.WaterMarkText or "Syntax",imageId=options.SmoothGlowImageId or UI.SmoothGlowImageId,
+  onUnavailable=function(reason) if not dead then warn("[SyntaxUI WaterMark Glow] "..reason) end end})
+ function api:SetWaterMarkText(value) self.waterMark:SetText(value) end
+ function api:GetWaterMarkState() return self.waterMark:Inspect() end
+  local hudControlPriority={ArrayList=10,TargetHUD=40,WaterMark=60}
  local function updateHUDControls()
   hudHint.Visible=hudEditing
   local hintWidth=math.min(430,gui.AbsoluteSize.X-8);hudHint.Size=UDim2.fromOffset(hintWidth,32);hudHint.Position=UDim2.new(.5,-hintWidth/2,1,-44)
@@ -5415,6 +5508,7 @@ local function drawArrayList(dt,view,factor,st,p)
    widgets:begin();hudBounds={};local view=gui.AbsoluteSize;local factor=hudScale
   if visible and activeStyle:match("^Jackal ") and not hudEditing then
    widgetRoot.Visible=false;xhan.root.Visible=false;targetHUD.Host.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish()
+   api.waterMark:Step({},view,hudScale,nil,false,dt,{})
    widgets:finish();return
   end
   local p=currentPalette();local st=state.HUD and state.HUD.settings or {}
@@ -5440,6 +5534,8 @@ local function drawArrayList(dt,view,factor,st,p)
    if preview then targetHUD:Preview() else targetHUD:Update(target) end
   else targetHUD:Update(nil) end
 
+  api.waterMark:Step(st,view,hudScale,hudPlacements.WaterMark,widgetEnabled("WaterMark"),dt,{username=options.Username or Players.LocalPlayer.DisplayName or Players.LocalPlayer.Name,fps=islandState.fps,ping=islandState.ping})
+  if api.waterMark.root.Visible then hudBounds.WaterMark=api.waterMark.bounds end
   widgets:finish();updateHUDControls()
  end
  uiDiagnostics.Stage="创建三个 HUD 模糊区域"
@@ -5452,17 +5548,20 @@ local function drawArrayList(dt,view,factor,st,p)
  hudBlurProfile=SampledLocalBlur.Profile(hudBlurProfile)
  local hudBlurPanes={
   Island={host=new("Frame",island,{Name="IslandLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=29}),profile=table.clone(hudBlurProfile)},
-  BloomFlow={host=new("Frame",xhan.root,{Name="BloomFlowLocalBlur",BackgroundTransparency=1,ZIndex=0}),profile=table.clone(hudBlurProfile)},
+  ArrayList={host=new("Frame",api.HUDLayer,{Name="ArrayListLocalBlur",BackgroundTransparency=1,ZIndex=0,Active=false}),profile=table.clone(hudBlurProfile)},
+  WaterMark={host=api.waterMark.blur,profile=table.clone(hudBlurProfile)},
   TargetHUD={host=new("Frame",targetHUD.Frame,{Name="TargetHUDLocalBlur",BackgroundTransparency=1,Size=UDim2.fromScale(1,1),ZIndex=0}),profile=table.clone(hudBlurProfile)},
  }
- local radiusSettings={Island="Island Blur radius",BloomFlow="BloomFlow Blur radius",TargetHUD="TargetHUD Blur radius"}
+ local radiusSettings={Island="Island Blur radius",ArrayList="ArrayList Blur radius",TargetHUD="TargetHUD Blur radius",WaterMark="WaterMark Blur radius"}
  function api:GetHUDBlurConfig(name)
+  if name=="BloomFlow" then name="ArrayList" end
   local result=table.clone(assert(hudBlurPanes[name],"Unknown HUD blur").profile)
   local value=state.HUD and state.HUD.settings[radiusSettings[name]]
   if value~=nil then result.radius=value end
   return result
  end
  function api:SetHUDBlurConfig(name,patch)
+  if name=="BloomFlow" then name="ArrayList" end
   local pane=assert(hudBlurPanes[name],"Unknown HUD blur")
   local nextProfile=table.clone(pane.profile)
   -- Use the same atomic validator as the ClickGUI/test renderer.
@@ -5492,6 +5591,7 @@ local function drawArrayList(dt,view,factor,st,p)
   api.arrayListShadow:Destroy()
   for _,pane in pairs(hudBlurPanes) do if pane.renderer then pane.renderer:Destroy();pane.renderer=nil end end
   targetHUD:DestroyEffects()
+  api.waterMark:Destroy()
  end
  local hudBlurRotation=0
  local function renderHUDEffects(dt)
@@ -5521,27 +5621,33 @@ local function drawArrayList(dt,view,factor,st,p)
   local ib=islandRect()
   prepare("Island",drawable and island.Visible and st["Island Blur"]~=false,ib,
    {{x=0,y=0,w=1,h=1,radius=islandCorner.CornerRadius.Offset/math.max(1,ib.h)}})
-  local bloom=widgetsVisible and xhan.root.Visible and arrayMetrics.mode=="BloomFlow" and st["BloomFlow Blur"]~=false
+  local listVisible=widgetsVisible and widgetEnabled("ArrayList") and st["ArrayList Blur"]~=false
   local left,top,right,bottom=math.huge,math.huge,-math.huge,-math.huge
-  local masks={}
-  if bloom then
+  local masks,regions={},{}
+  if listVisible then
+   local scale=arrayMetrics.shadowScale or 1
    for _,row in ipairs(arrayMetrics.rows or {}) do
     if row.height>.5 and row.alpha>.001 then
-     left=math.min(left,row.x);top=math.min(top,row.y);right=math.max(right,row.x+row.width);bottom=math.max(bottom,row.y+row.height)
+     local pad=arrayMetrics.mode=="Default" and 6.5*scale or 0
+     local item={x=row.x-pad,y=row.y,w=row.width+pad,h=row.height,alpha=row.alpha,radius=arrayMetrics.mode=="XHan" and math.min(.5,4*scale/row.height) or 0}
+     regions[#regions+1]=item
+     left=math.min(left,item.x);top=math.min(top,item.y);right=math.max(right,item.x+item.w);bottom=math.max(bottom,item.y+item.h)
     end
    end
   end
-  bloom=bloom and right>left and bottom>top
-  local bp=hudBlurPanes.BloomFlow
+  listVisible=listVisible and right>left and bottom>top
+  local pane=hudBlurPanes.ArrayList
   local bb=nil
-  if bloom then
-   bp.host.Position=UDim2.fromOffset(left,top);bp.host.Size=UDim2.fromOffset(right-left,bottom-top)
+  if listVisible then
+   pane.host.Position=UDim2.fromOffset(left,top);pane.host.Size=UDim2.fromOffset(right-left,bottom-top)
    bb=rect(gui.AbsolutePosition.X+left,gui.AbsolutePosition.Y+top,right-left,bottom-top)
-   for _,row in ipairs(arrayMetrics.rows) do
-    if row.height>.5 and row.alpha>.001 then masks[#masks+1]={x=(row.x-left)/bb.w,y=(row.y-top)/bb.h,w=row.width/bb.w,h=row.height/bb.h,alpha=row.alpha} end
-   end
+   for _,row in ipairs(regions) do masks[#masks+1]={x=(row.x-left)/bb.w,y=(row.y-top)/bb.h,w=row.w/bb.w,h=row.h/bb.h,alpha=row.alpha,radius=row.radius} end
   end
-  prepare("BloomFlow",bloom,bb,masks)
+  prepare("ArrayList",listVisible,bb,masks)
+  local wm=api.waterMark
+  local wb=wm.bounds
+  local globalWB=wb and rect(gui.AbsolutePosition.X+wb.x,gui.AbsolutePosition.Y+wb.y,wb.w,wb.h) or nil
+  prepare("WaterMark",widgetsVisible and wm.root.Visible and st["WaterMark Blur"]~=false,globalWB,{{x=0,y=0,w=1,h=1,radius=.25}})
   local targetVisible=widgetsVisible and targetHUD.Host.Visible and targetHUD.Frame.Visible
   prepare("TargetHUD",targetVisible and st["TargetHUD Blur"]~=false,targetRect(),
    {{x=0,y=0,w=1,h=1,radius=18/76}})
@@ -5560,6 +5666,9 @@ local function drawArrayList(dt,view,factor,st,p)
   for name,pane in pairs(hudBlurPanes) do
    result[name]=pane.renderer and pane.renderer:Inspect() or {active=false,completed=0,reason="not-created"}
   end
+  result.BloomFlow=copy(result.ArrayList)
+  result.BloomFlow.active=result.BloomFlow.active and arrayMetrics.mode=="BloomFlow"
+  result.waterMarkGlow=api.waterMark.glow:Inspect()
   return result
  end
 
@@ -5570,7 +5679,7 @@ local function drawArrayList(dt,view,factor,st,p)
   bridge.Sync()
   bridge.RefreshBindings()
   expireNotices();local view=gui.AbsoluteSize
-  if view.X<=36 or view.Y<=32 then targetHUD.Host.Visible=false;island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;xhan.smooth:Begin(false,0,2);xhan.smooth:Finish();return end
+  if view.X<=36 or view.Y<=32 then targetHUD.Host.Visible=false;island.Visible=false;widgetRoot.Visible=false;xhan.root.Visible=false;hudControls.Visible=false;api.waterMark:Step({},view,hudScale,nil,false,dt,{});xhan.smooth:Begin(false,0,2);xhan.smooth:Finish();return end
   widgetRoot.Visible=true;hudControls.Visible=true
     local scale=math.min(hudScale,(view.X-8)/70)
     islandState.renderScale=scale
@@ -5973,7 +6082,7 @@ local function drawArrayList(dt,view,factor,st,p)
  uiDiagnostics.Stage="绑定 UI 渲染回调"
   Run:BindToRenderStep(api.renderStepName,Enum.RenderPriority.Last.Value,render)
  -- Inspection is useful in Studio and automated renderer verification.
-  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),arrayListShadow=api.arrayListShadow:Inspect(),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
+  function api:Inspect() local result={appearance=api:GetAppearance(),appearanceOpen=appearanceOpen,legacyIcons="NeverloseAssetsV1",smoothGlow=xhan.smooth:Inspect(),hudEffects=self:GetHUDEffectsState(),arrayList=copy(arrayMetrics),arrayListShadow=api.arrayListShadow:Inspect(),waterMark=api.waterMark:Inspect(),hudEditing=hudEditing,hudBounds=copy(hudBounds),style=activeStyle,nativeControls=#hits,alternate={x=alt.x,y=alt.y,scale=alt.s,scroll=alt.scroll,maxScroll=alt.max,nav=alt.nav},inset=GuiService:GetGuiInset(),jackal=bridge.app and bridge.app:Inspect() or nil,island={backgroundTransparency=islandBackgroundTransparency,shadowStyle="Jackal",icons="Original+SyntaxLogoV2",animationSpeed=bridge.islandAnimationSpeed,visible=island.Visible,width=islandState.width.value,height=islandState.height.value,notices=#notices},localBlur=blurPane.renderer and blurPane.renderer:Inspect() or {active=false,unsupported=false,reason="destroyed"},scale=k,width=width,height=height,columns={},dropdown=dropdown~=nil,visible=visible};for _,c in ipairs(columns) do result.columns[#result.columns+1]={name=c.name,x=c.x-horizontal,y=c.y,height=c.bodyH,scroll=c.scroll,maxScroll=c.maxScroll,entries=#c.entries} end;return result end
  uiDiagnostics.Stage="UI 就绪"
  return api
 end
